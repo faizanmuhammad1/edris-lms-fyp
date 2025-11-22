@@ -1,0 +1,9 @@
+-- AlterTable
+ALTER TABLE "QuizAttempt" ADD COLUMN     "backButtonCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "copyAttemptCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "devToolsAttemptCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "pasteAttemptCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "rightClickCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "tabSwitchCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "visibilityChangeCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "windowBlurCount" INTEGER NOT NULL DEFAULT 0;

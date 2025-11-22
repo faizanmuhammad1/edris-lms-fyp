@@ -1,0 +1,283 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String           @id
+  name           String
+  email          String
+  emailVerified  Boolean
+  image          String?
+  createdAt      DateTime
+  updatedAt      DateTime
+  sessions       Session[]
+  accounts       Account[]
+  courses        Course[]
+  enrollment     Enrollment[]
+  lessonProgress LessonProgress[]
+  quizAttempts   QuizAttempt[]
+
+  stripeCustomerId String? @unique
+
+  role       String?
+  banned     Boolean?
+  banReason  String?
+  banExpires DateTime?
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  impersonatedBy String?
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
+}
+
+model Course {
+  id String @id @default(uuid())
+
+  title       String
+  description String
+  fileKey     String
+  price       Int
+  duration    Int
+  level       CourseLevel @default(Beginner)
+
+  stripePriceId String @unique
+
+  category         String
+  smallDescription String
+  slug             String @unique
+
+  status CourseStatus @default(Draft)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  chapter    Chapter[]
+  enrollment Enrollment[]
+}
+
+enum CourseLevel {
+  Beginner
+  Intermediate
+  Advanced
+}
+
+enum CourseStatus {
+  Draft
+  Published
+  Archived
+}
+
+model Chapter {
+  id String @id @default(uuid())
+
+  title    String
+  position Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId  String
+
+  lessons Lesson[]
+}
+
+model Lesson {
+  id String @id @default(uuid())
+
+  title        String
+  description  String?
+  thumbnailKey String?
+  videoKey     String?
+  position     Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Chapter   Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  chapterId String
+
+  lessonProgress LessonProgress[]
+  quiz           Quiz?
+}
+
+model Quiz {
+  id String @id @default(uuid())
+
+  title        String
+  description  String?
+  timeLimit    Int? // Time limit in minutes (null means no time limit)
+  passingScore Int  @default(70) // Passing score percentage
+  isPublished  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId  String   @unique
+
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+}
+
+model QuizQuestion {
+  id String @id @default(uuid())
+
+  question  String
+  position  Int
+  points    Int @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Quiz       Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quizId     String
+
+  options QuizOption[]
+}
+
+model QuizOption {
+  id String @id @default(uuid())
+
+  text      String
+  isCorrect Boolean @default(false)
+  position  Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Question  QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionId String
+
+  @@unique([questionId, position])
+}
+
+model QuizAttempt {
+  id String @id @default(uuid())
+
+  score      Int? // Percentage score
+  timeSpent  Int? // Time spent in seconds
+  startedAt  DateTime @default(now())
+  submittedAt DateTime?
+  isCompleted Boolean @default(false)
+  
+  // Cheating tracking
+  tabSwitchCount     Int @default(0) // Number of times user switched tabs
+  backButtonCount    Int @default(0) // Number of times back button was pressed
+  windowBlurCount    Int @default(0) // Number of times window lost focus
+  visibilityChangeCount Int @default(0) // Number of tab visibility changes
+  copyAttemptCount   Int @default(0) // Copy attempts
+  pasteAttemptCount  Int @default(0) // Paste attempts
+  rightClickCount    Int @default(0) // Right-click attempts
+  devToolsAttemptCount Int @default(0) // DevTools opening attempts
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  Quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quizId    String
+
+  answers QuizAnswer[]
+}
+
+model QuizAnswer {
+  id String @id @default(uuid())
+
+  questionId String
+  optionId   String? // Selected option ID (null if unanswered)
+  isCorrect  Boolean? // Whether the selected answer is correct
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Attempt   QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  attemptId String
+
+  @@unique([attemptId, questionId])
+}
+
+model Enrollment {
+  id String @id @default(uuid())
+
+  amount Int
+  status EnrollmentStatus @default(Pending)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId  String
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  @@unique([userId, courseId])
+}
+
+enum EnrollmentStatus {
+  Pending
+  Active
+  Cancelled
+}
+
+model LessonProgress {
+  id String @id @default(uuid())
+
+  completed Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  User     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   String
+  Lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId String
+
+  @@unique([userId, lessonId])
+}
