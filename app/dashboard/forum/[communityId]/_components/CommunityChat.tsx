@@ -20,7 +20,7 @@ interface CommunityChatProps {
   communityId: string;
 }
 
-export function CommunityChat({ communityId }: CommunityChatProps) {
+export function CommunityChat({ }: CommunityChatProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",

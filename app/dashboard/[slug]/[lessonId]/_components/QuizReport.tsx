@@ -168,7 +168,7 @@ export function QuizReport({ quiz, attempts, onStartQuiz }: QuizReportProps) {
         ) : (
           <div className="text-center py-8">
             <p className="text-muted-foreground mb-4">
-              No quiz attempts yet. Click "Take Quiz" to start!
+              No quiz attempts yet. Click &quot;Take Quiz&quot; to start!
             </p>
           </div>
         )}

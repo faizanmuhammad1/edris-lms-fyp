@@ -29,27 +29,14 @@ export const courseSchema = z.object({
 
   fileKey: z.string().min(1, { message: "File is required" }),
 
-  price: z.preprocess(
-    (val) => {
-      if (val === "" || val === undefined || val === null) return undefined;
-      return val;
-    },
-    z.union([
-      z.undefined(),
-      z.coerce.number({ invalid_type_error: "Price must be a number" }).min(1, { message: "Price must be at least 1" }),
-    ])
-  ).refine((val) => val !== undefined, { message: "Price is required" }),
+  price: z.coerce
+    .number({ invalid_type_error: "Price must be a number" })
+    .min(1, { message: "Price must be at least 1" }),
 
-  duration: z.preprocess(
-    (val) => {
-      if (val === "" || val === undefined || val === null) return undefined;
-      return val;
-    },
-    z.union([
-      z.undefined(),
-      z.coerce.number({ invalid_type_error: "Duration must be a number" }).min(1, { message: "Duration must be at least 1 hour" }).max(500, { message: "Duration must be at most 500 hours" }),
-    ])
-  ).refine((val) => val !== undefined, { message: "Duration is required" }),
+  duration: z.coerce
+    .number({ invalid_type_error: "Duration must be a number" })
+    .min(1, { message: "Duration must be at least 1 hour" })
+    .max(500, { message: "Duration must be at most 500 hours" }),
 
   level: z.enum(courseLevels, {
     message: "Level is required",

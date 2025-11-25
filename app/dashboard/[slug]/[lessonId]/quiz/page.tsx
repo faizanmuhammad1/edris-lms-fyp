@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 type Params = Promise<{ slug: string; lessonId: string }>;
 
 export default async function QuizPage({ params }: { params: Params }) {
-  const { slug, lessonId } = await params;
+  const { lessonId } = await params;
 
   const quizData = await getQuizForWindow(lessonId);
 

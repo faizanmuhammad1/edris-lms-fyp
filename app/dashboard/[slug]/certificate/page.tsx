@@ -38,12 +38,13 @@ function getMockData(slug: string) {
   } as const;
 }
 
-export default function CertificatePage({
+export default async function CertificatePage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const data = getMockData(params?.slug);
+  const { slug } = await params;
+  const data = getMockData(slug);
   const issuedDate = new Date(data.certificate.issuedOn).toLocaleDateString(
     undefined,
     { year: "numeric", month: "long", day: "numeric" }

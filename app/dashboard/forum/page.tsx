@@ -88,7 +88,7 @@ export default async function ForumPage() {
             <IconMessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Communities Available</h3>
             <p className="text-muted-foreground text-center">
-              Communities you're enrolled in will appear here. Check back later!
+              Communities you&apos;re enrolled in will appear here. Check back later!
             </p>
           </CardContent>
         </Card>

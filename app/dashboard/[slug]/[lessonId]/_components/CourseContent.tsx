@@ -14,7 +14,6 @@ import { QuizReport } from "./QuizReport";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
-import { ExternalLink } from "lucide-react";
 
 interface iAppProps {
   data: LessonContentType;
@@ -150,7 +149,7 @@ export function CourseContent({ data }: iAppProps) {
                   try {
                     quizWindow?.moveTo(0, 0);
                     quizWindow?.resizeTo(screen.width, screen.height);
-                  } catch (e) {
+                  } catch {
                     // Ignore if browser blocks window manipulation
                   }
                   

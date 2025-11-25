@@ -10,7 +10,7 @@ export interface CertificateItem {
 
 // Mock certificate generator based on fully completed courses
 export async function getCertificates(): Promise<CertificateItem[]> {
-  const user = await requireUser();
+  await requireUser();
   const enrolled = await getEnrolledCourses();
 
   const certificates: CertificateItem[] = [];

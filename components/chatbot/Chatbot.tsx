@@ -50,10 +50,6 @@ export function Chatbot() {
         setMessages([hiMessage]);
         setHasShownWelcome(true);
       }, 300);
-    } else if (!isOpen) {
-      // Reset welcome message when chat closes
-      setHasShownWelcome(false);
-      setMessages([]);
     }
   }, [isOpen, hasShownWelcome]);
 
@@ -119,7 +115,13 @@ export function Chatbot() {
       )}
 
       {/* Chat Sheet */}
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <Sheet open={isOpen} onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open) {
+          setHasShownWelcome(false);
+          setMessages([]);
+        }
+      }}>
         <SheetContent
           side="right"
           className="w-full sm:w-[400px] p-0 flex flex-col"
@@ -200,11 +202,11 @@ export function Chatbot() {
                 onKeyPress={handleKeyPress}
                 placeholder="Type your message..."
                 className="flex-1"
-                disabled={inputValue.trim() && messages[messages.length - 1]?.role === "user"}
+                disabled={!!inputValue.trim() && messages[messages.length - 1]?.role === "user"}
               />
               <Button
                 onClick={handleSendMessage}
-                disabled={!inputValue.trim() || (inputValue.trim() && messages[messages.length - 1]?.role === "user")}
+                disabled={!inputValue.trim() || (!!inputValue.trim() && messages[messages.length - 1]?.role === "user")}
                 size="icon"
                 className="shrink-0"
               >

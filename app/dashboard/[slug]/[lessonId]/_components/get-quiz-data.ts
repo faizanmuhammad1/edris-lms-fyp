@@ -1,7 +1,6 @@
 import "server-only";
 import { requireUser } from "@/app/data/user/require-user";
 import { prisma } from "@/lib/db";
-import { notFound } from "next/navigation";
 
 export async function getQuizForWindow(lessonId: string) {
   const session = await requireUser();

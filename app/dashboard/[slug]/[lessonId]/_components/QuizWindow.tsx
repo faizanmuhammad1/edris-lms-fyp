@@ -2,7 +2,6 @@
 
 import { Quiz } from "./Quiz";
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
 
 interface QuizWindowProps {
   quizData: {
@@ -31,7 +30,6 @@ interface QuizWindowProps {
 }
 
 export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
-  const router = useRouter();
   const [isExiting, setIsExiting] = useState(false);
   const [hasAnswers, setHasAnswers] = useState(false);
   const answersRef = useRef<Record<string, string>>({});
@@ -76,7 +74,7 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
         try {
           window.moveTo(0, 0);
           window.resizeTo(screen.width, screen.height);
-        } catch (e) {
+        } catch {
           // Ignore errors if browser blocks window manipulation
         }
       });

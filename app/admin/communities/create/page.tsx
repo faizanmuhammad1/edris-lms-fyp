@@ -23,7 +23,7 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { toast } from "sonner";
 
 const communitySchema = z.object({
@@ -54,7 +54,7 @@ export default function CreateCommunityPage() {
     },
   });
 
-  function onSubmit(values: CommunitySchemaType) {
+  function onSubmit() {
     startTransition(async () => {
       // TODO: Add actual API call to create community
       await new Promise((resolve) => setTimeout(resolve, 1000));

@@ -131,7 +131,7 @@ export async function submitQuizAttempt({
     const passed = score >= quiz.passingScore;
 
     // Create quiz attempt
-    const attempt = await prisma.quizAttempt.create({
+    await prisma.quizAttempt.create({
       data: {
         userId: session.id,
         quizId: quiz.id,
