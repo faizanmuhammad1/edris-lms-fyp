@@ -7,7 +7,7 @@ import { ThemeToggle } from "@/components/ui/themeToggle";
 import { authClient } from "@/lib/auth-client";
 import { buttonVariants } from "@/components/ui/button";
 import { UserDropdown } from "./UserDropdown";
-import { Search, ShoppingCart, Menu, ChevronDown } from "lucide-react";
+import { Search, ShoppingCart, Menu, ChevronDown, ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -21,6 +21,7 @@ import { useState } from "react";
 const navigationItems = [
   { name: "Teach on Edris", href: "/teach" },
   { name: "My Learning", href: "/dashboard" },
+  { name: "Verifications", href: "/verification" },
 ];
 
 const categories = [
@@ -122,18 +123,22 @@ export function Navbar() {
           <Link href="/teach" className="hidden lg:block text-sm font-medium hover:text-primary transition-colors mr-2">
             Teach on Edris
           </Link>
-          
+
+          <Link href="/verification" className="p-2 hover:bg-accent rounded-full transition-colors relative group" title="Verify Certificate">
+            <ShieldCheck className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+          </Link>
+
           <Link href="/cart" className="p-2 hover:bg-accent rounded-full transition-colors relative group">
             <ShoppingCart className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
             <span className="absolute top-1 right-0.5 h-2 w-2 bg-primary rounded-full ring-2 ring-background" />
           </Link>
 
           <div className="h-6 w-px bg-border mx-2 hidden sm:block" />
-          
+
           <ThemeToggle />
 
           {isPending ? (
-             <div className="h-9 w-9 rounded-full bg-muted animate-pulse" />
+            <div className="h-9 w-9 rounded-full bg-muted animate-pulse" />
           ) : session ? (
             <UserDropdown
               email={session.user.email}

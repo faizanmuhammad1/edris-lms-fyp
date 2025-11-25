@@ -53,7 +53,7 @@ export function CategoriesSection() {
                                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                                 <CardContent className="p-8 flex flex-col items-center text-center relative z-10">
                                     <div className="relative w-28 h-28 mb-8 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3">
-                                        <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
                                         <Image
                                             src={category.icon}
                                             alt={category.title}

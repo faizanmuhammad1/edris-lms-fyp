@@ -1,0 +1,149 @@
+"use client";
+
+import { useState } from "react";
+import { verifyCertificate, VerificationResult } from "@/app/actions/verify-certificate";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CheckCircle2, XCircle, Search, Loader2, ShieldCheck } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
+export default function VerificationPage() {
+    const [hash, setHash] = useState("");
+    const [result, setResult] = useState<VerificationResult | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleVerify = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!hash.trim()) return;
+
+        setIsLoading(true);
+        setResult(null);
+
+        try {
+            const verificationResult = await verifyCertificate(hash);
+            setResult(verificationResult);
+        } catch (error) {
+            console.error("Verification error:", error);
+            setResult({ success: false, error: "An unexpected error occurred." });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-background flex flex-col">
+            {/* Hero Section */}
+            <section className="relative py-20 md:py-32 overflow-hidden">
+                <div className="absolute inset-0 bg-primary/5 -z-10" />
+                <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
+
+                <div className="container px-4 md:px-6 mx-auto text-center">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                    >
+                        <div className="inline-flex items-center justify-center p-2 bg-primary/10 rounded-full mb-6">
+                            <ShieldCheck className="h-6 w-6 text-primary mr-2" />
+                            <span className="text-primary font-medium">Authenticity Check</span>
+                        </div>
+                        <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
+                            Verify Certificate
+                        </h1>
+                        <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
+                            Enter the unique certificate hash ID to verify the authenticity of a completion certificate issued by Edris LMS.
+                        </p>
+                    </motion.div>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                        className="max-w-md mx-auto"
+                    >
+                        <form onSubmit={handleVerify} className="flex gap-2 relative">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    type="text"
+                                    placeholder="Enter Certificate Hash (e.g., CERT-2025-ABC123)"
+                                    value={hash}
+                                    onChange={(e) => setHash(e.target.value)}
+                                    className="pl-10 h-12 text-lg"
+                                />
+                            </div>
+                            <Button type="submit" size="lg" className="h-12 px-8" disabled={isLoading}>
+                                {isLoading ? (
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                ) : (
+                                    "Verify"
+                                )}
+                            </Button>
+                        </form>
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* Result Section */}
+            <section className="flex-1 container px-4 md:px-6 mx-auto pb-20">
+                <AnimatePresence mode="wait">
+                    {result && (
+                        <motion.div
+                            key={result.success ? "success" : "error"}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.3 }}
+                            className="max-w-2xl mx-auto"
+                        >
+                            {result.success ? (
+                                <Card className="border-primary/20 shadow-lg bg-primary/5 backdrop-blur-sm">
+                                    <CardHeader className="text-center pb-2">
+                                        <div className="mx-auto bg-green-100 dark:bg-green-900/30 p-3 rounded-full w-fit mb-4">
+                                            <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+                                        </div>
+                                        <CardTitle className="text-2xl text-green-700 dark:text-green-400">Certificate Verified</CardTitle>
+                                        <CardDescription>This certificate is valid and authentic.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4 pt-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="bg-background/50 p-4 rounded-lg border">
+                                                <p className="text-sm text-muted-foreground mb-1">Course Title</p>
+                                                <p className="font-semibold">{result.certificate.courseTitle}</p>
+                                            </div>
+                                            <div className="bg-background/50 p-4 rounded-lg border">
+                                                <p className="text-sm text-muted-foreground mb-1">Issued On</p>
+                                                <p className="font-semibold">{new Date(result.certificate.issuedOn).toLocaleDateString(undefined, {
+                                                    year: 'numeric',
+                                                    month: 'long',
+                                                    day: 'numeric'
+                                                })}</p>
+                                            </div>
+                                            <div className="bg-background/50 p-4 rounded-lg border md:col-span-2">
+                                                <p className="text-sm text-muted-foreground mb-1">Certificate ID</p>
+                                                <p className="font-mono text-sm">{result.certificate.certificateId}</p>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                                <Card className="border-destructive/20 shadow-lg bg-destructive/5 backdrop-blur-sm">
+                                    <CardHeader className="text-center">
+                                        <div className="mx-auto bg-red-100 dark:bg-red-900/30 p-3 rounded-full w-fit mb-4">
+                                            <XCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
+                                        </div>
+                                        <CardTitle className="text-2xl text-red-700 dark:text-red-400">Verification Failed</CardTitle>
+                                        <CardDescription className="text-red-600/80 dark:text-red-400/80">
+                                            {result.error}
+                                        </CardDescription>
+                                    </CardHeader>
+                                </Card>
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </section>
+        </div>
+    );
+}

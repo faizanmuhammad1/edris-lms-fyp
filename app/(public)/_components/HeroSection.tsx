@@ -98,20 +98,6 @@ export function HeroSection() {
                     </div>
                 </div>
             </div>
-
-            {/* Logos Strip */}
-            <div className="container mx-auto px-4 mt-20 md:mt-32 relative z-10 border-t border-border/40 pt-10">
-                <p className="text-center text-sm font-semibold text-muted-foreground/80 mb-8 uppercase tracking-wider">Trusted by leading companies</p>
-                <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
-                    {/* Simple SVG Placeholders for Logos */}
-                    {['Google', 'Microsoft', 'Amazon', 'Netflix', 'Meta'].map((company) => (
-                        <div key={company} className="text-xl font-bold text-foreground flex items-center gap-2 hover:scale-105 transition-transform cursor-default">
-                            <div className="h-8 w-8 bg-foreground/10 rounded-lg" />
-                            {company}
-                        </div>
-                    ))}
-                </div>
-            </div>
         </section>
     );
 }
