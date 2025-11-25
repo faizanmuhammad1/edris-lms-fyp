@@ -30,6 +30,10 @@ model User {
   banReason  String?
   banExpires DateTime?
 
+  teacherStatus          TeacherStatus?
+  teacherApplicationDate DateTime?
+  teacherRejectionReason String?
+
   @@unique([email])
   @@map("user")
 }
@@ -118,6 +122,12 @@ enum CourseStatus {
   Draft
   Published
   Archived
+}
+
+enum TeacherStatus {
+  Pending
+  Approved
+  Rejected
 }
 
 model Chapter {
