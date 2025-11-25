@@ -95,7 +95,7 @@ export function Navbar() {
             <DropdownMenuContent align="start" className="w-56 p-2">
               {categories.map((cat) => (
                 <DropdownMenuItem key={cat} asChild>
-                  <Link href={`/courses?category=${cat}`} className="cursor-pointer w-full">
+                  <Link href={`/courses?category=${encodeURIComponent(cat)}`} className="cursor-pointer w-full">
                     {cat}
                   </Link>
                 </DropdownMenuItem>
