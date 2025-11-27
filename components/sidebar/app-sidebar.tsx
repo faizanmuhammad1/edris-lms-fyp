@@ -66,6 +66,11 @@ const data = {
       icon: IconUsers,
     },
     {
+      title: "Teachers",
+      url: "/admin/teachers",
+      icon: IconUsers,
+    },
+    {
       title: "Student Progress",
       url: "/admin/student-progress",
       icon: IconChartLine,
