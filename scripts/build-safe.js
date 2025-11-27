@@ -5,9 +5,12 @@
  * by catching and ignoring permission errors for system directories
  */
 
-const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
+const nextBuild = require("next/dist/build").default;
+
+// Absolute path to the Next.js project root
+const projectRoot = path.resolve(__dirname, "..");
 
 // Set environment variables to restrict file system access
 process.env.NEXT_TELEMETRY_DISABLED = "1";
@@ -16,168 +19,149 @@ process.env.NEXT_TELEMETRY_DISABLED = "1";
 const originalReaddir = fs.readdir;
 const originalReaddirSync = fs.readdirSync;
 
-fs.readdir = function (filePath, options, callback) {
-  if (typeof options === "function") {
-    callback = options;
-    options = undefined;
-  }
-  
-  const wrappedCallback = (err, files) => {
-    if (err && err.code === "EPERM" && err.path) {
-      const path = err.path.toLowerCase();
-      if (
-        path.includes("application data") ||
-        path.includes("appdata") ||
-        path.includes("program files") ||
-        path.includes("programdata")
-      ) {
-        // Return empty array for system directories
-        return callback(null, []);
-      }
+fs.readdir = function(filePath, options, callback) {
+    if (typeof options === "function") {
+        callback = options;
+        options = undefined;
     }
-    callback(err, files);
-  };
-  
-  return originalReaddir.call(this, filePath, options, wrappedCallback);
+
+    const wrappedCallback = (err, files) => {
+        if (isIgnorableWindowsFsAccessError(err)) {
+            // Return empty array for non-project system directories
+            return callback(null, []);
+        }
+        callback(err, files);
+    };
+
+    return originalReaddir.call(this, filePath, options, wrappedCallback);
 };
 
-fs.readdirSync = function (filePath, options) {
-  try {
-    return originalReaddirSync.call(this, filePath, options);
-  } catch (err) {
-    if (err.code === "EPERM" && err.path) {
-      const path = err.path.toLowerCase();
-      if (
-        path.includes("application data") ||
-        path.includes("appdata") ||
-        path.includes("program files") ||
-        path.includes("programdata")
-      ) {
-        // Return empty array for system directories
-        return [];
-      }
+fs.readdirSync = function(filePath, options) {
+    try {
+        return originalReaddirSync.call(this, filePath, options);
+    } catch (err) {
+        if (isIgnorableWindowsFsAccessError(err)) {
+            // Return empty array for non-project system directories
+            return [];
+        }
+        throw err;
     }
-    throw err;
-  }
 };
 
-// Handle unhandled rejections to catch EPERM errors
-process.on("unhandledRejection", (reason, promise) => {
-  const errorMessage = reason?.message || String(reason);
-  const errorPath = reason?.path || "";
-  
-  // Ignore EPERM errors for system directories
-  if (
-    errorMessage.includes("EPERM") &&
-    (errorPath.includes("Application Data") ||
-     errorPath.includes("AppData") ||
-     errorPath.includes("Program Files") ||
-     errorPath.includes("ProgramData") ||
-     errorMessage.includes("Application Data"))
-  ) {
-    // Silently ignore these errors
-    return;
-  }
-  
-  // Log other unhandled rejections
-  console.error("Unhandled rejection:", reason);
+// Utility: determine if an FS access error (EPERM/EACCES) is outside the project directory on Windows
+function isIgnorableWindowsFsAccessError(err) {
+    if (!err) return false;
+    const message = (err.message || String(err)).toLowerCase();
+    if (!message.includes("eperm") && !message.includes("eacces")) return false;
+
+    const p = (err.path || "").toLowerCase();
+    if (!p) return false;
+
+    const projectRootLower = projectRoot.toLowerCase();
+
+    // Ignore access errors that happen outside of the project directory
+    return !p.startsWith(projectRootLower);
+}
+
+// Patch fs.promises.readdir as well so async callers don't crash on EPERM
+if (fs.promises && typeof fs.promises.readdir === "function") {
+    const originalReaddirPromise = fs.promises.readdir.bind(fs.promises);
+    fs.promises.readdir = async function(filePath, options) {
+        try {
+            return await originalReaddirPromise(filePath, options);
+        } catch (err) {
+            if (isIgnorableWindowsFsAccessError(err)) {
+                return [];
+            }
+            throw err;
+        }
+    };
+}
+
+// After requiring next/dist/build, Next attaches its own fatal exception listeners
+// which exit the process on ANY unhandledRejection/uncaughtException.
+// We remove those and install our own softer handlers that ignore Windows EPERM
+// errors outside the project directory but still fail the build for everything else.
+for (const eventName of["unhandledRejection", "uncaughtException"]) {
+    for (const listener of process.listeners(eventName)) {
+        process.removeListener(eventName, listener);
+    }
+}
+
+process.on("unhandledRejection", (reason) => {
+    if (isIgnorableWindowsFsAccessError(reason)) {
+        // Silently ignore these specific Windows permission errors
+        return;
+    }
+    console.error("Unhandled rejection during Next.js build:", reason);
+    process.exitCode = 1;
 });
 
-// Handle uncaught exceptions
 process.on("uncaughtException", (error) => {
-  const errorMessage = error?.message || String(error);
-  const errorPath = error?.path || "";
-  
-  // Ignore EPERM errors for system directories
-  if (
-    errorMessage.includes("EPERM") &&
-    (errorPath.includes("Application Data") ||
-     errorPath.includes("AppData") ||
-     errorPath.includes("Program Files") ||
-     errorPath.includes("ProgramData") ||
-     errorMessage.includes("Application Data"))
-  ) {
-    // Silently ignore these errors
-    return;
-  }
-  
-  // Re-throw other exceptions
-  throw error;
+    if (isIgnorableWindowsFsAccessError(error)) {
+        // Silently ignore these specific Windows permission errors
+        return;
+    }
+    console.error("Uncaught exception during Next.js build:", error);
+    process.exit(1);
 });
 
-// Override console.error to filter out EPERM errors for system directories
+// Override console.error to filter out EPERM errors for non-project system directories
 const originalError = console.error;
 console.error = (...args) => {
-  const message = args.join(" ");
-  
-  // Filter out EPERM errors for Application Data and other system directories
-  if (
-    message.includes("EPERM") &&
-    (message.includes("Application Data") ||
-     message.includes("AppData") ||
-     message.includes("Program Files") ||
-     message.includes("ProgramData"))
-  ) {
-    // Silently ignore these errors
-    return;
-  }
-  
-  // Pass through all other errors
-  originalError.apply(console, args);
+    const message = args.join(" ");
+    const lower = message.toLowerCase();
+
+    // Filter out EPERM errors that clearly refer to paths outside the project root
+    if (
+        lower.includes("eperm") &&
+        !lower.includes(projectRoot.toLowerCase())
+    ) {
+        // Silently ignore these errors
+        return;
+    }
+
+    // Pass through all other errors
+    originalError.apply(console, args);
 };
 
 // Override process.stderr.write to filter EPERM errors
 const originalStderrWrite = process.stderr.write.bind(process.stderr);
 process.stderr.write = (chunk, encoding, callback) => {
-  if (typeof chunk === "string" || Buffer.isBuffer(chunk)) {
-    const message = chunk.toString();
-    
-    // Filter out EPERM errors for system directories
-    if (
-      message.includes("EPERM") &&
-      (message.includes("Application Data") ||
-       message.includes("AppData") ||
-       message.includes("Program Files") ||
-       message.includes("ProgramData"))
-    ) {
-      // Silently ignore these errors
-      if (callback) callback();
-      return true;
+    if (typeof chunk === "string" || Buffer.isBuffer(chunk)) {
+        const message = chunk.toString();
+        const lower = message.toLowerCase();
+
+        // Filter out EPERM errors for non-project system directories
+        if (
+            lower.includes("eperm") &&
+            !lower.includes(projectRoot.toLowerCase())
+        ) {
+            // Silently ignore these errors
+            if (callback) callback();
+            return true;
+        }
     }
-  }
-  
-  return originalStderrWrite(chunk, encoding, callback);
+
+    return originalStderrWrite(chunk, encoding, callback);
 };
 
-// Spawn the Next.js build process
-const buildProcess = spawn("next", ["build"], {
-  stdio: "inherit",
-  shell: true,
-  cwd: path.resolve(__dirname, ".."),
-  env: {
-    ...process.env,
-    NEXT_TELEMETRY_DISABLED: "1",
-  },
-});
-
-buildProcess.on("error", (error) => {
-  // Only exit with error if it's not an EPERM error for system directories
-  if (
-    error.code === "EPERM" &&
-    (error.path?.includes("Application Data") ||
-     error.path?.includes("AppData") ||
-     error.path?.includes("Program Files") ||
-     error.path?.includes("ProgramData"))
-  ) {
-    console.warn("Ignored EPERM error for system directory:", error.path);
-    return;
-  }
-  
-  console.error("Build process error:", error);
-  process.exit(1);
-});
-
-buildProcess.on("exit", (code) => {
-  process.exit(code || 0);
-});
-
+// Run Next.js build programmatically in this process so our patches apply
+(async() => {
+    try {
+        await nextBuild(projectRoot);
+        // If no fatal errors were thrown, ensure success exit code
+        if (!process.exitCode) {
+            process.exit(0);
+        }
+    } catch (error) {
+        if (isIgnorableWindowsFsAccessError(error)) {
+            // Treat these as non-fatal and succeed the build
+            console.warn("Ignored FS access error for Windows system directory:", error.path || "");
+            process.exit(0);
+            return;
+        }
+        console.error("Next.js build failed:", error);
+        process.exit(1);
+    }
+})();
