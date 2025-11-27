@@ -1,6 +1,6 @@
 import { getTeacherCourses } from "@/app/data/teacher/get-teacher-courses";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Suspense } from "react";
 import { CourseManagement } from "./_components/CourseManagement";

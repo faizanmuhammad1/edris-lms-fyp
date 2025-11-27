@@ -10,6 +10,7 @@ import {
   courseSchema,
   CourseSchemaType,
   lessonSchema,
+  LessonSchemaType,
 } from "@/lib/zodSchemas";
 import { request } from "@arcjet/next";
 import { revalidatePath } from "next/cache";
@@ -275,7 +276,7 @@ export async function createTeacherChapter(
 }
 
 export async function createTeacherLesson(
-  values: ChapterSchemaType
+  values: LessonSchemaType
 ): Promise<ApiResponse> {
   const session = await requireTeacher();
   try {

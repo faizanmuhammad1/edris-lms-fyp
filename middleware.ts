@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionCookie } from "better-auth/cookies";
 import arcjet, { createMiddleware, detectBot } from "@arcjet/next";
 import { env } from "@/lib/env";
 
@@ -27,8 +26,14 @@ const aj = arcjet({
 });
 
 // Your existing authentication middleware
+// Note: Using direct cookie access instead of better-auth/cookies to avoid Edge Runtime dynamic code evaluation
 async function authMiddleware(request: NextRequest) {
-  const sessionCookie = getSessionCookie(request);
+  // Check for better-auth session cookie directly (Edge Runtime compatible)
+  // The cookie name is typically "better-auth.session_token" or similar
+  const sessionCookie = 
+    request.cookies.get("better-auth.session_token") ||
+    request.cookies.get("better-auth.session") ||
+    request.cookies.get("session");
 
   if (!sessionCookie) {
     return NextResponse.redirect(new URL("/login", request.url));

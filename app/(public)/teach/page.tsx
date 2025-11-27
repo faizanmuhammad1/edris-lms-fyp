@@ -10,7 +10,6 @@ import { CheckCircle2, Clock, XCircle, GraduationCap, Users, TrendingUp, BookOpe
 import { toast } from "sonner";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
 
 export default function TeachPage() {
     const { data: session, isPending } = authClient.useSession();
@@ -18,7 +17,6 @@ export default function TeachPage() {
     const [teacherStatus, setTeacherStatus] = useState<string | null>(null);
     const [rejectionReason, setRejectionReason] = useState<string | null>(null);
     const [isLoadingStatus, setIsLoadingStatus] = useState(true);
-    const router = useRouter();
 
     useEffect(() => {
         async function fetchStatus() {
@@ -52,7 +50,7 @@ export default function TeachPage() {
             } else {
                 toast.error(result.error);
             }
-        } catch (error) {
+        } catch {
             toast.error("An unexpected error occurred. Please try again.");
         } finally {
             setIsSubmitting(false);
@@ -76,7 +74,7 @@ export default function TeachPage() {
                         <div className="mx-auto bg-green-100 dark:bg-green-900/30 p-3 rounded-full w-fit mb-4">
                             <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
                         </div>
-                        <CardTitle className="text-2xl">You're a Teacher!</CardTitle>
+                        <CardTitle className="text-2xl">You&apos;re a Teacher!</CardTitle>
                         <CardDescription>You have been approved to teach on Edris LMS.</CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -107,7 +105,7 @@ export default function TeachPage() {
                     <CardContent className="space-y-4">
                         <div className="bg-muted/50 p-4 rounded-lg">
                             <p className="text-sm text-muted-foreground">
-                                We're reviewing your application and will notify you once a decision has been made. This usually takes 1-2 business days.
+                                We&apos;re reviewing your application and will notify you once a decision has been made. This usually takes 1-2 business days.
                             </p>
                         </div>
                         <Link href="/">
@@ -297,7 +295,7 @@ export default function TeachPage() {
                                 </li>
                                 <li className="flex items-start gap-3">
                                     <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center shrink-0 text-xs font-bold">3</span>
-                                    <span>Once approved, you'll get access to the teacher dashboard and course creation tools</span>
+                                    <span>Once approved, you&apos;ll get access to the teacher dashboard and course creation tools</span>
                                 </li>
                             </ol>
                         </div>
