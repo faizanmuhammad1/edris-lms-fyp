@@ -28,19 +28,21 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     // Restrict webpack context to the project root
     const projectRoot = path.resolve(__dirname);
     config.context = projectRoot;
 
     // Add alias to fix broken deep import from htmlparser2 -> entities/decode
+    // The entities package structure changed, so we need to resolve to the package root
     config.resolve = {
       ...config.resolve,
       alias: {
         ...(config.resolve?.alias || {}),
-        // Map old deep-import to a valid path in entities
-        "entities/decode": "entities/lib/decode.js",
-        "entities/lib/decode": "entities/lib/decode.js",
+        // Map old deep-import paths to the entities package itself
+        // This works because entities exports decode from its main entry
+        "entities/decode": "entities",
+        "entities/lib/decode": "entities",
       },
     };
 
