@@ -1,0 +1,13 @@
+{
+    "ignore_dirs": [
+        "node_modules",
+        ".next",
+        ".git",
+        "Application Data",
+        "AppData",
+        "Program Files",
+        "Program Files (x86)",
+        "Windows",
+        "ProgramData"
+    ]
+}
