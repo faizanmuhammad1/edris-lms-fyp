@@ -26,14 +26,12 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
 
 interface iAppProps {
   data: TeacherCourseType;
 }
 
 export function TeacherCourseCard({ data }: iAppProps) {
-  const [isHovered, setIsHovered] = useState(false);
   const thumbnailUrl = useConstructUrl(data.fileKey);
   
   return (

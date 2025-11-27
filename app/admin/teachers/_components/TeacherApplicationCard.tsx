@@ -42,7 +42,7 @@ export function TeacherApplicationCard({ application }: TeacherApplicationCardPr
             } else {
                 toast.error(result.error);
             }
-        } catch (error) {
+        } catch {
             toast.error("Failed to approve teacher");
         } finally {
             setIsProcessing(false);
@@ -66,7 +66,7 @@ export function TeacherApplicationCard({ application }: TeacherApplicationCardPr
             } else {
                 toast.error(result.error);
             }
-        } catch (error) {
+        } catch {
             toast.error("Failed to reject teacher");
         } finally {
             setIsProcessing(false);
@@ -174,7 +174,7 @@ export function TeacherApplicationCard({ application }: TeacherApplicationCardPr
                     <DialogHeader>
                         <DialogTitle>Reject Teacher Application</DialogTitle>
                         <DialogDescription>
-                            Please provide a reason for rejecting {application.name}'s application. This will be shown to the applicant.
+                            Please provide a reason for rejecting {application.name}&apos;s application. This will be shown to the applicant.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">

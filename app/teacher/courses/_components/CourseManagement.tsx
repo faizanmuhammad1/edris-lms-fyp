@@ -4,7 +4,6 @@ import { useState } from "react";
 import { TeacherCourseType } from "@/app/data/teacher/get-teacher-courses";
 import {
   TeacherCourseCard,
-  TeacherCourseCardSkeleton,
 } from "./TeacherCourseCard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -205,7 +204,7 @@ export function CourseManagement({ courses }: CourseManagementProps) {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [levelFilter, setLevelFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [useMockData, setUseMockData] = useState(courses.length === 0);
+  const [useMockData] = useState(courses.length === 0);
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(

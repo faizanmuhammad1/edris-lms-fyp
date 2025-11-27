@@ -305,7 +305,7 @@ export default async function TeacherDashboard() {
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                {courses.slice(0, 5).map((course, index) => (
+                                {courses.slice(0, 5).map((course) => (
                                     <Link
                                         key={course.id}
                                         href={`/teacher/courses/${course.id}/edit`}
