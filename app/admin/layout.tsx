@@ -3,8 +3,54 @@ import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SiteHeader } from "@/components/sidebar/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { ReactNode } from "react";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { prisma } from "@/lib/db";
+import { redirect } from "next/navigation";
+import { Metadata } from "next";
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
+export const metadata: Metadata = {
+  title: "Admin Dashboard",
+  description: "Manage courses, users, and platform settings",
+};
+
+async function getAdminUser() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  console.log("DEBUG Admin Layout - Session:", session ? "exists" : "null");
+  console.log("DEBUG Admin Layout - User email:", session?.user?.email);
+
+  if (!session) {
+    console.log("DEBUG Admin Layout - No session, returning null");
+    return null;
+  }
+
+  // Query by email since session.user.id may not match MongoDB ObjectId format
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { role: true },
+  });
+
+  console.log("DEBUG Admin Layout - User from DB:", user);
+  console.log("DEBUG Admin Layout - User role:", user?.role);
+
+  return user?.role === "admin" ? session.user : null;
+}
+
+export default async function AdminLayout({ children }: { children: ReactNode }) {
+  const adminUser = await getAdminUser();
+
+  console.log("DEBUG Admin Layout - adminUser result:", adminUser);
+
+  if (!adminUser) {
+    console.log("DEBUG Admin Layout - Redirecting to not-admin");
+    redirect("/not-admin");
+  }
+
+  console.log("DEBUG Admin Layout - Access granted!");
+
   return (
     <SidebarProvider
       style={
@@ -28,3 +74,4 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     </SidebarProvider>
   );
 }
+
