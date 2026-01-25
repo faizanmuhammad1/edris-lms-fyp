@@ -4,12 +4,20 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
+async function isAdmin(userId: string): Promise<boolean> {
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+    });
+    return user?.role === "admin";
+}
+
 export async function approveTeacher(userId: string) {
     const session = await auth.api.getSession({
         headers: await headers(),
     });
 
-    if (!session || session.user.role !== "admin") {
+    if (!session || !(await isAdmin(session.user.id))) {
         return { success: false, error: "Unauthorized. Only admins can approve teachers." };
     }
 
@@ -29,7 +37,7 @@ export async function rejectTeacher(userId: string, reason: string) {
         headers: await headers(),
     });
 
-    if (!session || session.user.role !== "admin") {
+    if (!session || !(await isAdmin(session.user.id))) {
         return { success: false, error: "Unauthorized. Only admins can reject teachers." };
     }
 
@@ -47,3 +55,4 @@ export async function rejectTeacher(userId: string, reason: string) {
 
     return { success: true, message: "Teacher application rejected." };
 }
+

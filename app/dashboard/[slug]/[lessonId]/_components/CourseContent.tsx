@@ -14,12 +14,16 @@ import { QuizReport } from "./QuizReport";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
+import { CommentWithReplies } from "@/app/actions/comments";
+import { CommentSection } from "@/components/general/CommentSection";
+import { LessonChatbot } from "@/components/dashboard/LessonChatbot";
 
 interface iAppProps {
   data: LessonContentType;
+  comments: CommentWithReplies[];
 }
 
-export function CourseContent({ data }: iAppProps) {
+export function CourseContent({ data, comments }: iAppProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const { triggerConfetti } = useConfetti();
@@ -144,7 +148,7 @@ export function CourseContent({ data }: iAppProps) {
                     "quiz-window",
                     "fullscreen=yes,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=no"
                   );
-                  
+
                   // Try to maximize window if fullscreen not available
                   try {
                     quizWindow?.moveTo(0, 0);
@@ -152,7 +156,7 @@ export function CourseContent({ data }: iAppProps) {
                   } catch {
                     // Ignore if browser blocks window manipulation
                   }
-                  
+
                   // Listen for quiz completion/cancellation message
                   const handleMessage = (event: MessageEvent) => {
                     if (event.data.type === "quizCompleted" || event.data.type === "quizCancelled") {
@@ -161,7 +165,7 @@ export function CourseContent({ data }: iAppProps) {
                     }
                   };
                   window.addEventListener("message", handleMessage);
-                  
+
                   // Also poll for window closure as fallback
                   const pollInterval = setInterval(() => {
                     if (quizWindow?.closed) {
@@ -192,6 +196,11 @@ export function CourseContent({ data }: iAppProps) {
           )}
         </>
       )}
+      <div className="pb-10">
+        <Separator className="my-8" />
+        <CommentSection lessonId={data.id} comments={comments} />
+      </div>
+      <LessonChatbot />
     </div>
   );
 }

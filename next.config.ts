@@ -2,10 +2,13 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
-  // Restrict Next.js to only scan within the project directory
-  // This prevents scanning system directories on Windows
   experimental: {
-    // Use more restrictive file system access
+  },
+  turbopack: {
+    resolveAlias: {
+      "entities/decode": "entities",
+      "entities/lib/decode": "entities",
+    },
   },
 
   images: {

@@ -4,13 +4,18 @@ import { prisma } from "./db";
 import { env } from "./env";
 import { emailOTP } from "better-auth/plugins";
 import { resend } from "./resend";
-import { admin } from "better-auth/plugins";
+// import { admin } from "better-auth/plugins";
 
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
-    provider: "postgresql", // or "mysql", "postgresql", ...etc
+    provider: "mongodb", // or "mysql", "postgresql", ...etc
   }),
+  advanced: {
+    database: {
+      generateId: false, // Let MongoDB auto-generate ObjectIds
+    },
+  },
   socialProviders: {
     google: {
       clientId: env.BETTER_AUTH_GOOGLE_CLIENT_ID,
@@ -29,6 +34,6 @@ export const auth = betterAuth({
         });
       },
     }),
-    admin(),
+    // admin(),
   ],
 });

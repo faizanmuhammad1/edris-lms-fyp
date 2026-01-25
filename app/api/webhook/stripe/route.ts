@@ -39,7 +39,7 @@ export async function POST(req: Request) {
       throw new Error("Course id not found...");
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
       where: {
         stripeCustomerId: customerId,
       },

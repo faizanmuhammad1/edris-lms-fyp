@@ -1,15 +1,44 @@
-import { PrismaClient } from "../lib/generated/prisma";
-import { env } from "../lib/env";
+import fs from "fs";
+import path from "path";
 
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: env.DATABASE_URL,
-    },
-  },
-});
+// Load .env.local manually for scripts
+const envLocalPath = path.resolve(process.cwd(), ".env.local");
+if (fs.existsSync(envLocalPath)) {
+  const content = fs.readFileSync(envLocalPath, "utf-8");
+  content.split("\n").forEach(line => {
+    const match = line.match(/^([^=]+)=(.*)$/);
+    if (match) {
+      const key = match[1].trim();
+      const rawValue = match[2].split("#")[0].trim();
+      const value = rawValue.replace(/^["']|["']$/g, ""); // Remove quotes if present
+      if (!process.env[key]) {
+        process.env[key] = value;
+      }
+    }
+  });
+}
+
+// Imports moved inside seedMockData to ensure env vars are loaded first
 
 async function seedMockData() {
+  const { PrismaClient } = await import("../lib/generated/prisma");
+  // const { env } = await import("../lib/env");
+
+  const dbUrl = process.env.DATABASE_URL;
+  if (!dbUrl) {
+    console.error("❌ DATABASE_URL not found context");
+    process.exit(1);
+  }
+  console.log("🔌 Connecting to:", dbUrl.replace(/:[^:]*@/, ":****@")); // Mask password if present
+
+  const prisma = new PrismaClient({
+    datasources: {
+      db: {
+        url: dbUrl,
+      },
+    },
+  });
+
   console.log("🌱 Starting to seed mock data...");
 
   try {
@@ -33,23 +62,33 @@ async function seedMockData() {
     }
 
     if (!testUser) {
-      console.error("❌ No users found in database. Please create a user first (login/signup).");
-      console.log("💡 Tip: Create an account through the login page first, then run this script.");
-      process.exit(1);
+      console.log("⚠️ No users found. Creating a mock admin user...");
+      testUser = await prisma.user.create({
+        data: {
+          email: "admin@example.com",
+          name: "Admin User",
+          emailVerified: true,
+          role: "admin",
+          image: "https://avatar.vercel.sh/admin",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+      console.log("✅ Created mock admin user: admin@example.com");
     }
 
     console.log(`✅ Using user: ${testUser.email} (${testUser.name})`);
 
     // Check if courses already exist
     const existingCourses = await prisma.course.findMany();
-    
+
     if (existingCourses.length > 0) {
       console.log(`⚠️  Found ${existingCourses.length} existing courses. Skipping seed.`);
       return;
     }
 
     // Create mock courses with chapters and lessons
-    const courses = [
+    const coursesData = [
       {
         title: "Complete Next.js 15 Masterclass",
         description: JSON.stringify({
@@ -561,38 +600,90 @@ async function seedMockData() {
       },
     ];
 
-    for (const courseData of courses) {
+    for (const courseData of coursesData) {
       const { chapters, ...courseInfo } = courseData;
-      
-      const course = await prisma.course.create({
-        data: {
-          ...courseInfo,
-          chapter: {
-            create: chapters.map((chapter) => ({
-              title: chapter.title,
-              position: chapter.position,
-              lessons: {
-                create: chapter.lessons.map((lesson) => ({
-                  title: lesson.title,
-                  description: lesson.description,
-                  position: lesson.position,
-                  videoKey: lesson.videoKey,
-                  thumbnailKey: lesson.thumbnailKey,
-                })),
-              },
-            })),
-          },
-        },
-        include: {
-          chapter: {
-            include: {
-              lessons: true,
-            },
-          },
-        },
-      });
 
-      console.log(`✅ Created course: ${course.title} with ${course.chapter.length} chapters`);
+      // SEQUENTIAL CREATION START
+      const course = await prisma.course.create({
+        data: { ...courseInfo },
+      });
+      console.log(`✅ Created course: ${course.title}`);
+
+      for (const chapter of chapters) {
+        const createdChapter = await prisma.chapter.create({
+          data: {
+            title: chapter.title,
+            position: chapter.position,
+            courseId: course.id
+          }
+        });
+
+        for (const lesson of chapter.lessons) {
+          const createdLesson = await prisma.lesson.create({
+            data: {
+              title: lesson.title,
+              description: lesson.description,
+              position: lesson.position,
+              videoKey: lesson.videoKey,
+              thumbnailKey: lesson.thumbnailKey,
+              chapterId: createdChapter.id
+            }
+          });
+
+          // Create quiz for first lesson of each chapter
+          if (lesson.position === 1) {
+            const quiz = await prisma.quiz.create({
+              data: {
+                title: `${createdLesson.title} - Quiz`,
+                description: `Test your knowledge of ${createdLesson.title}`,
+                timeLimit: 10,
+                passingScore: 70,
+                isPublished: true,
+                lessonId: createdLesson.id
+              }
+            });
+
+            // Create Questions Sequentially
+            const questions = [
+              { q: "Question 1", p: 1, pts: 1 },
+              { q: "Question 2", p: 2, pts: 1 },
+              { q: "Question 3", p: 3, pts: 2 }
+            ];
+
+            for (const q of questions) {
+              const question = await prisma.quizQuestion.create({
+                data: {
+                  question: q.q,
+                  position: q.p,
+                  points: q.pts,
+                  quizId: quiz.id
+                }
+              });
+
+              // Options
+              const options = [
+                { t: "Option A", c: true, p: 0 },
+                { t: "Option B", c: false, p: 1 },
+                { t: "Option C", c: false, p: 2 },
+                { t: "Option D", c: false, p: 3 }
+              ];
+
+              for (const opt of options) {
+                await prisma.quizOption.create({
+                  data: {
+                    text: opt.t,
+                    isCorrect: opt.c,
+                    position: opt.p,
+                    questionId: question.id
+                  }
+                });
+              }
+            }
+            console.log(`  ✅ Created quiz for lesson: ${createdLesson.title}`);
+          }
+        }
+      }
+      // SEQUENTIAL CREATION END
 
       // Create enrollment for test user
       await prisma.enrollment.create({
@@ -604,96 +695,14 @@ async function seedMockData() {
         },
       });
       console.log(`✅ Created enrollment for: ${course.title}`);
-
-      // Create quizzes for the first lesson of each chapter
-      for (const chapter of course.chapter) {
-        if (chapter.lessons.length > 0) {
-          const firstLesson = chapter.lessons[0];
-          
-          // Create a quiz for this lesson
-          const quiz = await prisma.quiz.create({
-            data: {
-              title: `${firstLesson.title} - Quiz`,
-              description: `Test your knowledge of ${firstLesson.title}`,
-              timeLimit: 10, // 10 minutes
-              passingScore: 70,
-              isPublished: true,
-              lessonId: firstLesson.id,
-              questions: {
-                create: [
-                  {
-                    question: `What is the main topic of "${firstLesson.title}"?`,
-                    position: 1,
-                    points: 1,
-                    options: {
-                      create: [
-                        { text: "Introduction to the topic", isCorrect: true, position: 0 },
-                        { text: "Advanced concepts", isCorrect: false, position: 1 },
-                        { text: "Implementation details", isCorrect: false, position: 2 },
-                        { text: "None of the above", isCorrect: false, position: 3 },
-                      ],
-                    },
-                  },
-                  {
-                    question: "Which of the following best describes the lesson content?",
-                    position: 2,
-                    points: 1,
-                    options: {
-                      create: [
-                        { text: "Basic concepts and fundamentals", isCorrect: true, position: 0 },
-                        { text: "Expert-level techniques", isCorrect: false, position: 1 },
-                        { text: "Project implementation", isCorrect: false, position: 2 },
-                        { text: "Troubleshooting guide", isCorrect: false, position: 3 },
-                      ],
-                    },
-                  },
-                  {
-                    question: "How well do you understand this lesson?",
-                    position: 3,
-                    points: 2,
-                    options: {
-                      create: [
-                        { text: "Completely understand", isCorrect: true, position: 0 },
-                        { text: "Partially understand", isCorrect: false, position: 1 },
-                        { text: "Need more practice", isCorrect: false, position: 2 },
-                        { text: "Did not understand", isCorrect: false, position: 3 },
-                      ],
-                    },
-                  },
-                ],
-              },
-            },
-          });
-          console.log(`  ✅ Created quiz for lesson: ${firstLesson.title}`);
-        }
-      }
     }
 
     console.log("🎉 Mock data seeded successfully!");
     console.log("\n📚 Created courses:");
     console.log("  1. Complete Next.js 15 Masterclass");
-    console.log("     - Slug: complete-nextjs-15-masterclass");
-    console.log("     - 3 chapters, 10 lessons");
-    console.log("     - 📝 Quizzes added to first lesson of each chapter");
     console.log("  2. React Fundamentals");
-    console.log("     - Slug: react-fundamentals");
-    console.log("     - 2 chapters, 4 lessons");
-    console.log("     - 📝 Quizzes added to first lesson of each chapter");
     console.log("  3. TypeScript for JavaScript Developers");
-    console.log("     - Slug: typescript-for-javascript-developers");
-    console.log("     - 2 chapters, 5 lessons");
-    console.log("     - 📝 Quizzes added to first lesson of each chapter");
-    console.log("\n💡 You can now view courses at:");
-    console.log("  - /courses (public course listing)");
-    console.log("  - /courses/complete-nextjs-15-masterclass (course details)");
-    console.log("  - /dashboard/complete-nextjs-15-masterclass (student dashboard with sidebar)");
-    console.log("  - /admin/courses (admin panel)");
-    console.log("\n📝 Note: You need to be logged in to view courses in the dashboard.");
-    console.log("\n🎯 To see quizzes:");
-    console.log("  1. Go to /dashboard/complete-nextjs-15-masterclass");
-    console.log("  2. Click on the first lesson of any chapter");
-    console.log("  3. Scroll down to see the quiz with timer!");
-    
+
   } catch (error) {
     console.error("❌ Error seeding mock data:", error);
     throw error;
@@ -701,14 +710,11 @@ async function seedMockData() {
 }
 
 seedMockData()
-  .then(async () => {
+  .then(() => {
     console.log("\n✅ Seed completed!");
-    await prisma.$disconnect();
     process.exit(0);
   })
-  .catch(async (error) => {
+  .catch((error) => {
     console.error("❌ Seed failed:", error);
-    await prisma.$disconnect();
     process.exit(1);
   });
-

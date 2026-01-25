@@ -18,6 +18,7 @@ export async function getCourseSidebarData(slug: string) {
       level: true,
       category: true,
       slug: true,
+      description: true,
       chapter: {
         orderBy: {
           position: "asc",

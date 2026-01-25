@@ -1,4 +1,5 @@
 import { getLessonContent } from "@/app/data/course/get-lesson-content";
+import { getLessonComments } from "@/app/actions/comments";
 import { CourseContent } from "./_components/CourseContent";
 import { Suspense } from "react";
 import { LessonSkeleton } from "./_components/LessonSkeleton";
@@ -21,5 +22,6 @@ export default async function LessonContentPage({
 
 async function LessonContentLoader({ lessonId }: { lessonId: string }) {
   const data = await getLessonContent(lessonId);
-  return <CourseContent data={data} />;
+  const comments = await getLessonComments(lessonId);
+  return <CourseContent data={data} comments={comments} />;
 }
