@@ -3,6 +3,7 @@ import {
   IconPlaylistX,
   IconShoppingCart,
   IconUsers,
+  type Icon,
 } from "@tabler/icons-react";
 
 import {
@@ -13,10 +14,67 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { adminGetDashboardStats } from "@/app/data/admin/admin-get-dashboard-stats";
+// Import for type definition if using Lucide or Tabler? Tabler usually
 
-export async function SectionCards() {
-  const { totalCourses, totalCustomers, totalLessons, totalSignups } =
-    await adminGetDashboardStats();
+interface SectionCardsProps {
+  // Support for generic items
+  items?: {
+    title: string;
+    value: number;
+    icon: Icon; // Using any or specific icon type
+    description: string;
+  }[];
+  // Legacy props support
+  totalSignups?: number;
+  totalCustomers?: number;
+  totalCourses?: number;
+  totalLessons?: number;
+}
+
+export async function SectionCards(props: SectionCardsProps) {
+  // Generic Mode
+  if (props.items) {
+    return (
+      <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4  *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs  @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+        {props.items.map((item, index) => {
+          const Icon = item.icon;
+          return (
+            <Card key={index} className="@container/card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div>
+                  <CardDescription>{item.title}</CardDescription>
+                  <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                    {item.value}
+                  </CardTitle>
+                </div>
+                {Icon && <Icon className="size-6 text-muted-foreground" />}
+              </CardHeader>
+              <CardFooter className="flex-col items-start gap-1.5 text-sm">
+                <p className="text-muted-foreground">{item.description}</p>
+              </CardFooter>
+            </Card>
+          )
+        })}
+      </div>
+    );
+  }
+
+  // Admin Stats Mode (Legacy / Default)
+  let stats;
+  const hasProps = props.totalCourses !== undefined;
+
+  if (hasProps) {
+    stats = {
+      totalSignups: props.totalSignups || 0,
+      totalCustomers: props.totalCustomers || 0,
+      totalCourses: props.totalCourses || 0,
+      totalLessons: props.totalLessons || 0,
+    };
+  } else {
+    stats = await adminGetDashboardStats();
+  }
+
+  const { totalCourses, totalCustomers, totalLessons, totalSignups } = stats;
   return (
     <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4  *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs  @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
       <Card className="@container/card">
@@ -82,7 +140,7 @@ export async function SectionCards() {
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <p className="text-muted-foreground">
-            Total learning content available
+            {hasProps ? "Total enrollments" : "Total learning content available"}
           </p>
         </CardFooter>
       </Card>

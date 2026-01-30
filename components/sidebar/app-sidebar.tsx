@@ -2,10 +2,8 @@
 
 import * as React from "react";
 import {
-  IconCamera,
   IconChartBar,
   IconDashboard,
-  IconFileAi,
   IconFileDescription,
   IconFolder,
   IconHelp,
@@ -15,6 +13,7 @@ import {
   IconUsers,
   IconMessageCircle,
   IconChartLine,
+  type Icon,
 } from "@tabler/icons-react";
 import Logo from "@/public/bc413ab4-3838-4b3d-ae28-e8f3cd721b33.png";
 
@@ -33,7 +32,8 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 
-const data = {
+// Default data for Admin
+const adminData = {
   navMain: [
     {
       title: "Dashboard",
@@ -76,58 +76,10 @@ const data = {
       icon: IconChartLine,
     },
   ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: IconCamera,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: IconFileDescription,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: IconFileAi,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-  ],
   navSecondary: [
     {
       title: "Settings",
-      url: "#",
+      url: "/settings",
       icon: IconSettings,
     },
     {
@@ -143,7 +95,82 @@ const data = {
   ],
 };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+const teacherData = {
+  navMain: [
+    {
+      title: "Dashboard",
+      url: "/teacher",
+      icon: IconDashboard,
+    },
+    {
+      title: "Courses",
+      url: "/teacher/courses",
+      icon: IconListDetails,
+    },
+    {
+      title: "Quizzes",
+      url: "/teacher/quizzes",
+      icon: IconFileDescription, // Using FileDescription as Pencil is not imported yet, or I should import it.
+    },
+    {
+      title: "Students",
+      url: "/teacher/students",
+      icon: IconUsers,
+    },
+    {
+      title: "Communities",
+      url: "/teacher/communities",
+      icon: IconMessageCircle,
+    },
+    {
+      title: "Analytics",
+      url: "/teacher/analytics",
+      icon: IconChartBar,
+    },
+  ],
+  navSecondary: [
+    {
+      title: "Settings",
+      url: "/teacher/settings",
+      icon: IconSettings,
+    },
+    {
+      title: "Get Help",
+      url: "#",
+      icon: IconHelp,
+    },
+    {
+      title: "Search",
+      url: "#",
+      icon: IconSearch,
+    },
+  ],
+};
+
+// Define props interface
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  role?: "admin" | "teacher";
+  navMain?: {
+    title: string;
+    url: string;
+    icon: Icon;
+    isActive?: boolean;
+    items?: { title: string; url: string }[];
+  }[];
+  navSecondary?: {
+    title: string;
+    url: string;
+    icon: Icon;
+    items?: { title: string; url: string }[];
+  }[];
+}
+
+export function AppSidebar({ role = "admin", navMain, navSecondary, ...props }: AppSidebarProps) {
+  // Use passed props, or fallback to role-based defaults
+  const data = role === "teacher" ? teacherData : adminData;
+  const mainItems = navMain || data.navMain;
+  const secondaryItems = navSecondary || data.navSecondary;
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -162,9 +189,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={mainItems} />
 
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavSecondary items={secondaryItems} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

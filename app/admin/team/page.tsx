@@ -12,11 +12,9 @@ export const metadata = {
 };
 
 const mockTeam = [
-  { id: "U1", name: "Ayesha Khan", role: "Product Manager" },
-  { id: "U2", name: "Ali Raza", role: "Senior Engineer" },
-  { id: "U3", name: "Sara Ahmed", role: "UI/UX Designer" },
-  { id: "U4", name: "Bilal Hussain", role: "Content Lead" },
-  { id: "U5", name: "Zainab Iqbal", role: "QA Engineer" },
+  { id: "U1", name: "Jahanzaib", role: "Frontend Engineer" },
+  { id: "U2", name: "Faizan Muhammad", role: "Backend Engineer" },
+  { id: "U3", name: "Alina Imran", role: "AI ML Engineer" },
 ];
 
 function initials(name: string) {
@@ -51,7 +49,7 @@ export default function AdminTeamPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                This is mock profile info for demo purposes.
+                Core Team Member
               </p>
             </CardContent>
           </Card>

@@ -24,6 +24,8 @@ import Link from "next/link";
 import { EnrollmentButton } from "./_components/EnrollmentButton";
 import { buttonVariants } from "@/components/ui/button";
 
+import { AddToCartButton } from "@/components/cart/add-to-cart-button";
+
 type Params = Promise<{ slug: string }>;
 
 export default async function SlugPage({ params }: { params: Params }) {
@@ -33,6 +35,8 @@ export default async function SlugPage({ params }: { params: Params }) {
 
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 mt-5">
+      {/* ... code ... */}
+      {/* Wait, I can't replace the huge block. I should do import detailed and logic detailed. */}
       <div className="order-1 lg:col-span-2">
         <div className="relative aspect-video w-full overflow-hidden rounded-xl shadow-lg">
           <Image
@@ -267,7 +271,10 @@ export default async function SlugPage({ params }: { params: Params }) {
                   Watch Course
                 </Link>
               ) : (
-                <EnrollmentButton courseId={course.id} />
+                <>
+                  <EnrollmentButton courseId={course.id} />
+                  <AddToCartButton courseId={course.id} />
+                </>
               )}
 
               <p className="mt-3 text-center text-xs text-muted-foreground">

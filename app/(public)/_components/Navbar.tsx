@@ -7,7 +7,8 @@ import { ThemeToggle } from "@/components/ui/themeToggle";
 import { authClient } from "@/lib/auth-client";
 import { buttonVariants } from "@/components/ui/button";
 import { UserDropdown } from "./UserDropdown";
-import { Search, ShoppingCart, Menu, ChevronDown, ShieldCheck } from "lucide-react";
+import { CartDrawer } from "@/components/cart/cart-drawer";
+import { Search, Menu, ChevronDown, ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -128,10 +129,7 @@ export function Navbar() {
             <ShieldCheck className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
           </Link>
 
-          <Link href="/cart" className="p-2 hover:bg-accent rounded-full transition-colors relative group">
-            <ShoppingCart className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-            <span className="absolute top-1 right-0.5 h-2 w-2 bg-primary rounded-full ring-2 ring-background" />
-          </Link>
+          <CartDrawer />
 
           <div className="h-6 w-px bg-border mx-2 hidden sm:block" />
 

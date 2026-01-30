@@ -11,7 +11,7 @@ export async function requireTeacher() {
     });
 
     if (!session) {
-        throw new Error("You must be logged in to access this page.");
+        redirect("/sign-in");
     }
 
     const user = await prisma.user.findUnique({
@@ -28,7 +28,7 @@ export async function requireTeacher() {
     }
 
     if (user?.teacherStatus !== "Approved" && user?.role !== "teacher") {
-        throw new Error("You must be an approved teacher to access this page.");
+        redirect("/dashboard");
     }
 
     return session;

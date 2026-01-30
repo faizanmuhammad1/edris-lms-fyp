@@ -12,6 +12,7 @@ import {
   lessonSchema,
   LessonSchemaType,
 } from "@/lib/zodSchemas";
+import { stripe } from "@/lib/stripe";
 import { request } from "@arcjet/next";
 import { revalidatePath } from "next/cache";
 
@@ -73,14 +74,42 @@ export async function editTeacherCourse(
       };
     }
 
+    // Prepare update data
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: any = { ...result.data };
+
+    // Sync with Stripe
+    if (result.data.title !== course.title || result.data.price !== course.price) {
+      // 1. Get the price object to find the product ID
+      const currentPrice = await stripe.prices.retrieve(course.stripePriceId);
+      const productId = typeof currentPrice.product === 'string'
+        ? currentPrice.product
+        : currentPrice.product.id;
+
+      // 2. Update Product Name if changed
+      if (result.data.title !== course.title) {
+        await stripe.products.update(productId, {
+          name: result.data.title,
+        });
+      }
+
+      // 3. Create New Price if changed
+      if (result.data.price !== course.price) {
+        const newPrice = await stripe.prices.create({
+          product: productId,
+          unit_amount: result.data.price * 100,
+          currency: 'usd',
+        });
+        updateData.stripePriceId = newPrice.id;
+      }
+    }
+
     await prisma.course.update({
       where: {
         id: courseId,
         userId: session.user.id,
       },
-      data: {
-        ...result.data,
-      },
+      data: updateData,
     });
 
     revalidatePath(`/teacher/courses/${courseId}/edit`);

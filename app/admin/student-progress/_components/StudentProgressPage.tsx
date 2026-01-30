@@ -1,182 +1,16 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { getStudentProgressData } from "../actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, XCircle, AlertTriangle, TrendingUp, Users, Award, Ban } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, TrendingUp, Users, Award, Ban, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Mock data for demonstration
-const mockStudents = [
-  {
-    id: "1",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    quizAttempts: [
-      {
-        id: "1",
-        quizTitle: "What is Next.js and Why Use It? - Quiz",
-        courseName: "Complete Next.js 15 Masterclass",
-        score: 85,
-        timeSpent: 320, // seconds
-        startedAt: new Date("2024-01-15T10:30:00"),
-        submittedAt: new Date("2024-01-15T10:35:20"),
-        isCompleted: true,
-        passed: true,
-        tabSwitchCount: 0,
-        backButtonCount: 0,
-        windowBlurCount: 0,
-        visibilityChangeCount: 0,
-        copyAttemptCount: 0,
-        pasteAttemptCount: 0,
-        rightClickCount: 0,
-        devToolsAttemptCount: 0,
-      },
-      {
-        id: "2",
-        quizTitle: "Introduction to Server Components - Quiz",
-        courseName: "Complete Next.js 15 Masterclass",
-        score: 72,
-        timeSpent: 450,
-        startedAt: new Date("2024-01-16T14:20:00"),
-        submittedAt: new Date("2024-01-16T14:27:30"),
-        isCompleted: true,
-        passed: true,
-        tabSwitchCount: 2,
-        backButtonCount: 1,
-        windowBlurCount: 1,
-        visibilityChangeCount: 2,
-        copyAttemptCount: 1,
-        pasteAttemptCount: 0,
-        rightClickCount: 0,
-        devToolsAttemptCount: 1,
-      },
-    ],
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    email: "jane.smith@example.com",
-    quizAttempts: [
-      {
-        id: "3",
-        quizTitle: "What is Next.js and Why Use It? - Quiz",
-        courseName: "Complete Next.js 15 Masterclass",
-        score: 92,
-        timeSpent: 280,
-        startedAt: new Date("2024-01-14T09:15:00"),
-        submittedAt: new Date("2024-01-14T09:19:40"),
-        isCompleted: true,
-        passed: true,
-        tabSwitchCount: 0,
-        backButtonCount: 0,
-        windowBlurCount: 0,
-        visibilityChangeCount: 0,
-        copyAttemptCount: 0,
-        pasteAttemptCount: 0,
-        rightClickCount: 0,
-        devToolsAttemptCount: 0,
-      },
-      {
-        id: "4",
-        quizTitle: "Introduction to React - Quiz",
-        courseName: "React Fundamentals",
-        score: 68,
-        timeSpent: 520,
-        startedAt: new Date("2024-01-17T11:00:00"),
-        submittedAt: new Date("2024-01-17T11:08:40"),
-        isCompleted: true,
-        passed: false,
-        tabSwitchCount: 5,
-        backButtonCount: 3,
-        windowBlurCount: 4,
-        visibilityChangeCount: 5,
-        copyAttemptCount: 2,
-        pasteAttemptCount: 1,
-        rightClickCount: 2,
-        devToolsAttemptCount: 3,
-      },
-    ],
-  },
-  {
-    id: "3",
-    name: "Bob Johnson",
-    email: "bob.johnson@example.com",
-    quizAttempts: [
-      {
-        id: "5",
-        quizTitle: "Why TypeScript? - Quiz",
-        courseName: "TypeScript for JavaScript Developers",
-        score: 78,
-        timeSpent: 380,
-        startedAt: new Date("2024-01-18T15:30:00"),
-        submittedAt: new Date("2024-01-18T15:36:20"),
-        isCompleted: true,
-        passed: true,
-        tabSwitchCount: 1,
-        backButtonCount: 0,
-        windowBlurCount: 1,
-        visibilityChangeCount: 1,
-        copyAttemptCount: 0,
-        pasteAttemptCount: 0,
-        rightClickCount: 0,
-        devToolsAttemptCount: 0,
-      },
-    ],
-  },
-  {
-    id: "4",
-    name: "Alice Williams",
-    email: "alice.williams@example.com",
-    quizAttempts: [
-      {
-        id: "6",
-        quizTitle: "Setting Up the Database - Quiz",
-        courseName: "Complete Next.js 15 Masterclass",
-        score: 45,
-        timeSpent: 600,
-        startedAt: new Date("2024-01-19T13:00:00"),
-        submittedAt: new Date("2024-01-19T13:10:00"),
-        isCompleted: true,
-        passed: false,
-        tabSwitchCount: 8,
-        backButtonCount: 5,
-        windowBlurCount: 7,
-        visibilityChangeCount: 8,
-        copyAttemptCount: 4,
-        pasteAttemptCount: 3,
-        rightClickCount: 5,
-        devToolsAttemptCount: 6,
-      },
-    ],
-  },
-  {
-    id: "5",
-    name: "Charlie Brown",
-    email: "charlie.brown@example.com",
-    quizAttempts: [
-      {
-        id: "7",
-        quizTitle: "Generics - Quiz",
-        courseName: "TypeScript for JavaScript Developers",
-        score: 95,
-        timeSpent: 290,
-        startedAt: new Date("2024-01-20T16:00:00"),
-        submittedAt: new Date("2024-01-20T16:04:50"),
-        isCompleted: true,
-        passed: true,
-        tabSwitchCount: 0,
-        backButtonCount: 0,
-        windowBlurCount: 0,
-        visibilityChangeCount: 0,
-        copyAttemptCount: 0,
-        pasteAttemptCount: 0,
-        rightClickCount: 0,
-        devToolsAttemptCount: 0,
-      },
-    ],
-  },
-];
+type StudentData = Awaited<ReturnType<typeof getStudentProgressData>>[number];
 
-function getTotalCheatingAttempts(attempt: typeof mockStudents[0]["quizAttempts"][0]) {
+function getTotalCheatingAttempts(attempt: StudentData["quizAttempts"][0]) {
   return (
     attempt.tabSwitchCount +
     attempt.backButtonCount +
@@ -201,7 +35,28 @@ function getCheatingSeverity(totalCheating: number): "low" | "medium" | "high" {
   return "high";
 }
 
-export async function StudentProgressPage() {
+export function StudentProgressPage() {
+  const [mockStudents, setMockStudents] = useState<StudentData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await getStudentProgressData();
+        setMockStudents(data);
+      } catch (error) {
+        console.error("Failed to fetch student progress:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+    // Poll every 5 seconds for real-time updates
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   const totalStudents = mockStudents.length;
   const totalAttempts = mockStudents.reduce((sum, student) => sum + student.quizAttempts.length, 0);
   const passedAttempts = mockStudents.reduce(
@@ -216,6 +71,14 @@ export async function StudentProgressPage() {
   const studentsWithCheating = mockStudents.filter((student) =>
     student.quizAttempts.some((a) => getTotalCheatingAttempts(a) > 0)
   ).length;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6">

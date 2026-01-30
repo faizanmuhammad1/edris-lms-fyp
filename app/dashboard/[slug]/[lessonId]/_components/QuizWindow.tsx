@@ -2,6 +2,7 @@
 
 import { Quiz } from "./Quiz";
 import { useEffect, useState, useRef, useCallback } from "react";
+import { toast } from "sonner";
 
 interface QuizWindowProps {
   quizData: {
@@ -35,7 +36,11 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
   const answersRef = useRef<Record<string, string>>({});
   const quizSubmittedRef = useRef(false);
   const submitQuizRef = useRef<(() => void) | null>(null);
-  
+
+  // Warning System
+  const warningsRef = useRef(0);
+  const MAX_WARNINGS = 3;
+
   // Cheating tracking counters
   const cheatingCountersRef = useRef({
     tabSwitchCount: 0,
@@ -50,7 +55,7 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
 
   const handleExitQuiz = useCallback(() => {
     if (isExiting || quizSubmittedRef.current) return;
-    
+
     setIsExiting(true);
     // Auto-submit current answers if any
     if (Object.keys(answersRef.current).length > 0 && submitQuizRef.current) {
@@ -65,22 +70,32 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
     }
   }, [isExiting]);
 
+  const handleViolation = useCallback((type: string) => {
+    if (quizSubmittedRef.current || !hasAnswers) return;
+
+    const currentWarnings = warningsRef.current + 1;
+    warningsRef.current = currentWarnings;
+
+    if (currentWarnings >= MAX_WARNINGS) {
+      toast.error("Maximum warnings exceeded. Quiz auto-submitted.");
+      handleExitQuiz();
+    } else {
+      toast.warning(`Warning ${currentWarnings}/${MAX_WARNINGS}: ${type} detected. maintain focus!`);
+    }
+  }, [hasAnswers, handleExitQuiz]);
+
+
   useEffect(() => {
     // Make window fullscreen on load
     if (typeof window !== "undefined" && window.self !== window.top) {
-      // We're in a popup, request fullscreen
       document.documentElement.requestFullscreen?.().catch(() => {
-        // Fallback: maximize window if fullscreen fails
         try {
           window.moveTo(0, 0);
           window.resizeTo(screen.width, screen.height);
-        } catch {
-          // Ignore errors if browser blocks window manipulation
-        }
+        } catch { }
       });
     }
 
-    // Prevent navigation away from the quiz window
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!quizSubmittedRef.current && hasAnswers) {
         e.preventDefault();
@@ -91,48 +106,47 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
 
     window.addEventListener("beforeunload", handleBeforeUnload);
 
-    // Prevent browser back button
     const handlePopState = (e: PopStateEvent) => {
       e.preventDefault();
       if (!quizSubmittedRef.current && hasAnswers) {
         cheatingCountersRef.current.backButtonCount++;
-        handleExitQuiz();
+        handleViolation("Back Navigation");
       } else {
         window.history.pushState(null, "", window.location.href);
       }
     };
 
-    // Push state to prevent back navigation
     window.history.pushState(null, "", window.location.href);
     window.addEventListener("popstate", handlePopState);
 
-    // Prevent common cheating methods and track attempts
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
       if (!quizSubmittedRef.current) {
         cheatingCountersRef.current.rightClickCount++;
+        toast.warning("Right-click is disabled during the quiz.");
       }
     };
-    
+
     const handleCopy = (e: ClipboardEvent) => {
       e.preventDefault();
       if (!quizSubmittedRef.current) {
         cheatingCountersRef.current.copyAttemptCount++;
+        toast.warning("Copying is disabled.");
       }
     };
-    
+
     const handlePaste = (e: ClipboardEvent) => {
       e.preventDefault();
       if (!quizSubmittedRef.current) {
         cheatingCountersRef.current.pasteAttemptCount++;
+        toast.warning("Pasting is disabled.");
       }
     };
-    
+
     document.addEventListener("contextmenu", handleContextMenu);
     document.addEventListener("copy", handleCopy);
     document.addEventListener("paste", handlePaste);
 
-    // Disable F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Alt+Tab
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
         e.key === "F12" ||
@@ -143,39 +157,36 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
         e.preventDefault();
         if (!quizSubmittedRef.current) {
           cheatingCountersRef.current.devToolsAttemptCount++;
+          handleViolation("Restricted Key");
         }
         return false;
       }
-      
-      // Handle backspace to prevent navigation
+
       if (e.key === "Backspace" && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
         e.preventDefault();
         if (!quizSubmittedRef.current && hasAnswers) {
           cheatingCountersRef.current.backButtonCount++;
-          handleExitQuiz();
+          handleViolation("Back Navigation");
         }
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
 
-    // Monitor visibility changes (tab switching)
     const handleVisibilityChange = () => {
       if (document.hidden && !quizSubmittedRef.current && hasAnswers) {
-        // User switched tabs/windows
         cheatingCountersRef.current.visibilityChangeCount++;
         cheatingCountersRef.current.tabSwitchCount++;
-        handleExitQuiz();
+        handleViolation("Tab Switching");
       }
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    // Monitor window blur (lost focus)
     const handleBlur = () => {
       if (!quizSubmittedRef.current && hasAnswers) {
         cheatingCountersRef.current.windowBlurCount++;
-        handleExitQuiz();
+        handleViolation("Window Focus Loss");
       }
     };
 
@@ -191,17 +202,16 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("blur", handleBlur);
     };
-  }, [hasAnswers, handleExitQuiz]);
+  }, [hasAnswers, handleViolation]);
 
   const handleQuizComplete = () => {
     quizSubmittedRef.current = true;
-    // Send message to parent window and close after delay
     setTimeout(() => {
       if (window.opener && !window.opener.closed) {
         window.opener.postMessage({ type: "quizCompleted" }, "*");
       }
       window.close();
-    }, 3000); // Give user time to see results
+    }, 3000);
   };
 
   const handleAnswerChange = (hasAnswers: boolean, answers: Record<string, string>) => {

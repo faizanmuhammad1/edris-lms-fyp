@@ -32,34 +32,67 @@ export async function POST(req: Request) {
   const session = event.data.object as Stripe.Checkout.Session;
 
   if (event.type === "checkout.session.completed") {
-    const courseId = session.metadata?.courseId;
-    const customerId = session.customer as string;
+    const type = session.metadata?.type;
 
-    if (!courseId) {
-      throw new Error("Course id not found...");
+    if (type === "cart_checkout") {
+      // Handle Cart Checkout
+      const enrollmentIds = session.metadata?.enrollmentIds?.split(",") || [];
+      const userId = session.metadata?.userId;
+
+      if (enrollmentIds.length > 0) {
+        await prisma.enrollment.updateMany({
+          where: {
+            id: { in: enrollmentIds }
+          },
+          data: {
+            status: "Active",
+          }
+        });
+      }
+
+      // Clear Cart
+      if (userId) {
+        const cart = await prisma.cart.findUnique({
+          where: { userId: userId },
+        });
+        if (cart) {
+          await prisma.cartItem.deleteMany({
+            where: { cartId: cart.id },
+          });
+        }
+      }
+
+    } else {
+      // Handle Single Course Checkout
+      const courseId = session.metadata?.courseId;
+      const customerId = session.customer as string;
+
+      if (!courseId) {
+        throw new Error("Course id not found...");
+      }
+
+      const user = await prisma.user.findFirst({
+        where: {
+          stripeCustomerId: customerId,
+        },
+      });
+
+      if (!user) {
+        throw new Error("User not found...");
+      }
+
+      await prisma.enrollment.update({
+        where: {
+          id: session.metadata?.enrollmentId as string,
+        },
+        data: {
+          userId: user.id,
+          courseId: courseId,
+          amount: session.amount_total as number,
+          status: "Active",
+        },
+      });
     }
-
-    const user = await prisma.user.findFirst({
-      where: {
-        stripeCustomerId: customerId,
-      },
-    });
-
-    if (!user) {
-      throw new Error("User not found...");
-    }
-
-    await prisma.enrollment.update({
-      where: {
-        id: session.metadata?.enrollmentId as string,
-      },
-      data: {
-        userId: user.id,
-        courseId: courseId,
-        amount: session.amount_total as number,
-        status: "Active",
-      },
-    });
   }
 
   return new Response(null, { status: 200 });

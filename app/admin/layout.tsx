@@ -19,11 +19,10 @@ async function getAdminUser() {
     headers: await headers(),
   });
 
-  console.log("DEBUG Admin Layout - Session:", session ? "exists" : "null");
-  console.log("DEBUG Admin Layout - User email:", session?.user?.email);
+
 
   if (!session) {
-    console.log("DEBUG Admin Layout - No session, returning null");
+
     return null;
   }
 
@@ -33,8 +32,7 @@ async function getAdminUser() {
     select: { role: true },
   });
 
-  console.log("DEBUG Admin Layout - User from DB:", user);
-  console.log("DEBUG Admin Layout - User role:", user?.role);
+
 
   return user?.role === "admin" ? session.user : null;
 }
@@ -42,14 +40,14 @@ async function getAdminUser() {
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const adminUser = await getAdminUser();
 
-  console.log("DEBUG Admin Layout - adminUser result:", adminUser);
+
 
   if (!adminUser) {
-    console.log("DEBUG Admin Layout - Redirecting to not-admin");
+
     redirect("/not-admin");
   }
 
-  console.log("DEBUG Admin Layout - Access granted!");
+
 
   return (
     <SidebarProvider

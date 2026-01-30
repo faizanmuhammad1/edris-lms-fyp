@@ -2,35 +2,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { IconMessageCircle, IconUsers, IconClock } from "@tabler/icons-react";
 import Link from "next/link";
+import { getCommunities } from "@/app/actions/community";
 
 export default async function ForumPage() {
-  // Mock communities data - replace with actual data fetching based on enrollment
-  const communities = [
-    {
-      id: "1",
-      name: "Web Development Discussion",
-      description: "Discuss modern web development practices, frameworks, and best practices.",
-      members: 145,
-      posts: 23,
-      lastActivity: "2 hours ago",
-    },
-    {
-      id: "2",
-      name: "React & Next.js Community",
-      description: "Share knowledge about React and Next.js development.",
-      members: 89,
-      posts: 15,
-      lastActivity: "5 hours ago",
-    },
-    {
-      id: "3",
-      name: "Python Programming Hub",
-      description: "Connect with Python developers and share your projects.",
-      members: 234,
-      posts: 42,
-      lastActivity: "1 day ago",
-    },
-  ];
+  const communities = await getCommunities();
 
   return (
     <div className="space-y-6">
@@ -60,19 +35,20 @@ export default async function ForumPage() {
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <IconUsers className="h-4 w-4" />
-                    <span>{community.members} members</span>
+                    <span>0 members</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <IconMessageCircle className="h-4 w-4" />
-                    <span>{community.posts} posts</span>
+                    <span>{community._count.posts} posts</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  {/* Last activity not yet in schema, omitting or mocking */}
                   <IconClock className="h-3 w-3" />
-                  <span>Last activity: {community.lastActivity}</span>
+                  <span>Activity: Recently</span>
                 </div>
                 <Button className="w-full" asChild>
-                  <Link href={`/dashboard/forum/${community.id}`}>
+                  <Link href={`/dashboard/forum/${community.slug}`}>
                     Join Discussion
                   </Link>
                 </Button>
@@ -88,7 +64,7 @@ export default async function ForumPage() {
             <IconMessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Communities Available</h3>
             <p className="text-muted-foreground text-center">
-              Communities you&apos;re enrolled in will appear here. Check back later!
+              Communities will appear here once created.
             </p>
           </CardContent>
         </Card>

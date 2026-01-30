@@ -25,6 +25,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTransition } from "react";
 import { toast } from "sonner";
+import { createCommunity } from "@/app/actions/community";
 
 const communitySchema = z.object({
   name: z
@@ -54,11 +55,16 @@ export default function CreateCommunityPage() {
     },
   });
 
-  function onSubmit() {
+  function onSubmit(values: CommunitySchemaType) {
     startTransition(async () => {
-      // TODO: Add actual API call to create community
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { data, error } = await createCommunity(values);
+
+      if (error) {
+        toast.error("Failed to create community");
+        return;
+      }
+
       toast.success("Community created successfully!");
       form.reset();
       // Navigate back to communities list

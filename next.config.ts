@@ -28,6 +28,11 @@ const nextConfig: NextConfig = {
         port: "",
         protocol: "https",
       },
+      {
+        hostname: "lmsbucket6969.fly.storage.tigris.dev",
+        port: "",
+        protocol: "https",
+      },
     ],
   },
 

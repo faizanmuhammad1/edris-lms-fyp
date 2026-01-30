@@ -2,32 +2,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button, buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
 import { IconMessageCircle, IconPlus, IconUsers } from "@tabler/icons-react";
+import { getCommunities } from "@/app/actions/community";
 
 export default async function CommunitiesPage() {
-  // Mock communities data - replace with actual data fetching
-  const communities = [
-    {
-      id: "1",
-      name: "Web Development Discussion",
-      description: "Discuss modern web development practices, frameworks, and best practices.",
-      members: 145,
-      posts: 23,
-    },
-    {
-      id: "2",
-      name: "React & Next.js Community",
-      description: "Share knowledge about React and Next.js development.",
-      members: 89,
-      posts: 15,
-    },
-    {
-      id: "3",
-      name: "Python Programming Hub",
-      description: "Connect with Python developers and share your projects.",
-      members: 234,
-      posts: 42,
-    },
-  ];
+  const communities = await getCommunities();
 
   return (
     <div className="space-y-6">
@@ -62,19 +40,17 @@ export default async function CommunitiesPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <IconUsers className="h-4 w-4" />
-                  <span>{community.members} members</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <IconMessageCircle className="h-4 w-4" />
-                  <span>{community.posts} posts</span>
-                </div>
+              <div className="flex items-center gap-1">
+                <IconUsers className="h-4 w-4" />
+                <span>0 members</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <IconMessageCircle className="h-4 w-4" />
+                <span>{community._count.posts} posts</span>
               </div>
               <div className="mt-4 flex gap-2">
                 <Button variant="outline" className="flex-1" asChild>
-                  <Link href={`/admin/communities/${community.id}`}>
+                  <Link href={`/admin/communities/${community.slug}`}>
                     Manage
                   </Link>
                 </Button>
