@@ -32,8 +32,8 @@ export async function checkS3Connection() {
             bucketName,
             region: env.AWS_REGION,
             objects: response.Contents?.map(obj => ({
-                key: obj.Key,
-                size: obj.Size,
+                key: obj.Key || "Unknown",
+                size: obj.Size || 0,
                 lastModified: obj.LastModified
             })) || [],
             message: "Connection successful"

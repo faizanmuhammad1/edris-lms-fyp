@@ -5,6 +5,7 @@ import { requireUser } from "@/app/data/user/require-user";
 import { revalidatePath } from "next/cache";
 import { stripe } from "@/lib/stripe";
 import { env } from "@/lib/env";
+import Stripe from "stripe";
 
 export async function getCart() {
     const user = await requireUser();
@@ -86,21 +87,22 @@ export async function removeFromCart(cartItemId: string) {
 }
 
 export async function checkoutCart() {
-    const user = await requireUser();
+    const sessionUser = await requireUser();
+    const user = await prisma.user.findUnique({
+        where: { id: sessionUser.id },
+    });
+
+    if (!user) {
+        throw new Error("User not found");
+    }
+
     const cart = await getCart();
 
     if (!cart || cart.items.length === 0) {
         return { status: "error", message: "Cart is empty" };
     }
 
-    const line_items: Array<{
-        price_data: {
-            currency: string;
-            product_data: { name: string };
-            unit_amount: number;
-        };
-        quantity: number;
-    }> = [];
+    const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
     const enrollmentIds: string[] = [];
 
     // Create Pending Enrollments and Line Items

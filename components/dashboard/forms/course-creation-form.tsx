@@ -49,6 +49,7 @@ import { ApiResponse } from "@/lib/types";
 interface CourseCreationFormProps {
     action: (values: CourseSchemaType) => Promise<ApiResponse>;
     backLink: string;
+    role?: string;
 }
 
 export function CourseCreationForm({ action, backLink }: CourseCreationFormProps) {

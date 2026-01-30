@@ -6,7 +6,7 @@ import { tryCatch } from "@/hooks/try-catch";
 import { revalidatePath } from "next/cache";
 import slugify from "slugify";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
+import { requireUser } from "@/app/data/user/require-user";
 
 const communitySchema = z.object({
     name: z.string().min(3).max(100),
@@ -120,11 +120,10 @@ export async function getCommunity(slug: string) {
 
 // Post Actions
 
+
+
 export async function createPost(communityId: string, values: z.infer<typeof postSchema>) {
-    const session = await auth();
-    if (!session?.user?.id) {
-        throw new Error("Unauthorized");
-    }
+    const user = await requireUser();
 
     return await tryCatch((async () => {
         const post = await prisma.post.create({
@@ -132,7 +131,7 @@ export async function createPost(communityId: string, values: z.infer<typeof pos
                 title: values.title,
                 content: values.content,
                 communityId,
-                userId: session.user.id,
+                userId: user.id,
             },
         });
 
@@ -159,29 +158,25 @@ export async function getPosts(communityId: string) {
     });
 }
 
-// Comment & Post Detail Actions
-
 export async function createComment(
     values: z.infer<typeof commentSchema>,
     postId?: string,
     lessonId?: string,
     parentId?: string
 ) {
-    const session = await auth();
-    if (!session?.user?.id) {
-        throw new Error("Unauthorized");
-    }
+    const user = await requireUser();
 
     return await tryCatch((async () => {
         const comment = await prisma.comment.create({
             data: {
                 text: values.text,
-                userId: session.user.id,
+                userId: user.id,
                 postId,
                 lessonId,
                 parentId
             }
         });
+
 
         revalidatePath("/dashboard/forum");
 

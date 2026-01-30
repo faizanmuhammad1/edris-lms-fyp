@@ -33,6 +33,16 @@ const nextConfig: NextConfig = {
         port: "",
         protocol: "https",
       },
+      {
+        hostname: "edris-lms-fyp.fly.storage.tigris.dev",
+        port: "",
+        protocol: "https",
+      },
+      {
+        hostname: "api.dicebear.com",
+        port: "",
+        protocol: "https",
+      },
     ],
   },
 

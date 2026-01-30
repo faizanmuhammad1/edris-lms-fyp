@@ -31,7 +31,13 @@ export function ReviewList({ reviews }: { reviews: ReviewWithUser[] }) {
                     <CardHeader className="flex flex-row items-center gap-4 pb-2">
                         <Avatar>
                             <AvatarImage src={review.User.image || ""} />
-                            <AvatarFallback>{review.User.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                            <AvatarFallback>
+                                <img
+                                    src={`https://api.dicebear.com/9.x/initials/svg?seed=${review.User.name}`}
+                                    alt={review.User.name}
+                                    className="h-full w-full object-cover"
+                                />
+                            </AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col">
                             <span className="font-semibold text-sm">{review.User.name}</span>

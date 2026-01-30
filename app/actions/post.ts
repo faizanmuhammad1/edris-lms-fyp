@@ -14,16 +14,16 @@ const postSchema = z.object({
 });
 
 export async function createPost(values: z.infer<typeof postSchema>) {
-    const session = await requireUser();
+    const user = await requireUser();
 
-    return await tryCatch(async () => {
+    return await tryCatch((async () => {
 
         const post = await prisma.post.create({
             data: {
                 title: values.title,
                 content: values.content,
                 communityId: values.communityId,
-                userId: session.user.id,
+                userId: user.id,
             },
         });
 
@@ -44,7 +44,7 @@ export async function createPost(values: z.infer<typeof postSchema>) {
         }
 
         return { params: post };
-    });
+    })());
 }
 
 export async function getPosts(communityId: string) {

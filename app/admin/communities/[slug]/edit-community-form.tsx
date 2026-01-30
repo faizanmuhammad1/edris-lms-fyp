@@ -89,13 +89,13 @@ export function EditCommunityForm({ initialData, role }: EditCommunityFormProps)
         if (deletePending) return;
 
         startDeleteTransition(async () => {
-            const { success } = await deleteCommunity(initialData.slug);
+            const { data, error } = await deleteCommunity(initialData.slug);
 
-            if (success) {
+            if (data?.success) {
                 toast.success("Community deleted");
                 router.push(role === "admin" ? "/admin/communities" : "/teacher/communities");
                 router.refresh();
-            } else {
+            } else if (error) {
                 toast.error("Failed to delete community");
             }
         });

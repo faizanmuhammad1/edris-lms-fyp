@@ -49,14 +49,16 @@ export function NavUser() {
                 <AvatarImage
                   src={
                     session?.user.image ??
-                    `https://avatar.vercel.sh/${session?.user.email}`
+                    `https://api.dicebear.com/9.x/initials/svg?seed=${session?.user.name}`
                   }
                   alt={session?.user.name}
                 />
                 <AvatarFallback className="rounded-lg">
-                  {session?.user.name && session.user.name.length > 0
-                    ? session.user.name.charAt(0).toUpperCase()
-                    : session?.user.email.charAt(0).toUpperCase()}
+                  <img
+                    src={`https://api.dicebear.com/9.x/initials/svg?seed=${session?.user.name}`}
+                    alt={session?.user.name}
+                    className="h-full w-full object-cover rounded-lg"
+                  />
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -84,14 +86,16 @@ export function NavUser() {
                   <AvatarImage
                     src={
                       session?.user.image ??
-                      `https://avatar.vercel.sh/${session?.user.email}`
+                      `https://api.dicebear.com/9.x/initials/svg?seed=${session?.user.name}`
                     }
                     alt={session?.user.name}
                   />
                   <AvatarFallback className="rounded-lg">
-                    {session?.user.name && session.user.name.length > 0
-                      ? session.user.name.charAt(0).toUpperCase()
-                      : session?.user.email.charAt(0).toUpperCase()}
+                    <img
+                      src={`https://api.dicebear.com/9.x/initials/svg?seed=${session?.user.name}`}
+                      alt={session?.user.name}
+                      className="h-full w-full object-cover rounded-lg"
+                    />
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">

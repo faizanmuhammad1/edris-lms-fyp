@@ -65,7 +65,13 @@ function SingleComment({ comment, lessonId }: { comment: CommentWithReplies, les
             <div className="flex gap-4">
                 <Avatar className="w-10 h-10 border">
                     <AvatarImage src={comment.User.image || ""} />
-                    <AvatarFallback>{comment.User.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback>
+                        <img
+                            src={`https://api.dicebear.com/9.x/initials/svg?seed=${comment.User.name}`}
+                            alt={comment.User.name}
+                            className="h-full w-full object-cover"
+                        />
+                    </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-2">
@@ -104,7 +110,13 @@ function SingleComment({ comment, lessonId }: { comment: CommentWithReplies, les
                         <div key={reply.id} className="flex gap-4">
                             <Avatar className="w-8 h-8 border">
                                 <AvatarImage src={reply.User.image || ""} />
-                                <AvatarFallback>{reply.User.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                                <AvatarFallback>
+                                    <img
+                                        src={`https://api.dicebear.com/9.x/initials/svg?seed=${reply.User.name}`}
+                                        alt={reply.User.name}
+                                        className="h-full w-full object-cover"
+                                    />
+                                </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 space-y-1">
                                 <div className="flex items-center gap-2">

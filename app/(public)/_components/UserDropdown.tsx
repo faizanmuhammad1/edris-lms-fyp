@@ -37,7 +37,13 @@ export function UserDropdown({ email, name, image }: iAppProps) {
         <Button variant="ghost" className="h-auto p-0 hover:bg-transparent">
           <Avatar>
             <AvatarImage src={image} alt="Profile image" />
-            <AvatarFallback>{name[0].toUpperCase()}</AvatarFallback>
+            <AvatarFallback>
+              <img
+                src={`https://api.dicebear.com/9.x/initials/svg?seed=${name}`}
+                alt={name}
+                className="h-full w-full object-cover"
+              />
+            </AvatarFallback>
           </Avatar>
           <ChevronDownIcon
             size={16}
