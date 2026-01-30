@@ -67,25 +67,16 @@ export function Footer() {
                         <div className="space-y-4">
                             <h4 className="font-bold text-foreground">Company</h4>
                             <ul className="space-y-2.5 text-sm text-muted-foreground">
-                                {["About Us", "Careers", "Blog", "Contact Us", "Teach on Edris"].map((item) => (
-                                    <li key={item}>
-                                        <Link href="#" className="hover:text-primary transition-colors flex items-center gap-1 group">
+                                {[
+                                    { label: "About Us", href: "/about" },
+                                    { label: "Blog", href: "/blog" },
+                                    { label: "Contact Us", href: "/contact" },
+                                    { label: "Teach on Edris", href: "/teach" }
+                                ].map((item) => (
+                                    <li key={item.label}>
+                                        <Link href={item.href} className="hover:text-primary transition-colors flex items-center gap-1 group">
                                             <span className="w-0 group-hover:w-2 h-px bg-primary transition-all duration-300" />
-                                            {item}
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        <div className="space-y-4 col-span-2 md:col-span-1">
-                            <h4 className="font-bold text-foreground">Legal</h4>
-                            <ul className="space-y-2.5 text-sm text-muted-foreground">
-                                {["Terms", "Privacy", "Cookies", "Accessibility"].map((item) => (
-                                    <li key={item}>
-                                        <Link href="#" className="hover:text-primary transition-colors flex items-center gap-1 group">
-                                            <span className="w-0 group-hover:w-2 h-px bg-primary transition-all duration-300" />
-                                            {item}
+                                            {item.label}
                                         </Link>
                                     </li>
                                 ))}
@@ -93,37 +84,56 @@ export function Footer() {
                         </div>
                     </div>
 
-                    {/* Newsletter Section - 3 Columns */}
-                    <div className="lg:col-span-3 space-y-6 bg-card/50 p-6 rounded-2xl border border-border/50 backdrop-blur-sm h-fit">
-                        <h4 className="font-bold text-foreground">Stay Updated</h4>
-                        <p className="text-sm text-muted-foreground">
-                            Subscribe to our newsletter for the latest courses and updates.
-                        </p>
-                        <form className="space-y-3" onSubmit={(e) => e.preventDefault()}>
-                            <div className="relative">
-                                <Input
-                                    placeholder="Enter your email"
-                                    className="pr-10 bg-background/50 border-border/60 focus-visible:ring-primary/20"
-                                />
-                                <Send className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                            </div>
-                            <Button className="w-full shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]">
-                                Subscribe
-                            </Button>
-                        </form>
+                    <div className="space-y-4 col-span-2 md:col-span-1">
+                        <h4 className="font-bold text-foreground">Legal</h4>
+                        <ul className="space-y-2.5 text-sm text-muted-foreground">
+                            {[
+                                { label: "Terms", href: "/terms" },
+                                { label: "Privacy", href: "/privacy" },
+                                { label: "Cookies", href: "/cookies" },
+                                { label: "Accessibility", href: "/accessibility" }
+                            ].map((item) => (
+                                <li key={item.label}>
+                                    <Link href={item.href} className="hover:text-primary transition-colors flex items-center gap-1 group">
+                                        <span className="w-0 group-hover:w-2 h-px bg-primary transition-all duration-300" />
+                                        {item.label}
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
                     </div>
                 </div>
 
-                {/* Bottom Bar */}
-                <div className="border-t border-border/40 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
-                    <p>&copy; {currentYear} Edris LMS. All rights reserved.</p>
-                    <div className="flex items-center gap-6">
-                        <Link href="#" className="hover:text-foreground transition-colors">Privacy Policy</Link>
-                        <Link href="#" className="hover:text-foreground transition-colors">Terms of Service</Link>
-                        <div className="flex items-center gap-2 border px-3 py-1 rounded-full bg-background/50">
-                            <div className="size-2 rounded-full bg-green-500 animate-pulse" />
-                            <span className="text-xs font-medium">Systems Normal</span>
+                {/* Newsletter Section - 3 Columns */}
+                <div className="lg:col-span-3 space-y-6 bg-card/50 p-6 rounded-2xl border border-border/50 backdrop-blur-sm h-fit">
+                    <h4 className="font-bold text-foreground">Stay Updated</h4>
+                    <p className="text-sm text-muted-foreground">
+                        Subscribe to our newsletter for the latest courses and updates.
+                    </p>
+                    <form className="space-y-3" onSubmit={(e) => e.preventDefault()}>
+                        <div className="relative">
+                            <Input
+                                placeholder="Enter your email"
+                                className="pr-10 bg-background/50 border-border/60 focus-visible:ring-primary/20"
+                            />
+                            <Send className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                         </div>
+                        <Button className="w-full shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]">
+                            Subscribe
+                        </Button>
+                    </form>
+                </div>
+            </div>
+
+            {/* Bottom Bar */}
+            <div className="border-t border-border/40 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
+                <p>&copy; {currentYear} Edris LMS. All rights reserved.</p>
+                <div className="flex items-center gap-6">
+                    <Link href="#" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+                    <Link href="#" className="hover:text-foreground transition-colors">Terms of Service</Link>
+                    <div className="flex items-center gap-2 border px-3 py-1 rounded-full bg-background/50">
+                        <div className="size-2 rounded-full bg-green-500 animate-pulse" />
+                        <span className="text-xs font-medium">Systems Normal</span>
                     </div>
                 </div>
             </div>
