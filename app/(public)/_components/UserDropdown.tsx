@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -38,10 +39,11 @@ export function UserDropdown({ email, name, image }: iAppProps) {
           <Avatar>
             <AvatarImage src={image} alt="Profile image" />
             <AvatarFallback>
-              <img
+              <Image
                 src={`https://api.dicebear.com/9.x/initials/svg?seed=${name}`}
                 alt={name}
-                className="h-full w-full object-cover"
+                fill
+                className="object-cover"
               />
             </AvatarFallback>
           </Avatar>

@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import Image from "next/image";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Star } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -32,10 +33,11 @@ export function ReviewList({ reviews }: { reviews: ReviewWithUser[] }) {
                         <Avatar>
                             <AvatarImage src={review.User.image || ""} />
                             <AvatarFallback>
-                                <img
+                                <Image
                                     src={`https://api.dicebear.com/9.x/initials/svg?seed=${review.User.name}`}
                                     alt={review.User.name}
-                                    className="h-full w-full object-cover"
+                                    fill
+                                    className="object-cover"
                                 />
                             </AvatarFallback>
                         </Avatar>

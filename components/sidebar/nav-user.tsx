@@ -25,6 +25,7 @@ import {
 import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
 import { HomeIcon, Tv2 } from "lucide-react";
+import Image from "next/image";
 import { useSignOut } from "@/hooks/use-singout";
 
 export function NavUser() {
@@ -51,13 +52,14 @@ export function NavUser() {
                     session?.user.image ??
                     `https://api.dicebear.com/9.x/initials/svg?seed=${session?.user.name}`
                   }
-                  alt={session?.user.name}
+                  alt={session?.user.name || "User"}
                 />
                 <AvatarFallback className="rounded-lg">
-                  <img
+                  <Image
                     src={`https://api.dicebear.com/9.x/initials/svg?seed=${session?.user.name}`}
-                    alt={session?.user.name}
-                    className="h-full w-full object-cover rounded-lg"
+                    alt={session?.user.name || "User"}
+                    fill
+                    className="object-cover rounded-lg"
                   />
                 </AvatarFallback>
               </Avatar>
@@ -88,13 +90,14 @@ export function NavUser() {
                       session?.user.image ??
                       `https://api.dicebear.com/9.x/initials/svg?seed=${session?.user.name}`
                     }
-                    alt={session?.user.name}
+                    alt={session?.user.name || "User"}
                   />
                   <AvatarFallback className="rounded-lg">
-                    <img
+                    <Image
                       src={`https://api.dicebear.com/9.x/initials/svg?seed=${session?.user.name}`}
-                      alt={session?.user.name}
-                      className="h-full w-full object-cover rounded-lg"
+                      alt={session?.user.name || "User"}
+                      fill
+                      className="object-cover rounded-lg"
                     />
                   </AvatarFallback>
                 </Avatar>

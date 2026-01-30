@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { createComment, CommentWithReplies } from "@/app/actions/comments";
@@ -66,10 +67,11 @@ function SingleComment({ comment, lessonId }: { comment: CommentWithReplies, les
                 <Avatar className="w-10 h-10 border">
                     <AvatarImage src={comment.User.image || ""} />
                     <AvatarFallback>
-                        <img
+                        <Image
                             src={`https://api.dicebear.com/9.x/initials/svg?seed=${comment.User.name}`}
                             alt={comment.User.name}
-                            className="h-full w-full object-cover"
+                            fill
+                            className="object-cover"
                         />
                     </AvatarFallback>
                 </Avatar>
@@ -111,10 +113,11 @@ function SingleComment({ comment, lessonId }: { comment: CommentWithReplies, les
                             <Avatar className="w-8 h-8 border">
                                 <AvatarImage src={reply.User.image || ""} />
                                 <AvatarFallback>
-                                    <img
+                                    <Image
                                         src={`https://api.dicebear.com/9.x/initials/svg?seed=${reply.User.name}`}
                                         alt={reply.User.name}
-                                        className="h-full w-full object-cover"
+                                        fill
+                                        className="object-cover"
                                     />
                                 </AvatarFallback>
                             </Avatar>
