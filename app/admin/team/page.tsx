@@ -12,7 +12,7 @@ export const metadata = {
 };
 
 const mockTeam = [
-  { id: "U1", name: "Jahanzaib", role: "Frontend Engineer" },
+  { id: "U1", name: "Jahanzaib Sheikh", role: "Frontend and Blockchain Developer" },
   { id: "U2", name: "Faizan Muhammad", role: "Backend Engineer" },
   { id: "U3", name: "Alina Imran", role: "AI ML Engineer" },
 ];
