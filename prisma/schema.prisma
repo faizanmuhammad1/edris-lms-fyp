@@ -119,6 +119,7 @@ model Course {
   enrollment   Enrollment[]
   reviews      Review[]
   certificates Certificate[]
+  cartItems    CartItem[]
 }
 
 enum CourseLevel {
