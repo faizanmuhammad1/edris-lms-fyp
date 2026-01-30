@@ -1,10 +1,12 @@
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { S3 } from "@/lib/S3Client";
 import arcjet, { fixedWindow } from "@/lib/arcjet";
-import { requireAdmin } from "@/app/data/admin/require-admin";
 
 const aj = arcjet.withRule(
   fixedWindow({
@@ -15,18 +17,34 @@ const aj = arcjet.withRule(
 );
 
 export async function POST(request: Request) {
-  const session = await requireAdmin();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { role: true },
+  });
+
+  if (user?.role !== "admin" && user?.role !== "teacher") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const formData = await request.formData();
+  const file = formData.get("file") as File;
+
   try {
     const decision = await aj.protect(request, {
-      fingerprint: session?.user.id as string,
+      fingerprint: session.user.id,
     });
 
     if (decision.isDenied()) {
       return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
     }
-
-    const formData = await request.formData();
-    const file = formData.get("file") as File;
 
     if (!file) {
       return NextResponse.json(

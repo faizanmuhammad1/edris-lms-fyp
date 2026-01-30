@@ -1,4 +1,5 @@
 "use client";
+import { getAvatarUrl } from "@/lib/avatar";
 
 import {
   IconDashboard,
@@ -50,13 +51,13 @@ export function NavUser() {
                 <AvatarImage
                   src={
                     session?.user.image ??
-                    `https://api.dicebear.com/9.x/initials/svg?seed=${session?.user.name}`
+                    getAvatarUrl(session?.user.name)
                   }
                   alt={session?.user.name || "User"}
                 />
                 <AvatarFallback className="rounded-lg">
                   <Image
-                    src={`https://api.dicebear.com/9.x/initials/svg?seed=${session?.user.name}`}
+                    src={getAvatarUrl(session?.user.name)}
                     alt={session?.user.name || "User"}
                     fill
                     className="object-cover rounded-lg"
@@ -88,13 +89,13 @@ export function NavUser() {
                   <AvatarImage
                     src={
                       session?.user.image ??
-                      `https://api.dicebear.com/9.x/initials/svg?seed=${session?.user.name}`
+                      getAvatarUrl(session?.user.name)
                     }
                     alt={session?.user.name || "User"}
                   />
                   <AvatarFallback className="rounded-lg">
                     <Image
-                      src={`https://api.dicebear.com/9.x/initials/svg?seed=${session?.user.name}`}
+                      src={getAvatarUrl(session?.user.name)}
                       alt={session?.user.name || "User"}
                       fill
                       className="object-cover rounded-lg"

@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getAvatarUrl } from "@/lib/avatar";
 import Image from "next/image";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Star } from "lucide-react";
@@ -34,7 +35,7 @@ export function ReviewList({ reviews }: { reviews: ReviewWithUser[] }) {
                             <AvatarImage src={review.User.image || ""} />
                             <AvatarFallback>
                                 <Image
-                                    src={`https://api.dicebear.com/9.x/initials/svg?seed=${review.User.name}`}
+                                    src={getAvatarUrl(review.User.name)}
                                     alt={review.User.name}
                                     fill
                                     className="object-cover"

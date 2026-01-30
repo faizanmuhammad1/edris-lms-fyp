@@ -159,6 +159,14 @@ export function TeacherLessonForm({ chapterId, data, courseId }: iAppProps) {
           </Form>
         </CardContent>
       </Card>
+
+      <div className="mt-6 flex justify-end">
+        <Link href={`/teacher/courses/${courseId}/${chapterId}/${data.id}/quiz`}>
+          <Button variant="secondary" className="gap-2">
+            Manage Quiz
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 }

@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
   },
 
   images: {
+    dangerouslyAllowSVG: true,
     remotePatterns: [
       {
         hostname: "edris-lms.fly.storage.tigris.dev",

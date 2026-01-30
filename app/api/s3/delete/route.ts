@@ -1,4 +1,7 @@
-import { requireAdmin } from "@/app/data/admin/require-admin";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { prisma } from "@/lib/db";
+// import { requireAdmin } from "@/app/data/admin/require-admin"; // Removed unused import
 import arcjet, { fixedWindow } from "@/lib/arcjet";
 
 import { env } from "@/lib/env";
@@ -15,7 +18,22 @@ const aj = arcjet.withRule(
 );
 
 export async function DELETE(request: Request) {
-  const session = await requireAdmin();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { role: true },
+  });
+
+  if (user?.role !== "admin" && user?.role !== "teacher") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   try {
     const decision = await aj.protect(request, {
       fingerprint: session?.user.id as string,

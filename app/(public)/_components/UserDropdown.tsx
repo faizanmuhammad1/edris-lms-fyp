@@ -1,4 +1,5 @@
 
+import { getAvatarUrl } from "@/lib/avatar";
 import {
   BookOpen,
   ChevronDownIcon,
@@ -40,7 +41,7 @@ export function UserDropdown({ email, name, image }: iAppProps) {
             <AvatarImage src={image} alt="Profile image" />
             <AvatarFallback>
               <Image
-                src={`https://api.dicebear.com/9.x/initials/svg?seed=${name}`}
+                src={getAvatarUrl(name)}
                 alt={name}
                 fill
                 className="object-cover"

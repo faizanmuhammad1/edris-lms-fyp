@@ -1,4 +1,5 @@
 "use client";
+import { getAvatarUrl } from "@/lib/avatar";
 
 import { useState, useTransition } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -68,7 +69,7 @@ function SingleComment({ comment, lessonId }: { comment: CommentWithReplies, les
                     <AvatarImage src={comment.User.image || ""} />
                     <AvatarFallback>
                         <Image
-                            src={`https://api.dicebear.com/9.x/initials/svg?seed=${comment.User.name}`}
+                            src={getAvatarUrl(comment.User.name)}
                             alt={comment.User.name}
                             fill
                             className="object-cover"
@@ -114,7 +115,7 @@ function SingleComment({ comment, lessonId }: { comment: CommentWithReplies, les
                                 <AvatarImage src={reply.User.image || ""} />
                                 <AvatarFallback>
                                     <Image
-                                        src={`https://api.dicebear.com/9.x/initials/svg?seed=${reply.User.name}`}
+                                        src={getAvatarUrl(reply.User.name)}
                                         alt={reply.User.name}
                                         fill
                                         className="object-cover"

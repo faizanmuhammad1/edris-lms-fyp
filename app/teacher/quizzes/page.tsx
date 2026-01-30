@@ -57,7 +57,7 @@ export default async function TeacherQuizzesPage() {
                             </div>
                             <div className="mt-4 flex gap-2">
                                 <Button variant="outline" className="flex-1" asChild>
-                                    <Link href={`/teacher/courses/${quiz.Lesson.Chapter.Course.id}/lessons/${quiz.Lesson.id}/quiz`}>
+                                    <Link href={`/teacher/courses/${quiz.Lesson.Chapter.Course.id}/${quiz.Lesson.chapterId}/${quiz.Lesson.id}/quiz`}>
                                         Manage
                                     </Link>
                                 </Button>
