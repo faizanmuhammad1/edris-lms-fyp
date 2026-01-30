@@ -8,6 +8,7 @@ import { resend } from "./resend";
 
 
 export const auth = betterAuth({
+  trustedOrigins: ["https://edrislms.com", "https://www.edrislms.com"],
   database: prismaAdapter(prisma, {
     provider: "mongodb", // or "mysql", "postgresql", ...etc
   }),
