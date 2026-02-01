@@ -11,6 +11,7 @@ export async function getIndividualCourse(slug: string) {
     select: {
       id: true,
       title: true,
+      slug: true,
       description: true,
       fileKey: true,
       price: true,
@@ -18,6 +19,52 @@ export async function getIndividualCourse(slug: string) {
       level: true,
       category: true,
       smallDescription: true,
+      createdAt: true,
+      updatedAt: true,
+      // Instructor info
+      user: {
+        select: {
+          id: true,
+          name: true,
+          image: true,
+          _count: {
+            select: {
+              courses: true,
+            },
+          },
+        },
+      },
+      // Reviews for real ratings
+      reviews: {
+        select: {
+          id: true,
+          rating: true,
+          text: true,
+          createdAt: true,
+          User: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 10,
+      },
+      // Enrollment count
+      _count: {
+        select: {
+          enrollment: {
+            where: {
+              status: "Active",
+            },
+          },
+          reviews: true,
+        },
+      },
       chapter: {
         select: {
           id: true,
@@ -26,6 +73,8 @@ export async function getIndividualCourse(slug: string) {
             select: {
               id: true,
               title: true,
+              videoKey: true,
+              thumbnailKey: true,
             },
             orderBy: {
               position: "asc",
@@ -43,5 +92,26 @@ export async function getIndividualCourse(slug: string) {
     return notFound();
   }
 
-  return course;
+  // Calculate average rating
+  const avgRating =
+    course.reviews.length > 0
+      ? course.reviews.reduce((sum, r) => sum + r.rating, 0) /
+      course.reviews.length
+      : 0;
+
+  // Get first lesson with video for preview
+  const previewLesson = course.chapter
+    .flatMap((ch) => ch.lessons)
+    .find((lesson) => lesson.videoKey);
+
+  return {
+    ...course,
+    avgRating: Math.round(avgRating * 10) / 10,
+    studentCount: course._count.enrollment,
+    reviewCount: course._count.reviews,
+    previewVideoKey: previewLesson?.videoKey ?? null,
+    previewThumbnailKey: previewLesson?.thumbnailKey ?? course.fileKey,
+  };
 }
+
+export type IndividualCourseType = Awaited<ReturnType<typeof getIndividualCourse>>;

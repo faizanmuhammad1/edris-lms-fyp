@@ -5,7 +5,6 @@ import {
   IconChartBar,
   IconDashboard,
   IconFileDescription,
-  IconFolder,
   IconHelp,
   IconListDetails,
   IconSearch,
@@ -56,16 +55,6 @@ const adminData = {
       icon: IconChartBar,
     },
     {
-      title: "Projects",
-      url: "/admin/projects",
-      icon: IconFolder,
-    },
-    {
-      title: "Team",
-      url: "/admin/team",
-      icon: IconUsers,
-    },
-    {
       title: "Teachers",
       url: "/admin/teachers",
       icon: IconUsers,
@@ -79,7 +68,7 @@ const adminData = {
   navSecondary: [
     {
       title: "Settings",
-      url: "/settings",
+      url: "/admin/settings",
       icon: IconSettings,
     },
     {
