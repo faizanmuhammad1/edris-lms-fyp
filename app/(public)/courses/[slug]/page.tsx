@@ -16,8 +16,11 @@ import {
   IconClock,
   IconPlayerPlay,
   IconCalendar,
+  IconCertificate,
+  IconDeviceMobile,
+  IconInfinity,
 } from "@tabler/icons-react";
-import { CheckIcon } from "lucide-react";
+import { CheckIcon, ChevronRight } from "lucide-react";
 import { checkIfCourseBought } from "@/app/data/user/user-is-enrolled";
 import Link from "next/link";
 import { EnrollmentButton } from "./_components/EnrollmentButton";
@@ -43,21 +46,40 @@ export default async function SlugPage({ params }: { params: Params }) {
 
   return (
     <div className="min-h-screen">
+      {/* Breadcrumb */}
+      <nav className="py-4 border-b border-border/50 bg-muted/30">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Link href="/" className="hover:text-primary transition-colors">Home</Link>
+          <ChevronRight className="h-4 w-4" />
+          <Link href="/courses" className="hover:text-primary transition-colors">Courses</Link>
+          <ChevronRight className="h-4 w-4" />
+          <span className="text-foreground font-medium line-clamp-1">{course.title}</span>
+        </div>
+      </nav>
+
       {/* Hero Section with Video Preview */}
       <section className="relative py-8 lg:py-12">
+        {/* Gradient Background */}
+        <div className="absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-primary/10 to-emerald-500/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-violet-500/5 to-primary/10 rounded-full blur-3xl" />
+        </div>
+
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Video Preview */}
-            <VideoPreviewPlayer
-              thumbnailKey={course.previewThumbnailKey}
-              videoKey={course.previewVideoKey}
-              title={course.title}
-            />
+            <div className="rounded-2xl overflow-hidden shadow-2xl shadow-primary/10 border border-border/50">
+              <VideoPreviewPlayer
+                thumbnailKey={course.previewThumbnailKey}
+                videoKey={course.previewVideoKey}
+                title={course.title}
+              />
+            </div>
 
             {/* Course Title & Meta */}
-            <div className="space-y-4">
-              <h1 className="text-3xl lg:text-4xl font-bold tracking-tight">
+            <div className="space-y-5">
+              <h1 className="text-3xl lg:text-4xl xl:text-5xl font-bold tracking-tight leading-tight">
                 {course.title}
               </h1>
 
@@ -74,7 +96,7 @@ export default async function SlugPage({ params }: { params: Params }) {
                 />
 
                 {course.updatedAt && (
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
                     <IconCalendar className="h-4 w-4" />
                     <span>
                       Updated {formatDistanceToNow(new Date(course.updatedAt), { addSuffix: true })}
@@ -88,15 +110,15 @@ export default async function SlugPage({ params }: { params: Params }) {
 
               {/* Badges */}
               <div className="flex flex-wrap gap-3 pt-2">
-                <Badge className="flex items-center gap-1.5 px-3 py-1.5">
+                <Badge className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-primary/10 to-primary/5 text-primary border-primary/20 hover:from-primary/20 hover:to-primary/10 transition-all">
                   <IconChartBar className="size-4" />
-                  <span>{course.level}</span>
+                  <span className="font-medium">{course.level}</span>
                 </Badge>
-                <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1.5">
+                <Badge variant="secondary" className="flex items-center gap-1.5 px-4 py-2">
                   <IconCategory className="size-4" />
                   <span>{course.category}</span>
                 </Badge>
-                <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1.5">
+                <Badge variant="outline" className="flex items-center gap-1.5 px-4 py-2">
                   <IconClock className="size-4" />
                   <span>{course.duration} hours</span>
                 </Badge>
@@ -107,12 +129,15 @@ export default async function SlugPage({ params }: { params: Params }) {
           {/* Sticky Enrollment Card */}
           <div className="lg:col-span-1">
             <div className="lg:sticky lg:top-20">
-              <Card className="border-2 shadow-xl">
+              <Card className="border-2 border-primary/20 shadow-2xl shadow-primary/10 bg-gradient-to-b from-card to-card/80 backdrop-blur-sm overflow-hidden">
+                {/* Decorative Top Bar */}
+                <div className="h-1.5 bg-gradient-to-r from-primary via-emerald-500 to-primary" />
+
                 <CardContent className="p-6 space-y-6">
                   {/* Price */}
                   <div className="flex items-baseline justify-between">
                     <div>
-                      <span className="text-3xl font-bold text-primary">
+                      <span className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-500">
                         {course.price === 0 ? (
                           "Free"
                         ) : (
@@ -123,13 +148,13 @@ export default async function SlugPage({ params }: { params: Params }) {
                         )}
                       </span>
                       {course.price > 0 && (
-                        <span className="ml-2 text-sm text-muted-foreground line-through">
+                        <span className="ml-3 text-lg text-muted-foreground line-through">
                           ${(course.price * 1.5).toFixed(0)}
                         </span>
                       )}
                     </div>
                     {course.price > 0 && (
-                      <Badge variant="destructive" className="text-xs">
+                      <Badge className="bg-gradient-to-r from-red-500 to-orange-500 text-white border-none shadow-lg text-sm px-3 py-1">
                         33% off
                       </Badge>
                     )}
@@ -138,7 +163,10 @@ export default async function SlugPage({ params }: { params: Params }) {
                   {/* CTA Buttons */}
                   {isEnrolled ? (
                     <Link
-                      className={buttonVariants({ className: "w-full", size: "lg" })}
+                      className={buttonVariants({
+                        className: "w-full bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white shadow-lg text-lg h-14",
+                        size: "lg"
+                      })}
                       href={`/dashboard/${course.slug}`}
                     >
                       Continue Learning
@@ -150,43 +178,44 @@ export default async function SlugPage({ params }: { params: Params }) {
                     </div>
                   )}
 
-                  <p className="text-center text-xs text-muted-foreground">
+                  <p className="text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
+                    <CheckIcon className="h-4 w-4 text-green-500" />
                     30-day money-back guarantee
                   </p>
 
                   <Separator />
 
                   {/* What's Included */}
-                  <div className="space-y-3">
-                    <h4 className="font-semibold">This course includes:</h4>
-                    <ul className="space-y-2.5">
-                      <li className="flex items-center gap-3 text-sm">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
-                          <IconClock className="size-3.5" />
+                  <div className="space-y-4">
+                    <h4 className="font-bold text-lg">This course includes:</h4>
+                    <ul className="space-y-3">
+                      <li className="flex items-center gap-3 text-sm group">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary shrink-0 group-hover:scale-110 transition-transform">
+                          <IconClock className="size-4" />
                         </div>
                         <span>{course.duration} hours of video content</span>
                       </li>
-                      <li className="flex items-center gap-3 text-sm">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
-                          <IconBook className="size-3.5" />
+                      <li className="flex items-center gap-3 text-sm group">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary shrink-0 group-hover:scale-110 transition-transform">
+                          <IconBook className="size-4" />
                         </div>
                         <span>{totalLessons} lessons</span>
                       </li>
-                      <li className="flex items-center gap-3 text-sm">
-                        <div className="rounded-full p-1 bg-green-500/10 text-green-600 shrink-0">
-                          <CheckIcon className="size-4" />
+                      <li className="flex items-center gap-3 text-sm group">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-green-500/10 to-green-500/5 text-green-600 shrink-0 group-hover:scale-110 transition-transform">
+                          <IconInfinity className="size-4" />
                         </div>
                         <span>Full lifetime access</span>
                       </li>
-                      <li className="flex items-center gap-3 text-sm">
-                        <div className="rounded-full p-1 bg-green-500/10 text-green-600 shrink-0">
-                          <CheckIcon className="size-4" />
+                      <li className="flex items-center gap-3 text-sm group">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-green-500/10 to-green-500/5 text-green-600 shrink-0 group-hover:scale-110 transition-transform">
+                          <IconDeviceMobile className="size-4" />
                         </div>
                         <span>Access on mobile and desktop</span>
                       </li>
-                      <li className="flex items-center gap-3 text-sm">
-                        <div className="rounded-full p-1 bg-green-500/10 text-green-600 shrink-0">
-                          <CheckIcon className="size-4" />
+                      <li className="flex items-center gap-3 text-sm group">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-green-500/10 to-green-500/5 text-green-600 shrink-0 group-hover:scale-110 transition-transform">
+                          <IconCertificate className="size-4" />
                         </div>
                         <span>Certificate of completion</span>
                       </li>
@@ -205,12 +234,17 @@ export default async function SlugPage({ params }: { params: Params }) {
       <section className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-12">
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold tracking-tight">
+            <h2 className="text-2xl font-bold tracking-tight flex items-center gap-3">
+              <span className="w-1 h-8 bg-gradient-to-b from-primary to-emerald-500 rounded-full" />
               About this course
             </h2>
-            <div className="prose prose-neutral dark:prose-invert max-w-none">
-              <RenderDescription json={JSON.parse(course.description)} />
-            </div>
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="prose prose-neutral dark:prose-invert max-w-none">
+                  <RenderDescription json={JSON.parse(course.description)} />
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           <Separator />
@@ -218,55 +252,56 @@ export default async function SlugPage({ params }: { params: Params }) {
           {/* Course Content Accordion */}
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold tracking-tight">
+              <h2 className="text-2xl font-bold tracking-tight flex items-center gap-3">
+                <span className="w-1 h-8 bg-gradient-to-b from-primary to-emerald-500 rounded-full" />
                 Course Content
               </h2>
-              <span className="text-sm text-muted-foreground">
+              <Badge variant="secondary" className="text-sm px-4 py-2">
                 {course.chapter.length} chapters • {totalLessons} lessons
-              </span>
+              </Badge>
             </div>
 
             <div className="space-y-3">
               {course.chapter.map((chapter, index) => (
                 <Collapsible key={chapter.id} defaultOpen={index === 0}>
-                  <Card className="p-0 overflow-hidden border transition-all duration-200 hover:shadow-md">
+                  <Card className="p-0 overflow-hidden border border-border/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20">
                     <CollapsibleTrigger className="w-full">
                       <CardContent className="p-4 hover:bg-muted/50 transition-colors">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary font-semibold">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary font-bold text-lg">
                               {index + 1}
                             </div>
                             <div className="text-left">
-                              <h3 className="font-semibold">{chapter.title}</h3>
+                              <h3 className="font-semibold text-lg">{chapter.title}</h3>
                               <p className="text-sm text-muted-foreground">
                                 {chapter.lessons.length} lesson
                                 {chapter.lessons.length !== 1 ? "s" : ""}
                               </p>
                             </div>
                           </div>
-                          <IconChevronDown className="size-5 text-muted-foreground transition-transform duration-200" />
+                          <IconChevronDown className="size-5 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
                         </div>
                       </CardContent>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <div className="border-t bg-muted/20 p-4 space-y-2">
+                      <div className="border-t bg-gradient-to-b from-muted/30 to-muted/10 p-4 space-y-2">
                         {chapter.lessons.map((lesson, lessonIndex) => (
                           <div
                             key={lesson.id}
-                            className="flex items-center gap-4 rounded-lg p-3 hover:bg-accent transition-colors"
+                            className="flex items-center gap-4 rounded-xl p-3 hover:bg-background/80 transition-all duration-200 group"
                           >
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-background border-2 border-primary/20">
-                              <IconPlayerPlay className="size-4 text-muted-foreground" />
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-background border-2 border-primary/20 group-hover:border-primary/50 group-hover:scale-105 transition-all">
+                              <IconPlayerPlay className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
                             </div>
                             <div className="flex-1">
-                              <p className="font-medium text-sm">{lesson.title}</p>
+                              <p className="font-medium text-sm group-hover:text-primary transition-colors">{lesson.title}</p>
                               <p className="text-xs text-muted-foreground">
                                 Lesson {lessonIndex + 1}
                               </p>
                             </div>
                             {lesson.videoKey && (
-                              <Badge variant="outline" className="text-xs">
+                              <Badge variant="outline" className="text-xs border-primary/20">
                                 Video
                               </Badge>
                             )}

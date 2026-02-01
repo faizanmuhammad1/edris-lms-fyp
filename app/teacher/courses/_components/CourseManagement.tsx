@@ -40,65 +40,6 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Mock data for demonstration
-const mockCourses: TeacherCourseType[] = [
-  {
-    id: "mock-1",
-    title: "Complete Web Development Bootcamp",
-    smallDescription: "Master HTML, CSS, JavaScript, React, Node.js and more!",
-    duration: 120,
-    level: "Beginner",
-    status: "Published",
-    price: 99,
-    fileKey: "course-1.jpg",
-    slug: "complete-web-development-bootcamp",
-  },
-  {
-    id: "mock-2",
-    title: "Advanced React Patterns",
-    smallDescription: "Learn advanced React patterns and best practices",
-    duration: 45,
-    level: "Advanced",
-    status: "Published",
-    price: 149,
-    fileKey: "course-2.jpg",
-    slug: "advanced-react-patterns",
-  },
-  {
-    id: "mock-3",
-    title: "Python for Data Science",
-    smallDescription: "Data analysis, visualization, and machine learning with Python",
-    duration: 80,
-    level: "Intermediate",
-    status: "Draft",
-    price: 129,
-    fileKey: "course-3.jpg",
-    slug: "python-for-data-science",
-  },
-  {
-    id: "mock-4",
-    title: "UI/UX Design Masterclass",
-    smallDescription: "Create beautiful and intuitive user interfaces",
-    duration: 60,
-    level: "Intermediate",
-    status: "Published",
-    price: 89,
-    fileKey: "course-4.jpg",
-    slug: "ui-ux-design-masterclass",
-  },
-  {
-    id: "mock-5",
-    title: "Mobile App Development with Flutter",
-    smallDescription: "Build cross-platform mobile apps with Flutter",
-    duration: 90,
-    level: "Intermediate",
-    status: "Draft",
-    price: 119,
-    fileKey: "course-5.jpg",
-    slug: "mobile-app-development-flutter",
-  },
-];
-
 function SortableCourseItem({
   course,
   viewMode,
@@ -168,8 +109,8 @@ function SortableCourseItem({
           </div>
         </div>
         <Link href={`/teacher/courses/${course.id}/edit`}>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             className="group/btn hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-300"
           >
@@ -181,9 +122,9 @@ function SortableCourseItem({
   }
 
   return (
-    <motion.div 
-      ref={setNodeRef} 
-      style={style} 
+    <motion.div
+      ref={setNodeRef}
+      style={style}
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
@@ -204,7 +145,6 @@ export function CourseManagement({ courses }: CourseManagementProps) {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [levelFilter, setLevelFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [useMockData] = useState(courses.length === 0);
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -218,9 +158,7 @@ export function CourseManagement({ courses }: CourseManagementProps) {
     })
   );
 
-  const finalCourses = useMockData ? mockCourses : displayCourses;
-
-  const filteredCourses = finalCourses.filter((course) => {
+  const filteredCourses = displayCourses.filter((course) => {
     const matchesSearch =
       course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.smallDescription?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -238,16 +176,11 @@ export function CourseManagement({ courses }: CourseManagementProps) {
     setActiveId(null);
 
     if (over && active.id !== over.id) {
-      if (useMockData) {
-        // Mock data reordering would be handled here
-        return;
-      } else {
-        setDisplayCourses((items) => {
-          const oldIndex = items.findIndex((item) => item.id === active.id);
-          const newIndex = items.findIndex((item) => item.id === over.id);
-          return arrayMove(items, oldIndex, newIndex);
-        });
-      }
+      setDisplayCourses((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
     }
   };
 
@@ -515,22 +448,6 @@ export function CourseManagement({ courses }: CourseManagementProps) {
             ) : null}
           </DragOverlay>
         </DndContext>
-      )}
-
-      {useMockData && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <Card className="border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-blue-100/50 dark:from-blue-950/20 dark:to-blue-900/10">
-            <CardContent className="p-4">
-              <p className="text-sm text-blue-700 dark:text-blue-300 flex items-center gap-2">
-                <Sparkles className="h-4 w-4" />
-                <strong>Demo Mode:</strong> Showing mock data. Create your first course to see real data!
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
       )}
     </div>
   );
