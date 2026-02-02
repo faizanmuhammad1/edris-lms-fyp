@@ -11,21 +11,21 @@ const testimonials = [
         name: "Sarah Johnson",
         role: "Software Engineer",
         content: "The AI features in Edris are a game changer. Being able to ask questions about the video content in real-time helped me understand complex concepts much faster.",
-        avatar: "https://avatar.vercel.sh/sarah",
+        avatar: "https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=Sarah",
     },
     {
         id: 2,
         name: "Michael Chen",
         role: "Data Scientist",
         content: "I love the blockchain verification for certificates. It gives me something tangible to show employers that they can trust instantly.",
-        avatar: "https://avatar.vercel.sh/michael",
+        avatar: "https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=Michael",
     },
     {
         id: 3,
         name: "Emily Davis",
         role: "Product Manager",
         content: "The course quality is exceptional, and the platform feels so modern and intuitive. Definitely the best learning experience I've had online.",
-        avatar: "https://avatar.vercel.sh/emily",
+        avatar: "https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=Emily",
     },
 ];
 

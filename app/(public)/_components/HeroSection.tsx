@@ -235,7 +235,7 @@ export function HeroSection() {
                                             className="w-8 h-8 rounded-full border-2 border-background bg-muted overflow-hidden"
                                         >
                                             <Image
-                                                src={`https://avatar.vercel.sh/student${i}`}
+                                                src={`https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=Student${i}`}
                                                 alt={`Student ${i}`}
                                                 width={32}
                                                 height={32}
