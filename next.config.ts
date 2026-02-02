@@ -44,6 +44,11 @@ const nextConfig: NextConfig = {
         port: "",
         protocol: "https",
       },
+      {
+        hostname: "edris-lms-fyp.t3.storage.dev",
+        port: "",
+        protocol: "https",
+      },
     ],
   },
 

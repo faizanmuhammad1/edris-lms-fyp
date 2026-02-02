@@ -174,17 +174,17 @@ export default function TeachPage() {
                         </p>
 
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <Link href="/login">
-                                <Button size="lg" className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
+                            <Button size="lg" className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20" asChild>
+                                <Link href="/login">
                                     Sign In to Apply
                                     <ArrowRight className="ml-2 h-4 w-4" />
-                                </Button>
-                            </Link>
-                            <Link href="/signup">
-                                <Button size="lg" variant="outline">
+                                </Link>
+                            </Button>
+                            <Button size="lg" variant="outline" asChild>
+                                <Link href="/signup">
                                     Create Account
-                                </Button>
-                            </Link>
+                                </Link>
+                            </Button>
                         </div>
                     </div>
                 </section>

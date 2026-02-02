@@ -9,7 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { chapterSchema, ChapterSchemaType } from "@/lib/zodSchemas";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -97,7 +97,12 @@ export function TeacherNewChapterModal({ courseId }: { courseId: string }) {
 
             <DialogFooter>
               <Button disabled={pending} type="submit">
-                {pending ? "Saving..." : " Save Change"}
+                {pending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : "Save"}
               </Button>
             </DialogFooter>
           </form>
