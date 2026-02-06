@@ -143,7 +143,7 @@ export async function enrollInCourseAction(
           },
         ],
         mode: "payment",
-        success_url: `${env.BETTER_AUTH_URL}/payment/success`,
+        success_url: `${env.BETTER_AUTH_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${env.BETTER_AUTH_URL}/payment/cancel`,
         metadata: {
           userId: user.id,

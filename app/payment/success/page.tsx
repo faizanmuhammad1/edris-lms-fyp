@@ -1,43 +1,103 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-"use client";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { stripe } from "@/lib/stripe";
+import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
+import { PaymentSuccessContent } from "./payment-success-content";
 
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { useConfetti } from "@/hooks/use-confetti";
-import { ArrowLeft, CheckIcon } from "lucide-react";
-import Link from "next/link";
-import { useEffect } from "react";
+interface PaymentSuccessPageProps {
+  searchParams: Promise<{
+    session_id?: string;
+  }>;
+}
 
-export default function PaymentSuccessfull() {
-  const { triggerConfetti } = useConfetti();
+async function reconcileSuccessfulCheckout(
+  sessionId: string,
+  userId: string
+): Promise<void> {
+  const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
 
-  useEffect(() => {
-    triggerConfetti();
-  }, []);
-  return (
-    <div className="w-full min-h-screen flex flex-1 justify-center items-center">
-      <Card className="w-[350px]">
-        <CardContent>
-          <div className="w-full flex justify-center">
-            <CheckIcon className="size-12 p-2 bg-green-500/30 text-green-500 rounded-full" />
-          </div>
-          <div className="mt-3 text-center sm:mt-5 w-full">
-            <h2 className="text-xl font-semibold">Payment Successfull</h2>
-            <p className="text-sm mt-2 text-muted-foreground tracking-tight text-balance">
-              Congrats your payment was successfull. You should now have access
-              to the course!
-            </p>
+  if (checkoutSession.payment_status !== "paid") {
+    return;
+  }
 
-            <Link
-              href="/dashboard"
-              className={buttonVariants({ className: "w-full mt-5" })}
-            >
-              <ArrowLeft className="size-4" />
-              Go to Dashboard
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  const metadataUserId = checkoutSession.metadata?.userId;
+  if (!metadataUserId || metadataUserId !== userId) {
+    return;
+  }
+
+  const type = checkoutSession.metadata?.type;
+
+  if (type === "cart_checkout") {
+    const enrollmentIds = checkoutSession.metadata?.enrollmentIds
+      ?.split(",")
+      .filter(Boolean);
+
+    if (!enrollmentIds?.length) {
+      return;
+    }
+
+    await prisma.enrollment.updateMany({
+      where: {
+        id: { in: enrollmentIds },
+        userId,
+      },
+      data: {
+        status: "Active",
+      },
+    });
+
+    const cart = await prisma.cart.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+
+    if (cart?.id) {
+      await prisma.cartItem.deleteMany({
+        where: {
+          cartId: cart.id,
+        },
+      });
+    }
+  } else {
+    const enrollmentId = checkoutSession.metadata?.enrollmentId;
+    if (!enrollmentId) {
+      return;
+    }
+
+    await prisma.enrollment.updateMany({
+      where: {
+        id: enrollmentId,
+        userId,
+      },
+      data: {
+        status: "Active",
+      },
+    });
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/courses");
+}
+
+export default async function PaymentSuccessPage({
+  searchParams,
+}: PaymentSuccessPageProps) {
+  const { session_id } = await searchParams;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  let reconciled = false;
+
+  if (session_id && session?.user.id) {
+    try {
+      await reconcileSuccessfulCheckout(session_id, session.user.id);
+      reconciled = true;
+    } catch (error) {
+      console.error("Payment success reconciliation failed", error);
+    }
+  }
+
+  return <PaymentSuccessContent reconciled={reconciled} />;
 }

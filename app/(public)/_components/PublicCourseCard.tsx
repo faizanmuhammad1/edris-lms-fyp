@@ -10,9 +10,10 @@ import Link from "next/link";
 
 interface iAppProps {
   data: PublicCourseType;
+  isPurchased?: boolean;
 }
 
-export function PublicCourseCard({ data }: iAppProps) {
+export function PublicCourseCard({ data, isPurchased = false }: iAppProps) {
   const courseImage = getCourseImage(data.category, data.id);
 
   // Generate a mock rating based on course ID for consistency
@@ -36,9 +37,9 @@ export function PublicCourseCard({ data }: iAppProps) {
         </Badge>
 
         <div className="absolute bottom-4 left-4 right-4 translate-y-full group-hover:translate-y-0 transition-transform duration-500 opacity-0 group-hover:opacity-100">
-          <Link href={`/courses/${data.slug}`}>
+          <Link href={isPurchased ? `/dashboard/${data.slug}` : `/courses/${data.slug}`}>
             <Button className="w-full bg-primary/90 hover:bg-primary text-white shadow-lg backdrop-blur-md">
-              Enroll Now
+              {isPurchased ? "Continue Learning" : "Enroll Now"}
             </Button>
           </Link>
         </div>

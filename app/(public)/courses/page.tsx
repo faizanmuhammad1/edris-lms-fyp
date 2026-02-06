@@ -5,6 +5,7 @@ import {
 } from "../_components/PublicCourseCard";
 import { Suspense } from "react";
 import { Badge } from "@/components/ui/badge";
+import { getCurrentUserActiveEnrollmentCourseIds } from "@/app/data/user/get-current-user-active-enrollment-course-ids";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +58,11 @@ export default async function PublicCoursesRoute({ searchParams }: PageProps) {
 }
 
 async function RenderCourses({ category }: { category?: string }) {
-  const courses = await getAllCourses(category);
+  const [courses, activeEnrollmentCourseIds] = await Promise.all([
+    getAllCourses(category),
+    getCurrentUserActiveEnrollmentCourseIds(),
+  ]);
+  const activeEnrollmentSet = new Set(activeEnrollmentCourseIds);
 
   if (courses.length === 0) {
     return (
@@ -90,7 +95,11 @@ async function RenderCourses({ category }: { category?: string }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {courses.map((course) => (
-        <PublicCourseCard key={course.id} data={course} />
+        <PublicCourseCard
+          key={course.id}
+          data={course}
+          isPurchased={activeEnrollmentSet.has(course.id)}
+        />
       ))}
     </div>
   );

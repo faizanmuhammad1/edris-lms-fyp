@@ -169,7 +169,7 @@ export async function checkoutCart() {
             userId: user.id,
             enrollmentIds: enrollmentIds.join(","), // Limit 500 chars
         },
-        success_url: `${env.BETTER_AUTH_URL}/payment/success`,
+        success_url: `${env.BETTER_AUTH_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${env.BETTER_AUTH_URL}/payment/cancel`,
     });
 
