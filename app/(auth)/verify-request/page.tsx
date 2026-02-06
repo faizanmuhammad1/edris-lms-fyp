@@ -43,7 +43,9 @@ function VerifyRequest() {
         fetchOptions: {
           onSuccess: () => {
             toast.success("Email verified");
-            router.push("/");
+            // Redirect to profile setup for new users to enter their name
+            // The profile-setup page will check if they already have a name and redirect appropriately
+            router.push("/profile-setup");
           },
           onError: () => {
             toast.error("Error verifying Email/OTP");

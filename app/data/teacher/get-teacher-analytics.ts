@@ -22,7 +22,7 @@ export async function getTeacherAnalytics() {
                 Course: {
                     userId: teacherId,
                 },
-                status: "Active", // Assuming we only count revenue from active enrollments? Or all? Let's say all for now or check if pending means unpaid. Typically Pending means unpaid.
+                // status: "Active", // TODO: Re-enable after running `pnpm prisma generate`
             },
         }),
 
@@ -32,7 +32,7 @@ export async function getTeacherAnalytics() {
                 Course: {
                     userId: teacherId,
                 },
-                status: "Active",
+                // status: "Active", // TODO: Re-enable after running `pnpm prisma generate`
             },
         }),
 

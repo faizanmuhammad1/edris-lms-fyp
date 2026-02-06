@@ -1,6 +1,7 @@
 "use server";
 
-import { requireUser } from "@/app/data/user/require-user";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import arcjet, { fixedWindow } from "@/lib/arcjet";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -21,7 +22,15 @@ const aj = arcjet.withRule(
 export async function enrollInCourseAction(
   courseId: string
 ): Promise<ApiResponse | never> {
-  const user = await requireUser();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session || !session.user) {
+    return { status: "error", message: "Please login before enrolling" };
+  }
+
+  const user = session.user;
 
   let checkoutUrl: string;
   try {

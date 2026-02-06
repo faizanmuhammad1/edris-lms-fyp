@@ -3,11 +3,10 @@
 import * as React from "react";
 import {
   IconChartBar,
+  // IconChartBar removed here to fix duplicate
   IconDashboard,
   IconFileDescription,
-  IconHelp,
   IconListDetails,
-  IconSearch,
   IconSettings,
   IconUsers,
   IconMessageCircle,
@@ -71,16 +70,6 @@ const adminData = {
       url: "/admin/settings",
       icon: IconSettings,
     },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
-    },
   ],
 };
 
@@ -123,16 +112,6 @@ const teacherData = {
       url: "/teacher/settings",
       icon: IconSettings,
     },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
-    },
   ],
 };
 
@@ -170,8 +149,8 @@ export function AppSidebar({ role = "admin", navMain, navSecondary, ...props }: 
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
               <Link href="/">
-                <Image src={Logo} alt="Logo" className="size-5" />
-                <span className="text-base font-semibold">Edris LMS</span>
+                <Image src={Logo} alt="Logo" className="size-8" />
+                <span className="text-lg font-semibold">Edris LMS</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

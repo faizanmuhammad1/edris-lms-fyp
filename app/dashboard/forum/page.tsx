@@ -1,11 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { IconMessageCircle, IconUsers, IconClock } from "@tabler/icons-react";
+import { IconMessageCircle, IconUsers, IconClock, IconBook } from "@tabler/icons-react";
 import Link from "next/link";
-import { getCommunities } from "@/app/actions/community";
+import { getStudentCommunities } from "@/app/actions/community";
 
 export default async function ForumPage() {
-  const communities = await getCommunities();
+  const communities = await getStudentCommunities();
 
   return (
     <div className="space-y-6">
@@ -29,6 +29,12 @@ export default async function ForumPage() {
               <CardDescription className="line-clamp-2">
                 {community.description}
               </CardDescription>
+              {community.course && (
+                <div className="flex items-center gap-1 mt-2 text-xs text-primary">
+                  <IconBook className="h-3 w-3" />
+                  <span>{community.course.title}</span>
+                </div>
+              )}
             </CardHeader>
             <CardContent>
               <div className="space-y-3">

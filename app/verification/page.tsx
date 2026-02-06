@@ -34,53 +34,55 @@ export default function VerificationPage() {
     return (
         <div className="min-h-screen bg-background flex flex-col">
             {/* Hero Section */}
-            <section className="relative py-20 md:py-32 overflow-hidden">
-                <div className="absolute inset-0 bg-primary/5 -z-10" />
-                <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
+            {/* Hero Section */}
+            <section className="relative py-20 md:py-32 flex-1 flex items-center justify-center overflow-hidden">
+                <div className="absolute inset-0 bg-secondary/30 -z-10" />
+                <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-40" />
 
-                <div className="container px-4 md:px-6 mx-auto text-center">
+                <div className="container px-4 md:px-6 mx-auto">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
+                        className="max-w-xl mx-auto"
                     >
-                        <div className="inline-flex items-center justify-center p-2 bg-primary/10 rounded-full mb-6">
-                            <ShieldCheck className="h-6 w-6 text-primary mr-2" />
-                            <span className="text-primary font-medium">Authenticity Check</span>
-                        </div>
-                        <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
-                            Verify Certificate
-                        </h1>
-                        <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
-                            Enter the unique certificate hash ID to verify the authenticity of a completion certificate issued by Edris LMS.
-                        </p>
-                    </motion.div>
-
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                        className="max-w-md mx-auto"
-                    >
-                        <form onSubmit={handleVerify} className="flex gap-2 relative">
-                            <div className="relative flex-1">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    type="text"
-                                    placeholder="Enter Certificate Hash (e.g., CERT-2025-ABC123)"
-                                    value={hash}
-                                    onChange={(e) => setHash(e.target.value)}
-                                    className="pl-10 h-12 text-lg"
-                                />
-                            </div>
-                            <Button type="submit" size="lg" className="h-12 px-8" disabled={isLoading}>
-                                {isLoading ? (
-                                    <Loader2 className="h-5 w-5 animate-spin" />
-                                ) : (
-                                    "Verify"
-                                )}
-                            </Button>
-                        </form>
+                        <Card className="border-border/60 shadow-xl bg-card/80 backdrop-blur-xl">
+                            <CardHeader className="text-center pb-2">
+                                <div className="mx-auto bg-primary/10 p-3 rounded-full w-fit mb-4">
+                                    <ShieldCheck className="h-8 w-8 text-primary" />
+                                </div>
+                                <CardTitle className="text-3xl font-bold tracking-tight">Verify Certificate</CardTitle>
+                                <CardDescription className="text-base mt-2">
+                                    Enter the unique certificate hash ID to verify authenticity.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-6">
+                                <form onSubmit={handleVerify} className="space-y-4">
+                                    <div className="space-y-2">
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <Input
+                                                type="text"
+                                                placeholder="e.g., CERT-2025-ABC123"
+                                                value={hash}
+                                                onChange={(e) => setHash(e.target.value)}
+                                                className="pl-10 h-12 text-lg bg-background/50"
+                                            />
+                                        </div>
+                                    </div>
+                                    <Button type="submit" size="lg" className="w-full h-12 text-base font-medium transition-all" disabled={isLoading}>
+                                        {isLoading ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                                Verifying...
+                                            </>
+                                        ) : (
+                                            "Verify Authenticity"
+                                        )}
+                                    </Button>
+                                </form>
+                            </CardContent>
+                        </Card>
                     </motion.div>
                 </div>
             </section>

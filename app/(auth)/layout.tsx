@@ -20,13 +20,13 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         Back
       </Link>
 
-      <div className="flex w-full max-w-sm flex-col gap-6">
+      <div className="flex w-full max-w-md flex-col gap-6 px-4">
         <Link
-          className="flex items-center gap-2 self-center font-medium"
+          className="flex flex-col items-center gap-2 self-center"
           href="/"
         >
-          <Image src={Logo} alt="Logo" width={32} height={32} />
-          Edris LMS
+          <Image src={Logo} alt="Logo" width={80} height={80} />
+          <span className="text-2xl font-semibold">Edris LMS</span>
         </Link>
         {children}
 

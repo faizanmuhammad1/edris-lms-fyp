@@ -6,8 +6,6 @@ import {
   IconDashboard,
   IconFileAi,
   IconFileDescription,
-  IconHelp,
-  IconSearch,
   IconSettings,
   IconCertificate,
   IconMessageCircle,
@@ -101,16 +99,6 @@ const data = {
       url: "#",
       icon: IconSettings,
     },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
-    },
   ],
 };
 
@@ -125,8 +113,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
               <Link href="/">
-                <Image src={Logo} alt="Logo" className="size-5" />
-                <span className="text-base font-semibold">Edris LMS</span>
+                <Image src={Logo} alt="Logo" className="size-8" />
+                <span className="text-lg font-semibold">Edris LMS</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

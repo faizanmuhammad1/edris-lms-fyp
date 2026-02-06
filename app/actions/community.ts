@@ -12,6 +12,7 @@ const communitySchema = z.object({
     name: z.string().min(3).max(100),
     description: z.string().min(10).max(500),
     category: z.string().optional(),
+    courseId: z.string().optional(), // Link to specific course
 });
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -26,7 +27,7 @@ const commentSchema = z.object({
 });
 
 export async function createCommunity(values: z.infer<typeof communitySchema>) {
-    await requireTeacher();
+    const session = await requireTeacher();
 
     return await tryCatch((async () => {
         const slug = slugify(values.name, { lower: true });
@@ -39,11 +40,22 @@ export async function createCommunity(values: z.infer<typeof communitySchema>) {
             throw new Error("A community with this name already exists");
         }
 
+        // If courseId provided, verify teacher owns the course
+        if (values.courseId) {
+            const course = await prisma.course.findUnique({
+                where: { id: values.courseId },
+            });
+            if (!course || course.userId !== session.user.id) {
+                throw new Error("You can only create communities for your own courses");
+            }
+        }
+
         const community = await prisma.community.create({
             data: {
                 name: values.name,
                 description: values.description,
                 slug,
+                courseId: values.courseId || null,
             },
         });
 
@@ -102,6 +114,43 @@ export async function getCommunities() {
         include: {
             _count: {
                 select: { posts: true },
+            },
+            course: {
+                select: { id: true, title: true },
+            },
+        },
+    });
+}
+
+// Get communities for students - only those for courses they're enrolled in
+export async function getStudentCommunities() {
+    const user = await requireUser();
+
+    // Get user's enrolled course IDs
+    const enrollments = await prisma.enrollment.findMany({
+        where: { userId: user.id },
+        select: { courseId: true },
+    });
+
+    const enrolledCourseIds = enrollments.map(e => e.courseId);
+
+    // Get communities that are either:
+    // 1. Not linked to any course (public communities - optional, remove if you want strict gating)
+    // 2. Linked to a course the user is enrolled in
+    return await prisma.community.findMany({
+        where: {
+            OR: [
+                { courseId: null }, // Public communities (remove this line for strict course-only access)
+                { courseId: { in: enrolledCourseIds } },
+            ],
+        },
+        orderBy: { createdAt: "desc" },
+        include: {
+            _count: {
+                select: { posts: true },
+            },
+            course: {
+                select: { id: true, title: true },
             },
         },
     });

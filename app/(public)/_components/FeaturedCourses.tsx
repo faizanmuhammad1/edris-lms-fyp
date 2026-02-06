@@ -1,13 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Clock, ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { PublicCourseType } from "@/app/data/course/get-all-courses";
 import { motion } from "framer-motion";
+import { PublicCourseCard } from "./PublicCourseCard";
 
 interface FeaturedCoursesProps {
     courses: PublicCourseType[];
@@ -104,84 +103,9 @@ export function FeaturedCourses({ courses }: FeaturedCoursesProps) {
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ duration: 0.5, delay: index * 0.1 }}
+                                className="h-full"
                             >
-                                <Link href={`/courses/${course.slug}`}>
-                                    <Card className="group relative h-full overflow-hidden border-border/50 bg-gradient-to-b from-card to-card/80 backdrop-blur-sm hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 hover:-translate-y-2 flex flex-col">
-                                        {/* Course Image */}
-                                        <div className="relative aspect-video overflow-hidden">
-                                            <Image
-                                                src={course.fileKey
-                                                    ? `${process.env.NEXT_PUBLIC_S3_DEV_URL}/${course.fileKey}`
-                                                    : "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80"
-                                                }
-                                                alt={course.title}
-                                                fill
-                                                className="object-cover transition-transform duration-700 group-hover:scale-110"
-                                            />
-                                            {/* Gradient Overlay */}
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
-
-                                            {/* Category Badge */}
-                                            {course.category && (
-                                                <Badge className="absolute top-3 left-3 bg-gradient-to-r from-primary to-emerald-500 text-white border-none shadow-lg font-medium px-3 py-1 text-xs">
-                                                    {course.category}
-                                                </Badge>
-                                            )}
-
-                                            {/* Hover Play Button */}
-                                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500">
-                                                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 transform scale-75 group-hover:scale-100 transition-transform duration-500">
-                                                    <div className="w-0 h-0 border-l-[16px] border-l-white border-t-[10px] border-t-transparent border-b-[10px] border-b-transparent ml-1" />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <CardContent className="p-5 flex-1 flex flex-col gap-3">
-                                            {/* Course Meta */}
-                                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                                <span className="flex items-center gap-1 bg-muted/50 px-2 py-1 rounded-full">
-                                                    <Clock className="w-3 h-3" />
-                                                    {course.duration}h
-                                                </span>
-                                                <span className="flex items-center gap-1 bg-muted/50 px-2 py-1 rounded-full">
-                                                    {course.level}
-                                                </span>
-                                            </div>
-
-                                            {/* Course Title */}
-                                            <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2 flex-1">
-                                                {course.title}
-                                            </h3>
-
-                                            {/* Course Description */}
-                                            {course.smallDescription && (
-                                                <p className="text-sm text-muted-foreground line-clamp-2">
-                                                    {course.smallDescription}
-                                                </p>
-                                            )}
-
-                                            {/* Price & CTA */}
-                                            <div className="mt-auto pt-4 border-t border-border/50 flex items-center justify-between">
-                                                <div className="flex flex-col">
-                                                    <span className="font-bold text-2xl text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-500">
-                                                        {course.price === 0 ? (
-                                                            "Free"
-                                                        ) : (
-                                                            `$${course.price}`
-                                                        )}
-                                                    </span>
-                                                </div>
-                                                <Button
-                                                    size="sm"
-                                                    className="bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white shadow-md group-hover:shadow-lg transition-all"
-                                                >
-                                                    Enroll
-                                                    <ArrowRight className="ml-1 h-3 w-3" />
-                                                </Button>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </Link>
+                                <PublicCourseCard data={course} />
                             </motion.div>
                         ))}
                     </div>

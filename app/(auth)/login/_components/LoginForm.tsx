@@ -62,9 +62,9 @@ export function LoginForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Welcome Back!</CardTitle>
+        <CardTitle className="text-xl">Welcome to Edris LMS</CardTitle>
         <CardDescription>
-          Login with your Email Account
+          Sign in or create an account to get started
         </CardDescription>
       </CardHeader>
 
