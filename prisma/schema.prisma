@@ -172,6 +172,20 @@ model Lesson {
   lessonProgress LessonProgress[]
   quiz           Quiz?
   comments       Comment[]
+
+  // Transcription
+  transcript          String?
+  transcriptionStatus TranscriptionStatus @default(NOT_STARTED)
+  transcriptionSegments Json?
+}
+
+enum TranscriptionStatus {
+  NOT_STARTED
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  Pending // Handling existing data
 }
 
 model Quiz {

@@ -36,6 +36,7 @@ export async function getTeacherCourse(id: string) {
               thumbnailKey: true,
               position: true,
               videoKey: true,
+              transcriptionStatus: true,
             },
           },
         },

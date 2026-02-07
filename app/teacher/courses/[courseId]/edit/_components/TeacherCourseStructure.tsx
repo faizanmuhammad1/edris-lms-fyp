@@ -42,6 +42,9 @@ import { TeacherNewChapterModal } from "./TeacherNewChapterModal";
 import { TeacherNewLessonModal } from "./TeacherNewLessonModal";
 import { TeacherDeleteLesson } from "./TeacherDeleteLesson";
 import { TeacherDeleteChapter } from "./TeacherDeleteChapter";
+import { TranscribeCourseButton } from "./TranscribeCourseButton";
+import { RefreshCw } from "lucide-react";
+import { transcribeLesson } from "../../_actions/transcribe-lesson";
 
 interface iAppProps {
   data: TeacherCourseSingularType;
@@ -68,6 +71,7 @@ export function TeacherCourseStructure({ data }: iAppProps) {
         id: lesson.id,
         title: lesson.title,
         order: lesson.position,
+        transcriptionStatus: lesson.transcriptionStatus,
       })),
     })) || [];
 
@@ -86,6 +90,7 @@ export function TeacherCourseStructure({ data }: iAppProps) {
             id: lesson.id,
             title: lesson.title,
             order: lesson.position,
+            transcriptionStatus: lesson.transcriptionStatus,
           })),
         })) || [];
 
@@ -281,6 +286,22 @@ export function TeacherCourseStructure({ data }: iAppProps) {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  async function handleRetryTranscription(lessonId: string) {
+    toast.promise(transcribeLesson(lessonId, data.id), {
+      loading: "Retrying transcription...",
+      success: "Transcription queued",
+      error: "Failed to retry transcription",
+    });
+  }
+
+  // Check if there are any lessons that have a video but are NOT completed
+  const hasUntranscribedLessons = data.chapter.some((chapter) =>
+    chapter.lessons.some(
+      (lesson) => lesson.videoKey && lesson.transcriptionStatus !== "COMPLETED"
+    )
+  );
+
   return (
     <DndContext
       collisionDetection={rectIntersection}
@@ -290,7 +311,13 @@ export function TeacherCourseStructure({ data }: iAppProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between border-b border-border">
           <CardTitle>Chapters</CardTitle>
-          <TeacherNewChapterModal courseId={data.id} />
+          <div className="flex items-center gap-2">
+            <TranscribeCourseButton
+              courseId={data.id}
+              hasUntranscribedLessons={hasUntranscribedLessons}
+            />
+            <TeacherNewChapterModal courseId={data.id} />
+          </div>
         </CardHeader>
         <CardContent className="space-y-8">
           <SortableContext items={items} strategy={verticalListSortingStrategy}>
@@ -361,6 +388,33 @@ export function TeacherCourseStructure({ data }: iAppProps) {
                                       >
                                         {lesson.title}
                                       </Link>
+                                      {lesson.transcriptionStatus === "QUEUED" && (
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">Queued</span>
+                                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRetryTranscription(lesson.id)}>
+                                            <RefreshCw className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      )}
+                                      {lesson.transcriptionStatus === "PROCESSING" && (
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full animate-pulse">Processing</span>
+                                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRetryTranscription(lesson.id)}>
+                                            <RefreshCw className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      )}
+                                      {lesson.transcriptionStatus === "COMPLETED" && (
+                                        <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Transcribed</span>
+                                      )}
+                                      {lesson.transcriptionStatus === "FAILED" && (
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full">Failed</span>
+                                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRetryTranscription(lesson.id)}>
+                                            <RefreshCw className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      )}
                                     </div>
 
                                     <TeacherDeleteLesson
