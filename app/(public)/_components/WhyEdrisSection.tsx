@@ -11,7 +11,6 @@ const features = [
         description:
             "Ask questions about any video lesson in real-time. Our AI assistant understands the course content and gives you instant, contextual answers.",
         href: "/courses",
-        href: "/courses",
     },
     {
         icon: ShieldCheck,
