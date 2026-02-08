@@ -2,86 +2,142 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Quote } from "lucide-react";
+import { Star, Quote } from "lucide-react";
+import { motion } from "framer-motion";
 
 const testimonials = [
     {
         id: 1,
         name: "Sarah Johnson",
         role: "Software Engineer",
-        content: "The AI features in Edris are a game changer. Being able to ask questions about the video content in real-time helped me understand complex concepts much faster.",
-        avatar: "https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=Sarah",
+        content:
+            "The AI assistant is a game changer. I can ask questions about the video content in real-time and get clear explanations — it's like having a tutor on call.",
+        avatar: "https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=sarah-johnson",
+        rating: 5,
+        featured: true,
     },
     {
         id: 2,
         name: "Michael Chen",
         role: "Data Scientist",
-        content: "I love the blockchain verification for certificates. It gives me something tangible to show employers that they can trust instantly.",
-        avatar: "https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=Michael",
+        content:
+            "I love the blockchain-verified certificates. It gives me something concrete to show employers, and they can verify it instantly. Really sets Edris apart.",
+        avatar: "https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=michael-chen",
+        rating: 5,
+        featured: false,
     },
     {
         id: 3,
         name: "Emily Davis",
         role: "Product Manager",
-        content: "The course quality is exceptional, and the platform feels so modern and intuitive. Definitely the best learning experience I've had online.",
-        avatar: "https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=Emily",
+        content:
+            "The course quality is excellent and the platform is genuinely intuitive. I completed two courses in a month — best online learning experience I've had.",
+        avatar: "https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=emily-davis",
+        rating: 5,
+        featured: false,
     },
 ];
 
 export function TestimonialsSection() {
     return (
-        <section className="py-24 bg-background relative overflow-hidden">
-            {/* Background Elements */}
-            <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-background to-background -z-10" />
-            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-accent/5 rounded-full blur-3xl -z-10" />
+        <section className="relative py-20 md:py-28 bg-background overflow-hidden">
+            {/* Subtle ambient glow */}
+            <div className="pointer-events-none absolute top-0 right-0 h-[400px] w-[400px] bg-primary/[0.04] rounded-full blur-[100px]" />
+            <div className="pointer-events-none absolute bottom-0 left-0 h-[300px] w-[300px] bg-accent/[0.04] rounded-full blur-[100px]" />
 
-            <div className="container mx-auto px-4 md:px-6 lg:px-8 relative z-10">
-                <div className="text-center mb-16">
-                    <Badge variant="outline" className="text-primary border-primary/20 bg-primary/5 mb-4">
-                        Success Stories
-                    </Badge>
-                    <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-6">
-                        What Our <span className="text-primary">Students</span> Say
-                    </h2>
-                    <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
-                        Join thousands of satisfied learners who have transformed their careers with Edris.
+            <div className="container relative z-10 mx-auto px-4 md:px-6 lg:px-8">
+                {/* Section Header */}
+                <motion.div
+                    className="mx-auto max-w-2xl text-center mb-16"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5 }}
+                >
+                    <p className="text-sm font-semibold uppercase tracking-wider text-primary mb-3">
+                        Testimonials
                     </p>
-                </div>
+                    <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+                        Trusted by learners{" "}
+                        <span className="text-primary">worldwide</span>
+                    </h2>
+                    <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
+                        See what our students have to say about their learning experience on Edris.
+                    </p>
+                </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {testimonials.map((testimonial) => (
-                        <Card key={testimonial.id} className="group bg-card/50 backdrop-blur-sm border border-border/50 hover:border-primary/30 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                <Quote className="h-16 w-16 text-primary rotate-12" />
-                            </div>
-                            <CardContent className="p-8 flex flex-col gap-6 h-full relative z-10">
-                                <div className="flex items-center gap-4">
-                                    <div className="relative">
-                                        <div className="absolute inset-0 bg-primary/20 blur-md rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                        <Avatar className="h-12 w-12 border-2 border-primary/10 group-hover:border-primary/30 transition-colors relative z-10">
-                                            <AvatarImage src={testimonial.avatar} />
-                                            <AvatarFallback>{testimonial.name[0]}</AvatarFallback>
-                                        </Avatar>
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-lg group-hover:text-primary transition-colors">{testimonial.name}</h4>
-                                        <p className="text-sm text-muted-foreground font-medium">{testimonial.role}</p>
-                                    </div>
+                {/* Testimonial Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+                    {testimonials.map((testimonial, index) => (
+                        <motion.div
+                            key={testimonial.id}
+                            initial={{ opacity: 0, y: 24 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.5, delay: index * 0.1 }}
+                            className={
+                                testimonial.featured
+                                    ? "md:row-span-1"
+                                    : ""
+                            }
+                        >
+                            <Card
+                                className={`group relative h-full overflow-hidden border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/[0.05] ${
+                                    testimonial.featured
+                                        ? "border-primary/20 bg-gradient-to-br from-primary/[0.03] to-card hover:border-primary/35"
+                                        : "border-border bg-card hover:border-primary/20"
+                                }`}
+                            >
+                                {/* Top accent */}
+                                <div className="absolute top-0 left-0 right-0 h-1 bg-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                                {/* Large decorative quote */}
+                                <div className="absolute -top-2 -right-2 opacity-[0.04] group-hover:opacity-[0.08] transition-opacity duration-500">
+                                    <Quote className="h-28 w-28 text-primary rotate-12" />
                                 </div>
-                                <div className="relative">
-                                    <Quote className="h-6 w-6 text-primary/40 mb-2" />
-                                    <p className="text-lg leading-relaxed italic text-muted-foreground group-hover:text-foreground transition-colors">
-                                        &quot;{testimonial.content}&quot;
+
+                                <CardContent className="relative z-10 p-8 flex flex-col gap-5 h-full">
+                                    {/* Stars */}
+                                    <div className="flex gap-0.5">
+                                        {[...Array(testimonial.rating)].map((_, i) => (
+                                            <Star
+                                                key={i}
+                                                className="h-4 w-4 fill-amber-500 text-amber-500"
+                                            />
+                                        ))}
+                                    </div>
+
+                                    {/* Quote */}
+                                    <p className="text-foreground leading-relaxed flex-1 text-[15px]">
+                                        &ldquo;{testimonial.content}&rdquo;
                                     </p>
-                                </div>
-                                <div className="mt-auto pt-4 flex gap-1">
-                                    {[...Array(5)].map((_, i) => (
-                                        <div key={i} className="w-1.5 h-1.5 rounded-full bg-primary/20 group-hover:bg-primary/60 transition-colors" />
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
+
+                                    {/* Author */}
+                                    <div className="flex items-center gap-3 pt-4 border-t border-border/70">
+                                        <div className="relative">
+                                            <div className="absolute -inset-0.5 rounded-full bg-primary opacity-0 group-hover:opacity-50 transition-opacity duration-300 blur-sm" />
+                                            <Avatar className="relative h-11 w-11 border-2 border-background">
+                                                <AvatarImage src={testimonial.avatar} />
+                                                <AvatarFallback>
+                                                    {testimonial.name
+                                                        .split(" ")
+                                                        .map((n) => n[0])
+                                                        .join("")}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                                                {testimonial.name}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {testimonial.role}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
                     ))}
                 </div>
             </div>

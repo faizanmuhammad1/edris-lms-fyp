@@ -1,25 +1,32 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Sparkles, Play, Users, BookOpen, Award } from "lucide-react";
+import {
+    Search,
+    Users,
+    BookOpen,
+    Award,
+    ArrowRight,
+    Sparkles,
+} from "lucide-react";
 import { motion } from "framer-motion";
-
-const popularSearches = [
-    { label: "Python", category: "Development" },
-    { label: "React", category: "Development" },
-    { label: "Data Science", category: "Data Science" },
-    { label: "Marketing", category: "Marketing" },
-    { label: "Design", category: "Design" },
-];
 
 const stats = [
     { icon: Users, value: "2,000+", label: "Active Students" },
     { icon: BookOpen, value: "50+", label: "Expert Courses" },
     { icon: Award, value: "500+", label: "Certificates Issued" },
+];
+
+const popularSearches = [
+    { label: "Python", category: "Development" },
+    { label: "React", category: "Development" },
+    { label: "Data Science", category: "Data Science" },
+    { label: "Design", category: "Design" },
 ];
 
 export function HeroSection() {
@@ -29,252 +36,275 @@ export function HeroSection() {
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         if (searchQuery.trim()) {
-            router.push(`/courses?search=${encodeURIComponent(searchQuery.trim())}`);
+            router.push(
+                `/courses?search=${encodeURIComponent(searchQuery.trim())}`
+            );
         }
     };
 
-    const handleTagClick = (category: string) => {
-        router.push(`/courses?category=${encodeURIComponent(category)}`);
-    };
-
     return (
-        <section className="relative w-full overflow-hidden bg-gradient-to-b from-background via-background to-muted/30 min-h-[90vh] flex items-center">
-            {/* Animated Gradient Background */}
-            <div className="absolute inset-0 z-0">
-                <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-primary/20 to-emerald-500/10 rounded-full blur-3xl animate-pulse" />
-                <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-violet-500/10 to-primary/15 rounded-full blur-3xl animate-pulse" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-primary/5 to-emerald-500/5 rounded-full blur-3xl" />
-            </div>
+        <section className="relative w-full overflow-hidden pt-16 pb-20 md:pt-24 md:pb-28">
+            {/* ── Background layers ── */}
+            <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-muted/30" />
+            <div className="absolute inset-0 bg-dot-pattern opacity-[0.35]" />
 
-            {/* Background Image with Enhanced Overlay */}
-            <div className="absolute inset-0 z-0">
-                <Image
-                    src="/hero-bg.png"
-                    alt="Background"
-                    fill
-                    className="object-cover opacity-60"
-                    priority
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-background/40" />
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
-            </div>
+            {/* Soft ambient glow */}
+            <div className="pointer-events-none absolute -top-40 left-1/3 h-[500px] w-[500px] rounded-full bg-primary/[0.07] blur-[100px]" />
+            <div className="pointer-events-none absolute -bottom-20 right-1/4 h-[400px] w-[400px] rounded-full bg-accent/[0.06] blur-[100px]" />
 
-            {/* Floating Particles */}
-            <div className="absolute inset-0 overflow-hidden z-0">
-                {[...Array(8)].map((_, i) => (
+            <div className="container relative z-10 mx-auto px-4 md:px-6 lg:px-8">
+                <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
+                    {/* ── Left: Content ── */}
                     <motion.div
-                        key={i}
-                        className="absolute w-2 h-2 rounded-full bg-primary/30"
-                        style={{
-                            left: `${10 + i * 12}%`,
-                            top: `${15 + (i % 4) * 20}%`,
-                        }}
-                        animate={{
-                            y: [0, -30, 0],
-                            opacity: [0.2, 0.8, 0.2],
-                        }}
-                        transition={{
-                            duration: 4 + i * 0.5,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                        }}
-                    />
-                ))}
-            </div>
-
-            <div className="container relative z-10 mx-auto px-4 md:px-6 lg:px-8 py-12 md:py-20">
-                <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 items-center">
-                    {/* Left Content */}
-                    <motion.div
-                        className="flex flex-col justify-center space-y-8"
-                        initial={{ opacity: 0, y: 30 }}
+                        className="flex flex-col"
+                        initial={{ opacity: 0, y: 28 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8 }}
+                        transition={{ duration: 0.7, ease: "easeOut" }}
                     >
                         {/* Badge */}
                         <motion.div
-                            className="inline-flex items-center self-start rounded-full border border-primary/30 bg-gradient-to-r from-primary/10 to-emerald-500/10 px-4 py-2 text-sm font-medium text-primary backdrop-blur-md shadow-lg hover:shadow-xl transition-all cursor-default"
-                            initial={{ opacity: 0, x: -20 }}
+                            className="mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-primary/25 bg-primary/[0.08] px-4 py-1.5 text-sm font-medium text-primary backdrop-blur-sm"
+                            initial={{ opacity: 0, x: -16 }}
                             animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.3, duration: 0.6 }}
+                            transition={{ delay: 0.25, duration: 0.5 }}
                         >
-                            <Sparkles className="h-4 w-4 mr-2 animate-pulse" />
-                            <span className="flex h-2 w-2 rounded-full bg-primary mr-2 animate-pulse" />
-                            New: AI-Powered Learning Platform
+                            <Sparkles className="h-3.5 w-3.5" />
+                            AI-Powered Learning Platform
                         </motion.div>
 
-                        {/* Heading */}
-                        <div className="space-y-4">
-                            <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold tracking-tight leading-[1.1]">
-                                <span className="block text-foreground">Unlock Your</span>
-                                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary via-emerald-500 to-primary bg-[length:200%_auto] animate-gradient">
-                                    Full Potential
-                                </span>
-                            </h1>
-                            <p className="max-w-lg text-lg md:text-xl text-muted-foreground leading-relaxed">
-                                Master in-demand skills with expert-led courses. Start learning today and transform your career.
-                            </p>
-                        </div>
+                        {/* Headline */}
+                        <h1 className="text-4xl sm:text-5xl xl:text-[3.5rem] font-extrabold tracking-tight leading-[1.1] text-foreground">
+                            Learn smarter with{" "}
+                            <span className="text-primary">
+                                AI&#8209;powered
+                            </span>{" "}
+                            courses
+                        </h1>
+
+                        {/* Subtitle */}
+                        <p className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-lg">
+                            Expert-led video courses paired with an AI assistant that answers
+                            your questions in real-time — plus every certificate is verifiable
+                            on the blockchain.
+                        </p>
+
+                        {/* CTAs */}
+                        <motion.div
+                            className="mt-8 flex flex-wrap items-center gap-4"
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.35, duration: 0.5 }}
+                        >
+                            <Link href="/courses">
+                                <Button
+                                    size="lg"
+                                    className="group h-12 px-8 text-base font-semibold shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/25"
+                                >
+                                    Browse Courses
+                                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                                </Button>
+                            </Link>
+                            <Link href="#how-it-works">
+                                <Button
+                                    variant="outline"
+                                    size="lg"
+                                    className="h-12 px-8 text-base font-semibold"
+                                >
+                                    How It Works
+                                </Button>
+                            </Link>
+                        </motion.div>
 
                         {/* Search Bar */}
-                        <form onSubmit={handleSearch} className="w-full max-w-lg">
-                            <motion.div
-                                className="relative group"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.5, duration: 0.6 }}
-                            >
-                                {/* Glow Effect */}
-                                <div className="absolute -inset-1 bg-gradient-to-r from-primary via-emerald-500 to-primary rounded-2xl blur-lg opacity-30 group-hover:opacity-50 group-focus-within:opacity-60 transition-all duration-500" />
+                        <motion.form
+                            onSubmit={handleSearch}
+                            className="mt-8 max-w-lg"
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.45, duration: 0.5 }}
+                        >
+                            <div className="relative flex items-center rounded-xl border border-border bg-card shadow-sm transition-all duration-300 focus-within:shadow-lg focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/[0.08]">
+                                <Search className="ml-4 h-5 w-5 text-muted-foreground shrink-0" />
+                                <Input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60 h-12 text-base px-4"
+                                    placeholder="Search for courses..."
+                                />
+                                <Button
+                                    type="submit"
+                                    size="sm"
+                                    className="mr-1.5 rounded-lg h-9 px-5 shrink-0"
+                                >
+                                    Search
+                                </Button>
+                            </div>
 
-                                {/* Search Container */}
-                                <div className="relative flex items-center bg-background/80 backdrop-blur-xl rounded-2xl border border-primary/20 shadow-2xl p-2 group-hover:border-primary/40 transition-all duration-300">
-                                    <Search className="ml-4 h-5 w-5 text-muted-foreground shrink-0" />
-                                    <Input
-                                        type="text"
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60 h-12 text-base px-4"
-                                        placeholder="What do you want to learn today?"
-                                    />
-                                    <Button
-                                        type="submit"
-                                        size="lg"
-                                        className="rounded-xl h-12 px-6 bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white shadow-lg transition-all duration-300 hover:scale-105 shrink-0"
-                                    >
-                                        <Search className="h-4 w-4 md:mr-2" />
-                                        <span className="hidden md:inline">Search</span>
-                                    </Button>
-                                </div>
-                            </motion.div>
-
-                            {/* Popular Tags */}
-                            <motion.div
-                                className="flex flex-wrap gap-2 mt-4 items-center"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.7, duration: 0.6 }}
-                            >
-                                <span className="text-sm font-medium text-muted-foreground mr-1">Popular:</span>
+                            {/* Popular tags */}
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                                <span className="text-xs font-medium text-muted-foreground">
+                                    Popular:
+                                </span>
                                 {popularSearches.map((tag) => (
                                     <button
                                         key={tag.label}
                                         type="button"
-                                        onClick={() => handleTagClick(tag.category)}
-                                        className="text-sm px-3 py-1.5 rounded-full bg-muted/50 hover:bg-primary/10 hover:text-primary border border-transparent hover:border-primary/20 transition-all duration-300 hover:scale-105"
+                                        onClick={() =>
+                                            router.push(
+                                                `/courses?category=${encodeURIComponent(tag.category)}`
+                                            )
+                                        }
+                                        className="text-xs px-2.5 py-1 rounded-md bg-muted/60 text-muted-foreground hover:bg-primary/10 hover:text-primary border border-transparent hover:border-primary/20 transition-all duration-200"
                                     >
                                         {tag.label}
                                     </button>
                                 ))}
-                            </motion.div>
-                        </form>
+                            </div>
+                        </motion.form>
 
-                        {/* Stats Cards */}
+                        {/* Trust Metrics */}
                         <motion.div
-                            className="grid grid-cols-3 gap-4 pt-4"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.8, duration: 0.6 }}
+                            className="mt-10 flex flex-wrap items-center gap-6 md:gap-8"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.6, duration: 0.6 }}
                         >
-                            {stats.map((stat, index) => (
-                                <motion.div
+                            {stats.map((stat, i) => (
+                                <div
                                     key={stat.label}
-                                    className="relative group"
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.9 + index * 0.1, duration: 0.5 }}
+                                    className="flex items-center gap-2.5"
                                 >
-                                    <div className="p-4 rounded-xl bg-background/50 backdrop-blur-sm border border-border/50 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 group-hover:-translate-y-1">
-                                        <div className="flex flex-col items-center text-center gap-1">
-                                            <stat.icon className="h-5 w-5 text-primary mb-1" />
-                                            <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-500">
-                                                {stat.value}
-                                            </span>
-                                            <span className="text-xs text-muted-foreground">{stat.label}</span>
-                                        </div>
+                                    {i > 0 && (
+                                        <div className="hidden sm:block w-px h-8 bg-border mr-2 -ml-2 md:mr-3 md:-ml-3" />
+                                    )}
+                                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                                        <stat.icon className="h-4 w-4 text-primary" />
                                     </div>
-                                </motion.div>
+                                    <div>
+                                        <p className="text-lg font-bold text-foreground leading-none">
+                                            {stat.value}
+                                        </p>
+                                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                                            {stat.label}
+                                        </p>
+                                    </div>
+                                </div>
                             ))}
                         </motion.div>
                     </motion.div>
 
-                    {/* Right Side - Visual Element */}
+                    {/* ── Right: Platform Screenshot Mockup ── */}
                     <motion.div
-                        className="hidden lg:flex relative h-[600px] items-center justify-center"
-                        initial={{ opacity: 0, x: 50 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 1, delay: 0.4 }}
+                        className="relative hidden lg:block"
+                        initial={{ opacity: 0, x: 40, rotateY: 4 }}
+                        animate={{ opacity: 1, x: 0, rotateY: 0 }}
+                        transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
                     >
-                        {/* Floating Cards */}
+                        {/* Layered depth glow */}
+                        <div className="absolute -inset-6 rounded-3xl bg-gradient-to-br from-primary/[0.08] via-transparent to-accent/[0.06] blur-2xl" />
+                        <div className="absolute -inset-3 rounded-2xl bg-gradient-to-tr from-primary/[0.04] to-accent/[0.04] blur-xl" />
+
+                        {/* Browser-style frame */}
+                        <div className="relative rounded-2xl border border-border/80 bg-card shadow-2xl overflow-hidden ring-1 ring-black/[0.04] dark:ring-white/[0.04]">
+                            {/* Title bar */}
+                            <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/40">
+                                <span className="h-3 w-3 rounded-full bg-red-400/70" />
+                                <span className="h-3 w-3 rounded-full bg-yellow-400/70" />
+                                <span className="h-3 w-3 rounded-full bg-green-400/70" />
+                                <div className="ml-3 flex-1 flex items-center gap-2 rounded-md bg-background/60 px-3 py-1">
+                                    <div className="h-2.5 w-2.5 rounded-full bg-green-500/60" />
+                                    <span className="text-[11px] text-muted-foreground font-medium truncate">
+                                        edris-lms.com/dashboard
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Screenshot */}
+                            <div className="relative aspect-[4/3]">
+                                <Image
+                                    src="/hero-dashboard.png"
+                                    alt="Edris LMS platform — course dashboard"
+                                    fill
+                                    className="object-cover object-top"
+                                    priority
+                                    sizes="(max-width: 1024px) 0vw, 50vw"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Floating accent cards */}
                         <motion.div
-                            className="absolute top-10 right-10 p-4 rounded-xl bg-background/80 backdrop-blur-md border border-border/50 shadow-xl max-w-[200px]"
-                            animate={{ y: [0, -15, 0] }}
-                            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                            className="absolute -bottom-4 -left-6 rounded-xl border border-border bg-card/90 backdrop-blur-md p-3 shadow-lg"
+                            animate={{ y: [0, -6, 0] }}
+                            transition={{
+                                duration: 4,
+                                repeat: Infinity,
+                                ease: "easeInOut",
+                            }}
                         >
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-emerald-500 flex items-center justify-center">
-                                    <Play className="h-4 w-4 text-white" fill="white" />
+                            <div className="flex items-center gap-2.5">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
+                                    <Award className="h-4 w-4 text-white" />
                                 </div>
                                 <div>
-                                    <p className="font-semibold text-sm">Start Learning</p>
-                                    <p className="text-xs text-muted-foreground">500+ Video Lessons</p>
+                                    <p className="text-sm font-semibold text-foreground leading-none">
+                                        Certified
+                                    </p>
+                                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                                        Blockchain Verified
+                                    </p>
                                 </div>
                             </div>
                         </motion.div>
 
                         <motion.div
-                            className="absolute bottom-20 left-0 p-4 rounded-xl bg-background/80 backdrop-blur-md border border-border/50 shadow-xl"
-                            animate={{ y: [0, 15, 0] }}
-                            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                            className="absolute -top-3 -right-4 rounded-xl border border-border bg-card/90 backdrop-blur-md p-3 shadow-lg"
+                            animate={{ y: [0, 6, 0] }}
+                            transition={{
+                                duration: 5,
+                                repeat: Infinity,
+                                ease: "easeInOut",
+                                delay: 1,
+                            }}
                         >
-                            <div className="flex items-center gap-3">
-                                <div className="flex -space-x-2">
+                            <div className="flex items-center gap-2.5">
+                                <div className="flex -space-x-1.5">
                                     {[1, 2, 3].map((i) => (
                                         <div
                                             key={i}
-                                            className="w-8 h-8 rounded-full border-2 border-background bg-muted overflow-hidden"
+                                            className="h-7 w-7 rounded-full border-2 border-card bg-muted overflow-hidden"
                                         >
                                             <Image
-                                                src={`https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=Student${i}`}
-                                                alt={`Student ${i}`}
-                                                width={32}
-                                                height={32}
+                                                src={`https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=student-${i}`}
+                                                alt=""
+                                                width={28}
+                                                height={28}
                                             />
                                         </div>
                                     ))}
                                 </div>
                                 <div>
-                                    <div className="flex items-center gap-1">
-                                        {[1, 2, 3, 4, 5].map((i) => (
-                                            <svg key={i} className="w-3 h-3 text-yellow-500 fill-yellow-500" viewBox="0 0 20 20">
+                                    <div className="flex gap-0.5">
+                                        {[1, 2, 3, 4, 5].map((s) => (
+                                            <svg
+                                                key={s}
+                                                className="h-3 w-3 fill-amber-500 text-amber-500"
+                                                viewBox="0 0 20 20"
+                                            >
                                                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                             </svg>
                                         ))}
                                     </div>
-                                    <p className="text-xs text-muted-foreground">2,000+ Happy Students</p>
-                                </div>
-                            </div>
-                        </motion.div>
-
-                        <motion.div
-                            className="absolute top-1/2 right-0 -translate-y-1/2 p-4 rounded-xl bg-gradient-to-r from-primary/20 to-emerald-500/20 backdrop-blur-md border border-primary/30 shadow-xl"
-                            animate={{ x: [0, 10, 0] }}
-                            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-                        >
-                            <div className="flex items-center gap-2">
-                                <Award className="h-8 w-8 text-primary" />
-                                <div>
-                                    <p className="font-bold text-lg">Certified</p>
-                                    <p className="text-xs text-muted-foreground">Blockchain Verified</p>
+                                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                                        2K+ happy learners
+                                    </p>
                                 </div>
                             </div>
                         </motion.div>
                     </motion.div>
                 </div>
             </div>
-
-            {/* Bottom Wave */}
-            <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-muted/30 to-transparent" />
         </section>
     );
 }

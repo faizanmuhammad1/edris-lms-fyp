@@ -28,9 +28,9 @@ export function PublicCourseCard({ data, isPurchased = false }: iAppProps) {
 
   return (
     <Link href={isPurchased ? `/dashboard/${data.slug}` : `/courses/${data.slug}`}>
-      <Card className="group h-full flex flex-col bg-white dark:bg-card border-0 shadow-none hover:shadow-lg transition-shadow duration-200 overflow-hidden">
+      <Card className="group h-full flex flex-col bg-card border border-border/50 hover:border-primary/20 shadow-sm hover:shadow-xl hover:shadow-primary/[0.05] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
         {/* Image */}
-        <div className="relative aspect-video overflow-hidden border border-border/50 rounded-lg mx-3 mt-3">
+        <div className="relative aspect-video overflow-hidden rounded-lg mx-3 mt-3">
           <Image
             src={courseImage}
             alt={data.title}

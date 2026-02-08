@@ -206,6 +206,24 @@ body {
   }
 }
 
+/* ── Landing Page Utilities ── */
+
+/* Dot-grid pattern overlay */
+.bg-dot-pattern {
+  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Subtle float for decorative elements */
+@keyframes float-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-float {
+  animation: float-subtle 5s ease-in-out infinite;
+}
+
 /* ── Vidstack Player Brand Overrides ── */
 :root {
   --media-brand: #5d866c;

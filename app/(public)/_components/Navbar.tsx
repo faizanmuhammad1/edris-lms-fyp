@@ -142,7 +142,7 @@ export function Navbar() {
               email={session.user.email}
               image={
                 session?.user.image ??
-                `https://avatar.vercel.sh/${session?.user.email}`
+                `https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=${session?.user.email}`
               }
               name={
                 session?.user.name && session.user.name.length > 0
