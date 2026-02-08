@@ -45,6 +45,8 @@ import { TeacherDeleteChapter } from "./TeacherDeleteChapter";
 import { TranscribeCourseButton } from "./TranscribeCourseButton";
 import { RefreshCw } from "lucide-react";
 import { transcribeLesson } from "../../_actions/transcribe-lesson";
+import { env } from "@/lib/env";
+import Image from "next/image";
 
 interface iAppProps {
   data: TeacherCourseSingularType;
@@ -72,6 +74,7 @@ export function TeacherCourseStructure({ data }: iAppProps) {
         title: lesson.title,
         order: lesson.position,
         transcriptionStatus: lesson.transcriptionStatus,
+        thumbnailKey: lesson.thumbnailKey ?? null,
       })),
     })) || [];
 
@@ -91,6 +94,7 @@ export function TeacherCourseStructure({ data }: iAppProps) {
             title: lesson.title,
             order: lesson.position,
             transcriptionStatus: lesson.transcriptionStatus,
+            thumbnailKey: lesson.thumbnailKey ?? null,
           })),
         })) || [];
 
@@ -372,8 +376,23 @@ export function TeacherCourseStructure({ data }: iAppProps) {
                                 id={lesson.id}
                                 data={{ type: "lesson", chapterId: item.id }}
                               >
-                                {(lessonListeners) => (
-                                  <div className="flex items-center justify-between p-2 hover:bg-accent rounded-sm">
+                                {(lessonListeners) => {
+                                  const thumbUrl = lesson.thumbnailKey
+                                    ? `https://${env.NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES}.fly.storage.tigris.dev/${lesson.thumbnailKey}`
+                                    : null;
+                                  return (
+                                  <div className="group/lesson relative flex items-center justify-between p-2 hover:bg-accent rounded-sm cursor-pointer">
+                                    {thumbUrl && (
+                                      <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-10 hidden group-hover/lesson:block w-24 aspect-video rounded-md overflow-hidden border bg-muted shadow-lg">
+                                        <Image
+                                          src={thumbUrl}
+                                          alt=""
+                                          fill
+                                          className="object-cover"
+                                          sizes="96px"
+                                        />
+                                      </div>
+                                    )}
                                     <div className="flex items-center gap-2">
                                       <Button
                                         variant="ghost"
@@ -382,9 +401,11 @@ export function TeacherCourseStructure({ data }: iAppProps) {
                                       >
                                         <GripVertical className="size-4" />
                                       </Button>
-                                      <FileText className="size-4" />
+                                      <FileText className="size-4 shrink-0" />
                                       <Link
                                         href={`/teacher/courses/${data.id}/${item.id}/${lesson.id}`}
+                                        scroll={false}
+                                        className="font-medium text-foreground hover:underline cursor-pointer"
                                       >
                                         {lesson.title}
                                       </Link>
@@ -423,7 +444,8 @@ export function TeacherCourseStructure({ data }: iAppProps) {
                                       lessonId={lesson.id}
                                     />
                                   </div>
-                                )}
+                                  );
+                                }}
                               </SortableItem>
                             ))}
                           </SortableContext>

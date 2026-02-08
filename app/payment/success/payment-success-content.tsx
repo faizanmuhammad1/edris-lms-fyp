@@ -4,7 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useConfetti } from "@/hooks/use-confetti";
 import { ArrowLeft, CheckIcon, Loader2 } from "lucide-react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 interface PaymentSuccessContentProps {
@@ -13,10 +13,16 @@ interface PaymentSuccessContentProps {
 
 export function PaymentSuccessContent({ reconciled }: PaymentSuccessContentProps) {
   const { triggerConfetti } = useConfetti();
+  const router = useRouter();
 
   useEffect(() => {
     triggerConfetti();
   }, [triggerConfetti]);
+
+  const goToDashboard = () => {
+    router.push("/dashboard");
+    router.refresh();
+  };
 
   return (
     <div className="w-full min-h-screen flex flex-1 justify-center items-center">
@@ -44,13 +50,14 @@ export function PaymentSuccessContent({ reconciled }: PaymentSuccessContentProps
               )}
             </div>
 
-            <Link
-              href="/dashboard"
+            <button
+              type="button"
+              onClick={goToDashboard}
               className={buttonVariants({ className: "w-full mt-5" })}
             >
               <ArrowLeft className="size-4" />
               Go to Dashboard
-            </Link>
+            </button>
           </div>
         </CardContent>
       </Card>
