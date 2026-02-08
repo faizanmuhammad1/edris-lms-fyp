@@ -30,14 +30,6 @@ export async function POST(req: NextRequest) {
                     transcriptionStatus: "COMPLETED",
                 },
             });
-            console.log(`Transcription completed for lesson ${lesson_id}`);
-        } else if (status === "failed") {
-            await prisma.lesson.update({
-                where: { id: lesson_id },
-                data: {
-                    transcriptionStatus: "FAILED",
-                },
-            });
             console.error(`Transcription failed for lesson ${lesson_id} (job ${job_id})`);
         }
 

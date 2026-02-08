@@ -61,7 +61,7 @@ export function VideoPlayer({
 
   // Debounced save on time update (every ~10 seconds of playback)
   const handleTimeUpdate = useCallback(
-    (detail: { currentTime: number; played: number }) => {
+    (detail: { currentTime: number; played: TimeRanges }) => {
       if (!trackProgress) return;
 
       const { currentTime } = detail;

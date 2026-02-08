@@ -21,7 +21,6 @@ export async function submitTranscriptionJob(
         webhook_url: webhookUrl,
     };
 
-    console.log(`[Transcription] Submitting job to ${url}`, body);
     try {
         const response = await fetch(url, {
             method: "POST",
@@ -31,7 +30,6 @@ export async function submitTranscriptionJob(
             },
             body: JSON.stringify(body),
         });
-        console.log(`[Transcription] Response status: ${response.status}`);
 
         if (!response.ok) {
             const errorText = await response.text();

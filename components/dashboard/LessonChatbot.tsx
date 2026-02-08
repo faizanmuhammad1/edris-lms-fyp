@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { v4 as uuidv4 } from "uuid";
 
 interface Message {
   id: string;
@@ -80,7 +81,7 @@ export function LessonChatbot() {
     if (!messageText) return;
 
     const userMsg: Message = {
-      id: Date.now().toString(),
+      id: uuidv4(),
       role: "user",
       content: messageText,
       timestamp: new Date(),
@@ -103,7 +104,7 @@ export function LessonChatbot() {
       ];
 
       const botMsg: Message = {
-        id: (Date.now() + 1).toString(),
+        id: uuidv4(),
         role: "bot",
         content: responses[Math.floor(Math.random() * responses.length)],
         timestamp: new Date(),
