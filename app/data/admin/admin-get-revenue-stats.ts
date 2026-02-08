@@ -107,46 +107,6 @@ export async function adminGetRevenueStats(): Promise<RevenueStats> {
         });
     }
 
-    // Fallback demo data when there's no revenue
-    if (totalRevenue === 0) {
-        const mockRevenue: { date: string; revenue: number; enrollments: number }[] = [];
-        const dailyPatterns = [
-            0, 0, 4999, 0, 9999, 0, 0,
-            0, 4999, 0, 0, 14999, 4999, 0,
-            9999, 0, 0, 4999, 0, 0, 0,
-            0, 4999, 9999, 0, 0, 4999, 0,
-            14999, 4999,
-        ];
-
-        for (let i = 29; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(now.getDate() - i);
-            const revenue = dailyPatterns[29 - i] || 0;
-            mockRevenue.push({
-                date: date.toISOString().split("T")[0],
-                revenue,
-                enrollments: revenue > 0 ? Math.ceil(revenue / 4999) : 0,
-            });
-        }
-
-        const mockTotalRevenue = mockRevenue.reduce((sum, d) => sum + d.revenue, 0);
-        const mockThisMonth = mockRevenue.slice(-15).reduce((sum, d) => sum + d.revenue, 0);
-        const mockLastMonth = mockRevenue.slice(0, 15).reduce((sum, d) => sum + d.revenue, 0);
-
-        return {
-            totalRevenue: mockTotalRevenue,
-            thisMonthRevenue: mockThisMonth,
-            lastMonthRevenue: mockLastMonth,
-            revenueGrowth: mockLastMonth > 0
-                ? ((mockThisMonth - mockLastMonth) / mockLastMonth) * 100
-                : 0,
-            totalEnrollments: 12,
-            activeEnrollments: 12,
-            averageOrderValue: Math.round(mockTotalRevenue / 12),
-            revenueByDay: mockRevenue,
-        };
-    }
-
     return {
         totalRevenue,
         thisMonthRevenue,

@@ -55,7 +55,7 @@ const adminData = {
       icon: IconListDetails,
     },
     {
-      title: "Platform Analytics",
+      title: "Revenue Earnings",
       url: "/admin/analytics",
       icon: IconChartBar,
     },

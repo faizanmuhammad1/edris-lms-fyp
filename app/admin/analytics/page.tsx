@@ -3,7 +3,7 @@ import { RevenueCards } from "./_components/RevenueCards";
 import { RevenueChart } from "./_components/RevenueChart";
 
 export const metadata = {
-  title: "Platform Analytics | Edris LMS",
+  title: "Revenue Earnings | Edris LMS",
 };
 
 export default async function AdminAnalyticsPage() {
@@ -12,7 +12,7 @@ export default async function AdminAnalyticsPage() {
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold">Platform Analytics</h1>
+        <h1 className="text-3xl font-bold">Revenue Earnings</h1>
         <p className="text-muted-foreground">
           Revenue, earnings, and platform performance overview
         </p>
