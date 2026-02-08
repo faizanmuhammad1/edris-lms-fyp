@@ -10,7 +10,7 @@ export async function getTeacherStudents() {
             Course: {
                 userId: teacherId,
             },
-            // status: "Active", // TODO: Re-enable after running `pnpm prisma generate`
+            status: "Active",
         },
         include: {
             User: {

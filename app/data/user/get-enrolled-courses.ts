@@ -20,9 +20,11 @@ export async function getEnrolledCourses() {
           slug: true,
           duration: true,
           chapter: {
+            orderBy: { position: "asc" },
             select: {
               id: true,
               lessons: {
+                orderBy: { position: "asc" },
                 select: {
                   id: true,
                   lessonProgress: {

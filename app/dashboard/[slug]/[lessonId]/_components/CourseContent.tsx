@@ -4,8 +4,7 @@ import { LessonContentType } from "@/app/data/course/get-lesson-content";
 import { RenderDescription } from "@/components/rich-text-editor/RenderDescription";
 import { Button } from "@/components/ui/button";
 import { tryCatch } from "@/hooks/try-catch";
-import { useConstructUrl } from "@/hooks/use-construct-url";
-import { BookIcon, CheckCircle, Lock, Loader2 } from "lucide-react";
+import { CheckCircle, Lock, Loader2 } from "lucide-react";
 import { useTransition } from "react";
 import { markLessonComplete } from "../actions";
 import { toast } from "sonner";
@@ -17,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { CommentWithReplies } from "@/app/actions/comments";
 import { CommentSection } from "@/components/general/CommentSection";
 import { LessonChatbot } from "@/components/dashboard/LessonChatbot";
+import { VideoPlayer } from "@/components/dashboard/VideoPlayer";
 
 interface iAppProps {
   data: LessonContentType;
@@ -27,43 +27,6 @@ export function CourseContent({ data, comments }: iAppProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const { triggerConfetti } = useConfetti();
-
-  function VideoPlayer({
-    thumbnailKey,
-    videoKey,
-  }: {
-    thumbnailKey: string;
-    videoKey: string;
-  }) {
-    const videoUrl = useConstructUrl(videoKey);
-    const thumbnailUrl = useConstructUrl(thumbnailKey);
-
-    if (!videoKey) {
-      return (
-        <div className="aspect-video bg-muted rounded-lg flex flex-col items-center justify-center">
-          <BookIcon className="size-16 text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">
-            This lesson does not have a video yet
-          </p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="aspect-video bg-black rounded-lg relative overflow-hidden">
-        <video
-          className="w-full h-full object-cover"
-          controls
-          poster={thumbnailUrl}
-        >
-          <source src={videoUrl} type="video/mp4" />
-          <source src={videoUrl} type="video/webm" />
-          <source src={videoUrl} type="video/ogg" />
-          Your browser does not support the video tag.
-        </video>
-      </div>
-    );
-  }
 
   function onSubmit() {
     startTransition(async () => {
@@ -93,8 +56,10 @@ export function CourseContent({ data, comments }: iAppProps) {
         {/* Video Section */}
         <div className="space-y-4">
           <VideoPlayer
-            thumbnailKey={data.thumbnailKey ?? ""}
+            lessonId={data.id}
             videoKey={data.videoKey ?? ""}
+            thumbnailKey={data.thumbnailKey ?? ""}
+            startTime={data.lessonProgress[0]?.lastWatchedPosition ?? 0}
           />
 
           {/* Action Bar */}

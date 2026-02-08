@@ -26,7 +26,7 @@ export function NavMain({
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
-        {pathname.startsWith("/admin") && (
+        {pathname.startsWith("/teacher") && (
           <SidebarMenu>
             <SidebarMenuItem className="flex items-center gap-2">
               <SidebarMenuButton
@@ -34,7 +34,7 @@ export function NavMain({
                 tooltip="Quick Create"
                 className="bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground active:bg-primary-hover active:text-primary-foreground min-w-8 duration-200 ease-linear"
               >
-                <Link href="/admin/courses/create">
+                <Link href="/teacher/courses/create">
                   <IconCirclePlusFilled />
                   <span>Create Course</span>
                 </Link>
@@ -46,7 +46,7 @@ export function NavMain({
                 tooltip="Create Community"
                 className="bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground active:bg-primary-hover active:text-primary-foreground min-w-8 duration-200 ease-linear"
               >
-                <Link href="/admin/communities/create">
+                <Link href="/teacher/communities/create">
                   <IconCirclePlusFilled />
                   <span>Create Community</span>
                 </Link>
@@ -66,7 +66,7 @@ export function NavMain({
                   href={item.url}
                   className={cn(
                     pathname === item.url &&
-                      "bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground"
+                    "bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground"
                   )}
                 >
                   {item.icon && (

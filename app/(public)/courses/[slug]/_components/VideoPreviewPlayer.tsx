@@ -10,6 +10,11 @@ import {
 } from "@/components/ui/dialog";
 import Image from "next/image";
 import { env } from "@/lib/env";
+import { MediaPlayer, MediaProvider, Poster } from "@vidstack/react";
+import {
+    DefaultVideoLayout,
+    defaultLayoutIcons,
+} from "@vidstack/react/player/layouts/default";
 
 interface VideoPreviewPlayerProps {
     thumbnailKey: string;
@@ -82,18 +87,30 @@ export function VideoPreviewPlayer({
                     >
                         <X className="h-6 w-6" />
                     </Button>
-                    {videoUrl && (
+                    {videoUrl && isOpen && (
                         <div className="aspect-video w-full">
-                            <video
-                                className="w-full h-full"
-                                controls
+                            <MediaPlayer
+                                src={videoUrl}
+                                viewType="video"
+                                streamType="on-demand"
                                 autoPlay
-                                poster={thumbnailUrl}
+                                crossOrigin
+                                playsInline
+                                className="w-full h-full"
                             >
-                                <source src={videoUrl} type="video/mp4" />
-                                <source src={videoUrl} type="video/webm" />
-                                Your browser does not support the video tag.
-                            </video>
+                                <MediaProvider>
+                                    <Poster
+                                        className="absolute inset-0 block h-full w-full object-cover opacity-0 transition-opacity data-[visible]:opacity-100"
+                                        src={thumbnailUrl}
+                                        alt={`Preview: ${title}`}
+                                    />
+                                </MediaProvider>
+                                <DefaultVideoLayout
+                                    icons={defaultLayoutIcons}
+                                    playbackRates={{ min: 0.5, max: 2, step: 0.25 }}
+                                    seekStep={10}
+                                />
+                            </MediaPlayer>
                         </div>
                     )}
                 </DialogContent>

@@ -15,13 +15,13 @@ async function testConnection(url: string, name: string) {
     // Mask password in connection string
     console.log("📍 Connection string:", url.replace(/:[^:@]+@/, ":****@"));
 
-    // Test connection by running a simple command
-    // For MongoDB, we can use runCommandRaw or just a simple find/count
+    // Test connection by running a simple query
+    // For PostgreSQL, we use $queryRaw to test the connection
     try {
-      await prisma.$runCommandRaw({ ping: 1 });
-      console.log("✅ Database connection successful! (Ping)");
+      await prisma.$queryRaw`SELECT 1`;
+      console.log("✅ Database connection successful! (SELECT 1)");
     } catch (e) {
-      console.log("⚠️ Could not ping database via runCommandRaw, falling back to simple query check.");
+      console.log("⚠️ Could not ping database, falling back to simple query check.");
     }
 
     // Test Prisma client initialization
@@ -47,7 +47,7 @@ async function testConnection(url: string, name: string) {
 }
 
 async function main() {
-  console.log("🔍 Testing Database Connection (MongoDB)\n");
+  console.log("🔍 Testing Database Connection (PostgreSQL)\n");
   console.log("=".repeat(60));
 
   const currentUrl = env.DATABASE_URL;
@@ -55,7 +55,7 @@ async function main() {
   // Test current connection
   const currentSuccess = await testConnection(
     currentUrl,
-    "MongoDB Connection"
+    "PostgreSQL Connection"
   );
 
 
@@ -64,10 +64,10 @@ async function main() {
   } else {
     console.log("\n" + "=".repeat(60));
     console.log("\n💡 Troubleshooting:");
-    console.log("   1. Check if your MongoDB cluster is active/reachable");
+    console.log("   1. Check if your PostgreSQL server is active/reachable");
     console.log("   2. Verify your database password is correct");
     console.log("   3. Ensure your DATABASE_URL in .env is correct");
-    console.log("   4. Ensure your IP is whitelisted in MongoDB Atlas or your provider");
+    console.log("   4. Ensure your IP is whitelisted if using a cloud provider");
     process.exit(1);
   }
 }

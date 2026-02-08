@@ -26,7 +26,7 @@ async function getAdminUser() {
     return null;
   }
 
-  // Query by email since session.user.id may not match MongoDB ObjectId format
+  // Query by email to verify the user's role
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
     select: { role: true },

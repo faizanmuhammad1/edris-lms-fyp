@@ -1,60 +1,62 @@
-import { adminGetCourses } from "@/app/data/admin/admin-get-courses";
-import { buttonVariants } from "@/components/ui/button";
+import { prisma } from "@/lib/db";
+import { CourseManagementTable } from "./_components/CourseManagementTable";
 import Link from "next/link";
-import {
-  AdminCourseCard,
-  AdminCourseCardSkeleton,
-} from "./_components/AdminCourseCard";
-import { EmptyState } from "@/components/general/EmptyState";
-import { Suspense } from "react";
+import { buttonVariants } from "@/components/ui/button";
 
-export default function CoursesPage() {
+export const metadata = {
+  title: "Course Management | Admin",
+  description: "Manage all courses on the platform",
+};
+
+async function getAllCourses() {
+  const courses = await prisma.course.findMany({
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      status: true,
+      price: true,
+      createdAt: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      _count: {
+        select: {
+          enrollment: true,
+          chapter: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  return courses;
+}
+
+export default async function CoursesPage() {
+  const courses = await getAllCourses();
+
   return (
-    <>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Your Courses</h1>
-
-        <Link className={buttonVariants()} href="/admin/courses/create">
-          Create Course
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Course Management</h1>
+          <p className="text-muted-foreground">
+            View and manage all courses on the platform. Delete or archive courses as needed.
+          </p>
+        </div>
+        <Link
+          href="/admin/courses/create"
+          className={buttonVariants({ className: "w-fit shrink-0" })}
+        >
+          Create course
         </Link>
       </div>
 
-      <Suspense fallback={<AdminCourseCardSkeletonLayout />}>
-        <RenderCourses />
-      </Suspense>
-    </>
-  );
-}
-
-async function RenderCourses() {
-  const data = await adminGetCourses();
-
-  return (
-    <>
-      {data.length === 0 ? (
-        <EmptyState
-          title="No courses found"
-          description="Create a new course to get started"
-          buttonText="Create Course"
-          href="/admin/courses/create"
-        />
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 gap-7">
-          {data.map((course) => (
-            <AdminCourseCard key={course.id} data={course} />
-          ))}
-        </div>
-      )}
-    </>
-  );
-}
-
-function AdminCourseCardSkeletonLayout() {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 gap-7">
-      {Array.from({ length: 4 }).map((_, index) => (
-        <AdminCourseCardSkeleton key={index} />
-      ))}
+      <CourseManagementTable courses={courses} />
     </div>
   );
 }

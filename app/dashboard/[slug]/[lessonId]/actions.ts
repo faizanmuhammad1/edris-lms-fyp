@@ -5,6 +5,52 @@ import { prisma } from "@/lib/db";
 import { ApiResponse } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 
+// ── Video Progress Tracking ──────────────────────────────────────────────────
+
+export async function saveVideoProgress(
+  lessonId: string,
+  data: {
+    lastWatchedPosition: number;
+    watchedDuration: number;
+    videoDuration: number;
+    watchPercentage: number;
+  }
+): Promise<{ success: boolean }> {
+  try {
+    const session = await requireUser();
+
+    await prisma.lessonProgress.upsert({
+      where: {
+        userId_lessonId: {
+          userId: session.id,
+          lessonId: lessonId,
+        },
+      },
+      update: {
+        lastWatchedPosition: data.lastWatchedPosition,
+        watchedDuration: data.watchedDuration,
+        videoDuration: data.videoDuration,
+        watchPercentage: data.watchPercentage,
+      },
+      create: {
+        lessonId: lessonId,
+        userId: session.id,
+        lastWatchedPosition: data.lastWatchedPosition,
+        watchedDuration: data.watchedDuration,
+        videoDuration: data.videoDuration,
+        watchPercentage: data.watchPercentage,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to save video progress:", error);
+    return { success: false };
+  }
+}
+
+// ── Lesson Completion ────────────────────────────────────────────────────────
+
 export async function markLessonComplete(
   lessonId: string,
   slug: string

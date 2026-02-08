@@ -11,6 +11,7 @@ import {
   IconUsers,
   IconMessageCircle,
   IconChartLine,
+  IconSchool,
   type Icon,
 } from "@tabler/icons-react";
 import Logo from "@/public/bc413ab4-3838-4b3d-ae28-e8f3cd721b33.png";
@@ -30,7 +31,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 
-// Default data for Admin
+// Default data for Admin - Admin-specific power features
 const adminData = {
   navMain: [
     {
@@ -39,29 +40,24 @@ const adminData = {
       icon: IconDashboard,
     },
     {
-      title: "Courses",
+      title: "User Management",
+      url: "/admin/users",
+      icon: IconUsers,
+    },
+    {
+      title: "Teacher Management",
+      url: "/admin/teachers",
+      icon: IconSchool,
+    },
+    {
+      title: "Course Management",
       url: "/admin/courses",
       icon: IconListDetails,
     },
     {
-      title: "Communities",
-      url: "/admin/communities",
-      icon: IconMessageCircle,
-    },
-    {
-      title: "Analytics",
+      title: "Platform Analytics",
       url: "/admin/analytics",
       icon: IconChartBar,
-    },
-    {
-      title: "Teachers",
-      url: "/admin/teachers",
-      icon: IconUsers,
-    },
-    {
-      title: "Student Progress",
-      url: "/admin/student-progress",
-      icon: IconChartLine,
     },
   ],
   navSecondary: [

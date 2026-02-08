@@ -24,11 +24,13 @@ export async function getTeacherCourse(id: string) {
       smallDescription: true,
       category: true,
       chapter: {
+        orderBy: { position: "asc" },
         select: {
           id: true,
           title: true,
           position: true,
           lessons: {
+            orderBy: { position: "asc" },
             select: {
               id: true,
               title: true,

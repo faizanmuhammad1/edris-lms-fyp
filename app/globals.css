@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Vidstack Player Styles */
+@import "@vidstack/react/player/styles/base.css";
+@import "@vidstack/react/player/styles/default/theme.css";
+@import "@vidstack/react/player/styles/default/layouts/video.css";
+
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
@@ -199,4 +204,17 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* ── Vidstack Player Brand Overrides ── */
+:root {
+  --media-brand: #5d866c;
+  --media-focus-ring-color: #5d866c;
+  --media-focus-ring: 0 0 0 3px #5d866c40;
+}
+
+.dark {
+  --media-brand: #6b9b7a;
+  --media-focus-ring-color: #6b9b7a;
+  --media-focus-ring: 0 0 0 3px #6b9b7a40;
 }

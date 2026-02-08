@@ -60,22 +60,22 @@ export const courseSchema = z.object({
   }),
 });
 
-// MongoDB ObjectId is a 24-character hex string
-const objectIdSchema = z.string().regex(/^[a-fA-F0-9]{24}$/, { message: "Invalid ID format" });
+// UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+const uuidSchema = z.string().uuid({ message: "Invalid ID format" });
 
 export const chapterSchema = z.object({
   name: z
     .string()
     .min(3, { message: "Name must be at least 3 characters long" }),
-  courseId: objectIdSchema,
+  courseId: uuidSchema,
 });
 
 export const lessonSchema = z.object({
   name: z
     .string()
     .min(3, { message: "Name must be at least 3 characters long" }),
-  chapterId: objectIdSchema,
-  courseId: objectIdSchema,
+  chapterId: uuidSchema,
+  courseId: uuidSchema,
   description: z
     .string()
     .optional(),
