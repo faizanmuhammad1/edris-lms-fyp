@@ -255,6 +255,9 @@ model QuizAttempt {
   rightClickCount    Int @default(0) // Right-click attempts
   devToolsAttemptCount Int @default(0) // DevTools opening attempts
 
+  // Timeline of violations: [{ type: "tab_switch", at: "ISO date" }, ...]
+  violationLog Json?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)

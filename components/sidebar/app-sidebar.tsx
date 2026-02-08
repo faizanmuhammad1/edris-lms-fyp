@@ -96,6 +96,11 @@ const teacherData = {
       icon: IconUsers,
     },
     {
+      title: "Quiz attempts",
+      url: "/teacher/quiz-attempts",
+      icon: IconChartLine,
+    },
+    {
       title: "Communities",
       url: "/teacher/communities",
       icon: IconMessageCircle,

@@ -50,6 +50,7 @@ export async function submitQuizAttempt({
   answers,
   timeSpent,
   cheatingCounters,
+  violationLog,
 }: {
   quizId: string;
   lessonId: string;
@@ -66,6 +67,7 @@ export async function submitQuizAttempt({
     rightClickCount: number;
     devToolsAttemptCount: number;
   };
+  violationLog?: { type: string; at: string }[];
 }): Promise<
   ApiResponse<{
     score: number;
@@ -147,6 +149,7 @@ export async function submitQuizAttempt({
         pasteAttemptCount: cheatingCounters?.pasteAttemptCount ?? 0,
         rightClickCount: cheatingCounters?.rightClickCount ?? 0,
         devToolsAttemptCount: cheatingCounters?.devToolsAttemptCount ?? 0,
+        violationLog: violationLog ?? undefined,
         answers: {
           create: Object.entries(answers).map(([questionId, optionId]) => ({
             questionId,

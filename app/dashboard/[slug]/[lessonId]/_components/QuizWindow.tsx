@@ -53,6 +53,15 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
     devToolsAttemptCount: 0,
   });
 
+  const violationLogRef = useRef<{ type: string; at: string }[]>([]);
+  const addViolation = useCallback((type: string) => {
+    if (quizSubmittedRef.current) return;
+    violationLogRef.current.push({
+      type,
+      at: new Date().toISOString(),
+    });
+  }, []);
+
   const handleExitQuiz = useCallback(() => {
     if (isExiting || quizSubmittedRef.current) return;
 
@@ -110,6 +119,7 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
       e.preventDefault();
       if (!quizSubmittedRef.current && hasAnswers) {
         cheatingCountersRef.current.backButtonCount++;
+        addViolation("back_navigation");
         handleViolation("Back Navigation");
       } else {
         window.history.pushState(null, "", window.location.href);
@@ -123,6 +133,7 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
       e.preventDefault();
       if (!quizSubmittedRef.current) {
         cheatingCountersRef.current.rightClickCount++;
+        addViolation("right_click");
         toast.warning("Right-click is disabled during the quiz.");
       }
     };
@@ -131,6 +142,7 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
       e.preventDefault();
       if (!quizSubmittedRef.current) {
         cheatingCountersRef.current.copyAttemptCount++;
+        addViolation("copy");
         toast.warning("Copying is disabled.");
       }
     };
@@ -139,6 +151,7 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
       e.preventDefault();
       if (!quizSubmittedRef.current) {
         cheatingCountersRef.current.pasteAttemptCount++;
+        addViolation("paste");
         toast.warning("Pasting is disabled.");
       }
     };
@@ -148,15 +161,19 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
     document.addEventListener("paste", handlePaste);
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (
+      const isDevToolsShortcut =
         e.key === "F12" ||
         (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "J")) ||
+        (e.metaKey && e.altKey && e.key === "I") ||
         (e.ctrlKey && e.key === "U") ||
-        (e.altKey && e.key === "Tab")
-      ) {
+        (e.ctrlKey && e.shiftKey && e.key === "C") ||
+        (e.metaKey && e.shiftKey && e.key === "C") ||
+        (e.altKey && e.key === "Tab");
+      if (isDevToolsShortcut) {
         e.preventDefault();
         if (!quizSubmittedRef.current) {
           cheatingCountersRef.current.devToolsAttemptCount++;
+          addViolation("devtools");
           handleViolation("Restricted Key");
         }
         return false;
@@ -166,6 +183,7 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
         e.preventDefault();
         if (!quizSubmittedRef.current && hasAnswers) {
           cheatingCountersRef.current.backButtonCount++;
+          addViolation("back_navigation");
           handleViolation("Back Navigation");
         }
       }
@@ -177,6 +195,7 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
       if (document.hidden && !quizSubmittedRef.current && hasAnswers) {
         cheatingCountersRef.current.visibilityChangeCount++;
         cheatingCountersRef.current.tabSwitchCount++;
+        addViolation("tab_switch");
         handleViolation("Tab Switching");
       }
     };
@@ -186,11 +205,26 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
     const handleBlur = () => {
       if (!quizSubmittedRef.current && hasAnswers) {
         cheatingCountersRef.current.windowBlurCount++;
+        addViolation("window_blur");
         handleViolation("Window Focus Loss");
       }
     };
 
     window.addEventListener("blur", handleBlur);
+
+    const handleFullscreenChange = () => {
+      if (
+        !document.fullscreenElement &&
+        !quizSubmittedRef.current &&
+        hasAnswers
+      ) {
+        cheatingCountersRef.current.windowBlurCount++;
+        addViolation("fullscreen_exit");
+        handleViolation("Fullscreen Exit");
+      }
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
@@ -201,8 +235,9 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("blur", handleBlur);
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
     };
-  }, [hasAnswers, handleViolation]);
+  }, [hasAnswers, handleViolation, addViolation]);
 
   const handleQuizComplete = () => {
     quizSubmittedRef.current = true;
@@ -233,6 +268,7 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
               submitQuizRef.current = submitFn;
             }}
             cheatingCountersRef={cheatingCountersRef}
+            violationLogRef={violationLogRef}
           />
         </div>
       </div>

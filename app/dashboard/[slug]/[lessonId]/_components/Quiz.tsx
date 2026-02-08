@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { QuizTimer } from "./QuizTimer";
-import { Clock, CheckCircle2, XCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, AlertCircle, Loader2, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { submitQuizAttempt } from "../actions";
 import { toast } from "sonner";
@@ -53,9 +53,10 @@ interface QuizProps {
     rightClickCount: number;
     devToolsAttemptCount: number;
   }>;
+  violationLogRef?: React.MutableRefObject<{ type: string; at: string }[]>;
 }
 
-export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, onSubmitRef, cheatingCountersRef }: QuizProps) {
+export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, onSubmitRef, cheatingCountersRef, violationLogRef }: QuizProps) {
   const router = useRouter();
   const [selectedAnswers, setSelectedAnswers] = useState<
     Record<string, string>
@@ -71,6 +72,16 @@ export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, o
   const [isPending, startTransition] = useTransition();
   const [timeUp, setTimeUp] = useState(false);
   const [startTime] = useState<number>(() => Date.now());
+  const [integritySnapshot, setIntegritySnapshot] = useState<{
+    tabSwitchCount: number;
+    backButtonCount: number;
+    windowBlurCount: number;
+    visibilityChangeCount: number;
+    copyAttemptCount: number;
+    pasteAttemptCount: number;
+    rightClickCount: number;
+    devToolsAttemptCount: number;
+  } | null>(null);
   const submitFnRef = useRef<(() => void) | null>(null);
 
   const handleSubmit = useCallback(() => {
@@ -86,13 +97,22 @@ export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, o
           courseSlug,
           answers: selectedAnswers,
           timeSpent: timeSpent,
-          cheatingCounters: cheatingCountersRef?.current,
+          cheatingCounters: cheatingCountersRef
+            ? { ...cheatingCountersRef.current }
+            : undefined,
+          violationLog:
+            violationLogRef && (violationLogRef.current?.length ?? 0) > 0
+              ? [...violationLogRef.current]
+              : undefined,
         });
 
         if (response.status === "success" && response.data) {
           setResults(response.data);
           setIsSubmitted(true);
-          
+          setIntegritySnapshot(
+            cheatingCountersRef ? { ...cheatingCountersRef.current } : null
+          );
+
           if (response.data.passed) {
             toast.success(
               `Congratulations! You passed with ${response.data.score}%`
@@ -117,7 +137,7 @@ export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, o
         console.error(error);
       }
     });
-  }, [isSubmitted, isPending, selectedAnswers, quiz.id, lessonId, courseSlug, quiz.passingScore, onComplete, startTime, cheatingCountersRef]);
+  }, [isSubmitted, isPending, selectedAnswers, quiz.id, lessonId, courseSlug, quiz.passingScore, onComplete, startTime, cheatingCountersRef, violationLogRef]);
 
   const handleTimeUp = () => {
     setTimeUp(true);
@@ -278,6 +298,95 @@ export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, o
             })}
           </div>
 
+          {integritySnapshot && (
+            <div
+              className={cn(
+                "rounded-lg border p-4 flex items-start gap-3",
+                (integritySnapshot.tabSwitchCount +
+                  integritySnapshot.backButtonCount +
+                  integritySnapshot.windowBlurCount +
+                  integritySnapshot.visibilityChangeCount +
+                  integritySnapshot.copyAttemptCount +
+                  integritySnapshot.pasteAttemptCount +
+                  integritySnapshot.rightClickCount +
+                  integritySnapshot.devToolsAttemptCount) === 0
+                  ? "border-green-200 dark:border-green-900 bg-green-50/50 dark:bg-green-950/10"
+                  : "border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/10"
+              )}
+            >
+              <ShieldCheck
+                className={cn(
+                  "h-5 w-5 shrink-0 mt-0.5",
+                  (integritySnapshot.tabSwitchCount +
+                    integritySnapshot.backButtonCount +
+                    integritySnapshot.windowBlurCount +
+                    integritySnapshot.visibilityChangeCount +
+                    integritySnapshot.copyAttemptCount +
+                    integritySnapshot.pasteAttemptCount +
+                    integritySnapshot.rightClickCount +
+                    integritySnapshot.devToolsAttemptCount) === 0
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-amber-600 dark:text-amber-400"
+                )}
+              />
+              <div className="text-sm">
+                {(integritySnapshot.tabSwitchCount +
+                  integritySnapshot.backButtonCount +
+                  integritySnapshot.windowBlurCount +
+                  integritySnapshot.visibilityChangeCount +
+                  integritySnapshot.copyAttemptCount +
+                  integritySnapshot.pasteAttemptCount +
+                  integritySnapshot.rightClickCount +
+                  integritySnapshot.devToolsAttemptCount) === 0 ? (
+                  <p className="font-medium text-green-800 dark:text-green-300">
+                    Integrity: No issues recorded for this attempt.
+                  </p>
+                ) : (
+                  <>
+                    <p className="font-medium text-amber-800 dark:text-amber-300">
+                      This attempt had{" "}
+                      {integritySnapshot.tabSwitchCount +
+                        integritySnapshot.backButtonCount +
+                        integritySnapshot.windowBlurCount +
+                        integritySnapshot.visibilityChangeCount +
+                        integritySnapshot.copyAttemptCount +
+                        integritySnapshot.pasteAttemptCount +
+                        integritySnapshot.rightClickCount +
+                        integritySnapshot.devToolsAttemptCount}{" "}
+                      warning(s) recorded:
+                    </p>
+                    <ul className="mt-1 list-disc list-inside text-muted-foreground space-y-0.5">
+                      {integritySnapshot.tabSwitchCount > 0 && (
+                        <li>Tab switch / visibility change</li>
+                      )}
+                      {integritySnapshot.backButtonCount > 0 && (
+                        <li>Back navigation</li>
+                      )}
+                      {integritySnapshot.windowBlurCount > 0 && (
+                        <li>Window focus lost</li>
+                      )}
+                      {integritySnapshot.visibilityChangeCount > 0 && integritySnapshot.tabSwitchCount === 0 && (
+                        <li>Visibility change</li>
+                      )}
+                      {integritySnapshot.copyAttemptCount > 0 && (
+                        <li>Copy attempt</li>
+                      )}
+                      {integritySnapshot.pasteAttemptCount > 0 && (
+                        <li>Paste attempt</li>
+                      )}
+                      {integritySnapshot.rightClickCount > 0 && (
+                        <li>Right-click</li>
+                      )}
+                      {integritySnapshot.devToolsAttemptCount > 0 && (
+                        <li>Restricted key / DevTools attempt</li>
+                      )}
+                    </ul>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-4">
             <Button
               variant="outline"
@@ -286,6 +395,7 @@ export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, o
                 setIsSubmitted(false);
                 setResults(null);
                 setTimeUp(false);
+                setIntegritySnapshot(null);
               }}
             >
               Retake Quiz
