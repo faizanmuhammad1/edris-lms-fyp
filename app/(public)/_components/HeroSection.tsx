@@ -223,10 +223,10 @@ export function HeroSection() {
                             {/* Screenshot */}
                             <div className="relative aspect-[4/3]">
                                 <Image
-                                    src="/hero-dashboard.png"
+                                    src="/hero-image.png"
                                     alt="Edris LMS platform — course dashboard"
                                     fill
-                                    className="object-cover object-top"
+                                    className="object-cover object-center"
                                     priority
                                     sizes="(max-width: 1024px) 0vw, 50vw"
                                 />
