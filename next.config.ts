@@ -79,6 +79,14 @@ const nextConfig: NextConfig = {
       },
     };
 
+    // Optimize cache to avoid "Serializing big strings" warning
+    if (config.cache && !isServer) {
+      config.cache = {
+        ...config.cache,
+        compression: "brotli", // Use brotli compression for smaller cache files
+      };
+    }
+
     return config;
   },
 };
