@@ -7,12 +7,16 @@ import { CreatePostForm } from "../_components/create-post-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
+import { requireUser } from "@/app/data/user/require-user";
+import { deletePost } from "@/app/actions/post";
+import { DeleteButton } from "@/components/general/DeleteButton";
+import { CommunitySettings } from "@/components/general/CommunitySettings";
 
 export const dynamic = "force-dynamic";
 
 export default async function CommunityPage({ params }: { params: Promise<{ communityId: string }> }) {
-  // params.communityId is actually the slug based on folder structure naming mismatch
   const { communityId } = await params;
+  const user = await requireUser();
   const slug = communityId;
   const community = await getCommunity(slug);
 
@@ -35,6 +39,13 @@ export default async function CommunityPage({ params }: { params: Promise<{ comm
           <p className="text-muted-foreground">{community.description}</p>
         </div>
       </div>
+
+      {/* Teacher Actions */}
+      {community.courseId && community.course?.userId === user.id && (
+        <div className="flex justify-end">
+          <CommunitySettings community={community} />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 space-y-6">
@@ -63,6 +74,10 @@ export default async function CommunityPage({ params }: { params: Promise<{ comm
                         </div>
                       </div>
                     </div>
+                    {/* Delete button: Visible if user is author OR user is teacher of the course */}
+                    {(user.id === post.userId || (community.courseId && community.course?.userId === user.id)) && (
+                      <DeleteButton id={post.id} deleteAction={deletePost} />
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent>

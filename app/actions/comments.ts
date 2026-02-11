@@ -22,6 +22,58 @@ export async function createComment(lessonId: string, text: string, parentId?: s
     } catch (error) {
         console.error("Error creating comment:", error);
         return { status: "error", message: "Failed to post comment." };
+
+    }
+
+}
+
+
+export async function deleteComment(commentId: string) {
+    const session = await requireUser();
+
+    try {
+        const comment = await prisma.comment.findUnique({
+            where: { id: commentId },
+            select: {
+                userId: true,
+                lessonId: true,
+                Lesson: {
+                    select: {
+                        Chapter: {
+                            select: {
+                                Course: {
+                                    select: { userId: true }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+        });
+
+        if (!comment) {
+            return { status: "error", message: "Comment not found" };
+        }
+
+        const isAuthor = comment.userId === session.id;
+        // Check if user is the teacher of the course this lesson belongs to
+        // Note: Lesson might be null if comment is not linked to a lesson (though schema says lessonId is optional, usually it is linked for lesson comments)
+        // If lessonId is present, we check ownership.
+        const isTeacher = comment.Lesson?.Chapter.Course.userId === session.id;
+
+        if (!isAuthor && !isTeacher) {
+            return { status: "error", message: "You are not authorized to delete this comment" };
+        }
+
+        await prisma.comment.delete({
+            where: { id: commentId },
+        });
+
+        revalidatePath(`/dashboard`); // Revalidate generally
+        return { status: "success", message: "Comment deleted successfully!" };
+    } catch (error) {
+        console.error("Error deleting comment:", error);
+        return { status: "error", message: "Failed to delete comment." };
     }
 }
 

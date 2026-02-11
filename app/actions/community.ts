@@ -134,14 +134,24 @@ export async function getStudentCommunities() {
 
     const enrolledCourseIds = enrollments.map(e => e.courseId);
 
+    // Get courses where user is the teacher/author
+    const authoredCourses = await prisma.course.findMany({
+        where: { userId: user.id },
+        select: { id: true },
+    });
+    const authoredCourseIds = authoredCourses.map(c => c.id);
+
+    // Combine IDs
+    const allRelevantCourseIds = [...new Set([...enrolledCourseIds, ...authoredCourseIds])];
+
     // Get communities that are either:
     // 1. Not linked to any course (public communities - optional, remove if you want strict gating)
-    // 2. Linked to a course the user is enrolled in
+    // 2. Linked to a course the user is enrolled in OR is the teacher of
     return await prisma.community.findMany({
         where: {
             OR: [
-                { courseId: null }, // Public communities (remove this line for strict course-only access)
-                { courseId: { in: enrolledCourseIds } },
+                { courseId: null }, // Public communities
+                { courseId: { in: allRelevantCourseIds } },
             ],
         },
         orderBy: { createdAt: "desc" },
@@ -163,6 +173,9 @@ export async function getCommunity(slug: string) {
             _count: {
                 select: { posts: true },
             },
+            course: {
+                select: { userId: true, title: true }
+            }
         },
     });
 }

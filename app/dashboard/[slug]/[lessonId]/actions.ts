@@ -75,7 +75,9 @@ export async function markLessonComplete(
       },
     });
 
+    revalidatePath("/dashboard");
     revalidatePath(`/dashboard/${slug}`);
+    revalidatePath(`/dashboard/${slug}/${lessonId}`);
 
     return {
       status: "success",
@@ -226,6 +228,8 @@ export async function submitQuizAttempt({
       });
     }
 
+    revalidatePath("/dashboard");
+    revalidatePath(`/dashboard/${courseSlug}`);
     revalidatePath(`/dashboard/${courseSlug}/${lessonId}`);
 
     return {

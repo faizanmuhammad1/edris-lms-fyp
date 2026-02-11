@@ -24,7 +24,14 @@ export default async function ForumPage() {
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                   <IconMessageCircle className="h-5 w-5 text-primary" />
                 </div>
-                <CardTitle className="text-lg">{community.name}</CardTitle>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle className="text-lg">{community.name}</CardTitle>
+                    <div className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-medium border border-emerald-500/20">
+                      Joined
+                    </div>
+                  </div>
+                </div>
               </div>
               <CardDescription className="line-clamp-2">
                 {community.description}
@@ -53,9 +60,9 @@ export default async function ForumPage() {
                   <IconClock className="h-3 w-3" />
                   <span>Activity: Recently</span>
                 </div>
-                <Button className="w-full" asChild>
+                <Button className="w-full" variant="outline" asChild>
                   <Link href={`/dashboard/forum/${community.slug}`}>
-                    Join Discussion
+                    View Community
                   </Link>
                 </Button>
               </div>
