@@ -10,6 +10,10 @@ const prisma = new PrismaClient({
     },
 });
 
+if (!env.STRIPE_SECRET_KEY) {
+    throw new Error("STRIPE_SECRET_KEY is not defined in environment variables");
+}
+
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
     apiVersion: "2025-08-27.basil",
     typescript: true,

@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { ApiResponse } from "@/lib/types";
 import { request } from "@arcjet/next";
 import { revalidatePath } from "next/cache";
+import { deleteFilesFromS3 } from "@/lib/s3-helper";
 
 const aj = arcjet.withRule(
   fixedWindow({
@@ -39,11 +40,58 @@ export async function deleteCourse(courseId: string): Promise<ApiResponse> {
         };
       }
     }
+    // 1. Fetch course + lessons to get S3 keys
+    const courseWithLessons = await prisma.course.findUnique({
+      where: { id: courseId },
+      select: {
+        fileKey: true,
+        chapter: {
+          select: {
+            lessons: {
+              select: {
+                videoKey: true,
+                thumbnailKey: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!courseWithLessons) {
+      return {
+        status: "error",
+        message: "Course not found",
+      };
+    }
+
+    // 2. Collect all keys
+    const keysToDelete: string[] = [];
+
+    // Course image
+    if (courseWithLessons.fileKey) {
+      keysToDelete.push(courseWithLessons.fileKey);
+    }
+
+    // Lesson assets
+    courseWithLessons.chapter.forEach((chapter) => {
+      chapter.lessons.forEach((lesson) => {
+        if (lesson.videoKey) keysToDelete.push(lesson.videoKey);
+        if (lesson.thumbnailKey) keysToDelete.push(lesson.thumbnailKey);
+      });
+    });
+
+    // 3. Delete from Utils/DB
     await prisma.course.delete({
       where: {
         id: courseId,
       },
     });
+
+    // 4. Delete from S3
+    if (keysToDelete.length > 0) {
+      await deleteFilesFromS3(keysToDelete);
+    }
 
     revalidatePath("/admin/courses");
 

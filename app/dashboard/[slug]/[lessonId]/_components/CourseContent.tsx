@@ -185,10 +185,7 @@ export function CourseContent({ data, comments }: iAppProps) {
 
         {/* Comments Section */}
         <div className="space-y-6">
-          <div className="flex items-center gap-2">
-            <h3 className="text-xl font-bold tracking-tight">Discussion</h3>
-            <span className="text-sm text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{comments.length}</span>
-          </div>
+
           <CommentSection lessonId={data.id} comments={comments} />
         </div>
       </div>

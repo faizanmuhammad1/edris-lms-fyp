@@ -158,7 +158,6 @@ export function VideoPlayer({
       src={videoUrl}
       viewType="video"
       streamType="on-demand"
-      crossOrigin
       playsInline
       onTimeUpdate={handleTimeUpdate}
       onPause={handlePause}

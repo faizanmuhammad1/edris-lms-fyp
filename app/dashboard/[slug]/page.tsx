@@ -37,8 +37,8 @@ export default async function CourseSlugRoute({ params }: iAppProps) {
 
       <Separator />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
+      <div className="w-full">
+        <div className="space-y-8">
           <div>
             <h2 className="text-2xl font-semibold mb-4">About this Course</h2>
             <div className="prose dark:prose-invert max-w-none">

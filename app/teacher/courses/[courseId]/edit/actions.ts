@@ -15,6 +15,7 @@ import {
 import { stripe } from "@/lib/stripe";
 import { request } from "@arcjet/next";
 import { revalidatePath } from "next/cache";
+import { deleteFilesFromS3 } from "@/lib/s3-helper";
 
 const aj = arcjet.withRule(
   fixedWindow({
@@ -413,6 +414,8 @@ export async function deleteTeacherLesson({
           select: {
             id: true,
             position: true,
+            videoKey: true,
+            thumbnailKey: true,
           },
         },
       },
@@ -436,6 +439,11 @@ export async function deleteTeacherLesson({
       };
     }
 
+    // Capture keys for S3 deletion
+    const keysToDelete: string[] = [];
+    if (lessonToDelete.videoKey) keysToDelete.push(lessonToDelete.videoKey);
+    if (lessonToDelete.thumbnailKey) keysToDelete.push(lessonToDelete.thumbnailKey);
+
     const remainingLessons = lessons.filter((lesson) => lesson.id !== lessonId);
 
     const updates = remainingLessons.map((lesson, index) => {
@@ -454,6 +462,11 @@ export async function deleteTeacherLesson({
         },
       }),
     ]);
+
+    // Delete files from S3 after successful DB transaction
+    if (keysToDelete.length > 0) {
+      await deleteFilesFromS3(keysToDelete);
+    }
     revalidatePath(`/teacher/courses/${courseId}/edit`);
 
     return {
@@ -527,6 +540,23 @@ export async function deleteTeacherChapter({
       };
     }
 
+    // Find all lessons in this chapter to get their keys
+    const lessonsInChapter = await prisma.lesson.findMany({
+      where: {
+        chapterId: chapterId,
+      },
+      select: {
+        videoKey: true,
+        thumbnailKey: true,
+      },
+    });
+
+    const keysToDelete: string[] = [];
+    lessonsInChapter.forEach((lesson) => {
+      if (lesson.videoKey) keysToDelete.push(lesson.videoKey);
+      if (lesson.thumbnailKey) keysToDelete.push(lesson.thumbnailKey);
+    });
+
     const remainingChapters = chapters.filter((chap) => chap.id !== chapterId);
 
     const updates = remainingChapters.map((chap, index) => {
@@ -544,6 +574,11 @@ export async function deleteTeacherChapter({
         },
       }),
     ]);
+
+    // Delete files from S3 after successful DB transaction
+    if (keysToDelete.length > 0) {
+      await deleteFilesFromS3(keysToDelete);
+    }
     revalidatePath(`/teacher/courses/${courseId}/edit`);
 
     return {
