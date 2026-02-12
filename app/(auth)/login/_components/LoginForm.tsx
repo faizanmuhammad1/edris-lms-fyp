@@ -49,7 +49,7 @@ export function LoginForm() {
         fetchOptions: {
           onSuccess: () => {
             toast.success("Signing in with Google...");
-            router.push("/");
+            router.push("/dashboard");
             router.refresh();
           },
           onError: () => {

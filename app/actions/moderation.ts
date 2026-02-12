@@ -7,6 +7,12 @@ import { revalidatePath } from "next/cache";
 
 export async function removeMemberFromCommunity(communityId: string, memberId: string) {
     const session = await requireTeacher();
+    const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { role: true, id: true }
+    });
+
+    if (!user) throw new Error("User not found");
 
     return await tryCatch((async () => {
         // 1. Get the community to find the associated course
@@ -28,8 +34,8 @@ export async function removeMemberFromCommunity(communityId: string, memberId: s
             throw new Error("This is a public community, members cannot be removed via course unenrollment.");
         }
 
-        // 2. Verify the teacher owns the course
-        if (community.course?.userId !== session.user.id) {
+        // 2. Verify the teacher owns the course OR is admin
+        if (community.course?.userId !== session.user.id && user.role !== "admin") {
             throw new Error("You are not authorized to manage members of this community");
         }
 

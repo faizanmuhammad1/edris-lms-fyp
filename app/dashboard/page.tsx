@@ -4,10 +4,33 @@ import { getAllCourses } from "../data/course/get-all-courses";
 import { getEnrolledCourses } from "../data/user/get-enrolled-courses";
 import { getCertificates } from "../data/user/get-certificates";
 import { PublicCourseCard } from "../(public)/_components/PublicCourseCard";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/db";
 
 import { CourseProgressCard } from "./_components/CourseProgressCard";
 
 export default async function DashboardPage() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (session) {
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { role: true, teacherStatus: true },
+    });
+
+    if (user?.role === "admin") {
+      redirect("/admin");
+    }
+
+    if (user?.role === "teacher" || user?.teacherStatus === "Approved") {
+      redirect("/teacher");
+    }
+  }
+
   const [courses, enrolledCourses, certificates] = await Promise.all([
     getAllCourses(),
     getEnrolledCourses(),

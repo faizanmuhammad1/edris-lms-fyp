@@ -14,7 +14,13 @@ const postSchema = z.object({
 });
 
 export async function createPost(values: z.infer<typeof postSchema>) {
-    const user = await requireUser();
+    const sessionUser = await requireUser();
+    const user = await prisma.user.findUnique({
+        where: { id: sessionUser.id },
+        select: { role: true, id: true }
+    });
+
+    if (!user) return { status: "error", message: "User not found" };
 
     return await tryCatch((async () => {
 
@@ -66,7 +72,13 @@ export async function getPosts(communityId: string) {
 }
 
 export async function deletePost(postId: string) {
-    const user = await requireUser();
+    const sessionUser = await requireUser();
+    const user = await prisma.user.findUnique({
+        where: { id: sessionUser.id },
+        select: { role: true, id: true }
+    });
+
+    if (!user) return { status: "error", message: "User not found" };
 
     try {
         const post = await prisma.post.findUnique({
@@ -91,8 +103,9 @@ export async function deletePost(postId: string) {
 
         const isAuthor = post.userId === user.id;
         const isTeacher = post.community.course?.userId === user.id;
+        const isAdmin = user.role === "admin";
 
-        if (!isAuthor && !isTeacher) {
+        if (!isAuthor && !isTeacher && !isAdmin) {
             return { status: "error", message: "You are not authorized to delete this post" };
         }
 

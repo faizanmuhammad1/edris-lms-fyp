@@ -22,9 +22,9 @@ export async function requireTeacher() {
         },
     });
 
-    // Admins should be redirected to admin portal
+    // Admins should be allowed to access teacher routes
     if (user?.role === "admin") {
-        redirect("/admin");
+        return session;
     }
 
     if (user?.teacherStatus !== "Approved" && user?.role !== "teacher") {

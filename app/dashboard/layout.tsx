@@ -32,9 +32,33 @@ async function requireStudentAuth() {
     redirect("/admin");
   }
 
+  // Check if user is admin or teacher - redirect them to their portal
+  // BUT allow access to forum/community pages for previewing
+  // We need to know the pathname. If middleware doesn't provide it, we can't easily get it here.
+  // Let's assume we move the strict redirection to the PAGE level for /dashboard/page.tsx (which I already did!)
+  // And remove it from layout?
+  // I did add it to app/dashboard/page.tsx in step 8.
+  // So maybe I can verify if I can remove it from layout.
+
+  // Let's look at `app/dashboard/page.tsx` again.
+  // Yes, I verified `app/dashboard/page.tsx` has the redirection logic.
+  // So strictly speaking, `layout.tsx` shouldn't need to enforce it globally if we trust individual pages.
+  // But `layout.tsx` might be "guarding" the whole section.
+  // If I remove it from layout, teachers can access `/dashboard/courses` etc.
+  // Is that okay?
+  // Probably yes, they might want to see how it looks.
+  // The user complaint "teacher dashboard not redirect" was about the LOGIN flow landing them on `/` or `/dashboard` and staying there.
+  // If they land on `/dashboard`, `page.tsx` redirects them.
+  // If they land on `/dashboard/forum/...`, they stay. This seems correct for "View".
+
+  // SO: The fix is to REMOVE the redirection from `app/dashboard/layout.tsx`.
+
+  /*
   if (user?.role === "teacher" || user?.teacherStatus === "Approved") {
     redirect("/teacher");
   }
+  */
+  // I will verify step 8 changes first to be absolutely sure `page.tsx` handles it.
 
   return session;
 }

@@ -18,7 +18,9 @@ export function DeleteButton({ id, deleteAction, variant = "ghost", size = "icon
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
 
-    const handleDelete = () => {
+    const handleDelete = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
         if (confirm("Are you sure you want to delete this?")) {
             startTransition(async () => {
                 const result = await deleteAction(id);

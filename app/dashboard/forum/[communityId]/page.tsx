@@ -11,12 +11,20 @@ import { requireUser } from "@/app/data/user/require-user";
 import { deletePost } from "@/app/actions/post";
 import { DeleteButton } from "@/components/general/DeleteButton";
 import { CommunitySettings } from "@/components/general/CommunitySettings";
+import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export default async function CommunityPage({ params }: { params: Promise<{ communityId: string }> }) {
   const { communityId } = await params;
-  const user = await requireUser();
+  const sessionUser = await requireUser();
+  const user = await prisma.user.findUnique({
+    where: { id: sessionUser.id },
+    select: { id: true, role: true, name: true, image: true }
+  });
+
+  if (!user) return notFound();
+
   const slug = communityId;
   const community = await getCommunity(slug);
 
@@ -40,8 +48,8 @@ export default async function CommunityPage({ params }: { params: Promise<{ comm
         </div>
       </div>
 
-      {/* Teacher Actions */}
-      {community.courseId && community.course?.userId === user.id && (
+      {/* Teacher/Admin Actions */}
+      {(user.role === "admin" || (community.courseId && community.course?.userId === user.id)) && (
         <div className="flex justify-end">
           <CommunitySettings community={community} />
         </div>
@@ -57,39 +65,41 @@ export default async function CommunityPage({ params }: { params: Promise<{ comm
                 No posts yet. Be the first to start a conversation!
               </div>
             ) : posts.map(post => (
-              <Card key={post.id} className="hover:border-primary/50 transition-colors cursor-pointer">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src={post.user.image || ""} />
-                        <AvatarFallback>{post.user.name?.[0]}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <CardTitle className="text-lg">{post.title}</CardTitle>
-                        <div className="text-sm text-muted-foreground flex items-center gap-2">
-                          <span>{post.user.name}</span>
-                          <span>•</span>
-                          <span>{formatDistanceToNow(post.createdAt, { addSuffix: true })}</span>
+              <Link key={post.id} href={`/dashboard/forum/${slug}/${post.id}`} className="block group">
+                <Card className="hover:border-primary/50 transition-colors cursor-pointer group-hover:shadow-md">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarImage src={post.user.image || ""} />
+                          <AvatarFallback>{post.user.name?.[0]}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <CardTitle className="text-lg group-hover:text-primary transition-colors">{post.title}</CardTitle>
+                          <div className="text-sm text-muted-foreground flex items-center gap-2">
+                            <span>{post.user.name}</span>
+                            <span>•</span>
+                            <span>{formatDistanceToNow(post.createdAt, { addSuffix: true })}</span>
+                          </div>
                         </div>
                       </div>
+                      {/* Delete button: Visible if user is author OR user is teacher of the course OR admin */}
+                      {(user.id === post.userId || (community.courseId && community.course?.userId === user.id) || user.role === "admin") && (
+                        <DeleteButton id={post.id} deleteAction={deletePost} />
+                      )}
                     </div>
-                    {/* Delete button: Visible if user is author OR user is teacher of the course */}
-                    {(user.id === post.userId || (community.courseId && community.course?.userId === user.id)) && (
-                      <DeleteButton id={post.id} deleteAction={deletePost} />
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground line-clamp-3 mb-4">
-                    {post.content}
-                  </p>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MessageSquare className="h-4 w-4" />
-                    <span>{post._count.comments} Comments</span>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground line-clamp-3 mb-4">
+                      {post.content}
+                    </p>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MessageSquare className="h-4 w-4" />
+                      <span>{post._count.comments} Comments</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         </div>
@@ -104,7 +114,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ comm
               <div className="mt-4 pt-4 border-t flex flex-col gap-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Members</span>
-                  <span className="font-medium">0</span>
+                  <span className="font-medium">{community.course?._count?.enrollment ?? 0}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Posts</span>

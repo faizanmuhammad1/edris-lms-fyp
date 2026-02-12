@@ -1,0 +1,14 @@
+
+> edris-lms@0.1.0 lint
+> next lint
+
+
+./app/dashboard/layout.tsx
+37:9  Error: 'heads' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/sidebar/nav-user.tsx
+127:34  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+142:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+142:83  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules

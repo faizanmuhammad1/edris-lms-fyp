@@ -71,9 +71,38 @@ export async function createCommunity(values: z.infer<typeof communitySchema>) {
 const communityUpdateSchema = communitySchema.partial();
 
 export async function updateCommunity(slug: string, values: z.infer<typeof communityUpdateSchema>) {
-    await requireTeacher();
+    const session = await requireTeacher();
 
     return await tryCatch((async () => {
+        // 1. Fetch current community to check ownership
+        const currentCommunity = await prisma.community.findUnique({
+            where: { slug },
+            select: {
+                id: true,
+                courseId: true,
+                course: { select: { userId: true } }
+            }
+        });
+
+        if (!currentCommunity) throw new Error("Community not found");
+
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email },
+            select: { id: true, role: true }
+        });
+
+        if (!user) throw new Error("User not found");
+
+        // 2. Authorization Check
+        // Allow if Admin
+        const isAdmin = user.role === "admin";
+        // Allow if Course Owner (if linked to a course)
+        const isCourseOwner = currentCommunity.course?.userId === user.id;
+
+        if (!isAdmin && !isCourseOwner) {
+            throw new Error("You are not authorized to update this community");
+        }
+
         const community = await prisma.community.update({
             where: { slug },
             data: {
@@ -93,9 +122,36 @@ export async function updateCommunity(slug: string, values: z.infer<typeof commu
 }
 
 export async function deleteCommunity(slug: string) {
-    await requireTeacher();
+    const session = await requireTeacher();
 
     return await tryCatch((async () => {
+        // 1. Fetch current community to check ownership
+        const currentCommunity = await prisma.community.findUnique({
+            where: { slug },
+            select: {
+                id: true,
+                courseId: true,
+                course: { select: { userId: true } }
+            }
+        });
+
+        if (!currentCommunity) throw new Error("Community not found");
+
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email },
+            select: { id: true, role: true }
+        });
+
+        if (!user) throw new Error("User not found");
+
+        // 2. Authorization Check
+        const isAdmin = user.role === "admin";
+        const isCourseOwner = currentCommunity.course?.userId === user.id;
+
+        if (!isAdmin && !isCourseOwner) {
+            throw new Error("You are not authorized to delete this community");
+        }
+
         await prisma.community.delete({
             where: { slug },
         });
@@ -124,7 +180,30 @@ export async function getCommunities() {
 
 // Get communities for students - only those for courses they're enrolled in
 export async function getStudentCommunities() {
-    const user = await requireUser();
+    const sessionUser = await requireUser();
+
+    // Fetch user with role
+    const user = await prisma.user.findUnique({
+        where: { id: sessionUser.id },
+        select: { id: true, role: true }
+    });
+
+    if (!user) return [];
+
+    // Admins see ALL communities
+    if (user.role === "admin") {
+        return await prisma.community.findMany({
+            orderBy: { createdAt: "desc" },
+            include: {
+                _count: {
+                    select: { posts: true },
+                },
+                course: {
+                    select: { id: true, title: true },
+                },
+            },
+        });
+    }
 
     // Get user's enrolled course IDs
     const enrollments = await prisma.enrollment.findMany({
@@ -149,10 +228,11 @@ export async function getStudentCommunities() {
     // 2. Linked to a course the user is enrolled in OR is the teacher of
     return await prisma.community.findMany({
         where: {
-            OR: [
-                { courseId: null }, // Public communities
-                { courseId: { in: allRelevantCourseIds } },
-            ],
+            // OR: [
+            //    { courseId: null }, // Public communities - DISABLED for now based on user request
+            //    { courseId: { in: allRelevantCourseIds } },
+            // ],
+            courseId: { in: allRelevantCourseIds },
         },
         orderBy: { createdAt: "desc" },
         include: {
@@ -174,7 +254,13 @@ export async function getCommunity(slug: string) {
                 select: { posts: true },
             },
             course: {
-                select: { userId: true, title: true }
+                select: {
+                    userId: true,
+                    title: true,
+                    _count: {
+                        select: { enrollment: true }
+                    }
+                }
             }
         },
     });

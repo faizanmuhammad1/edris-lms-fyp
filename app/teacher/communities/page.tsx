@@ -55,7 +55,7 @@ export default async function TeacherCommunitiesPage() {
                                     {/* Point to dashboard forum for now as "Manage" might not exist yet, or link to edit if create exists */}
                                     {/* If user wants to "create like admin", they likely want to "edit like admin" too. */}
                                     {/* For now keeping same link structure as Admin, assuming we will fix/create the [id] page later */}
-                                    <Link href={`/teacher/communities/${community.id}`}>
+                                    <Link href={`/teacher/communities/${community.slug}`}>
                                         Manage
                                     </Link>
                                 </Button>
