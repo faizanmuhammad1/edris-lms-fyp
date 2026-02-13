@@ -42,6 +42,7 @@ model User {
   certificates   Certificate[]
   posts          Post[]
   cart           Cart?
+  communityMembers CommunityMember[]
 
   @@map("user")
 }
@@ -441,8 +442,24 @@ model Community {
   updatedAt DateTime @updatedAt
 
   posts Post[]
+  members CommunityMember[]
 
   @@index([courseId])
+}
+
+model CommunityMember {
+  id          String   @id @default(uuid())
+  userId      String
+  communityId String
+  role        String   @default("MEMBER") // MEMBER, MODERATOR, ADMIN
+  joinedAt    DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, communityId])
+  @@index([userId])
+  @@index([communityId])
 }
 
 model Post {

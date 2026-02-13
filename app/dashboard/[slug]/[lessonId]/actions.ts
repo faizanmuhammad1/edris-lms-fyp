@@ -77,6 +77,7 @@ export async function markLessonComplete(
 
     revalidatePath("/dashboard");
     revalidatePath(`/dashboard/${slug}`);
+    revalidatePath(`/dashboard/${slug}`, 'layout'); // Force layout revalidation
     revalidatePath(`/dashboard/${slug}/${lessonId}`);
 
     return {

@@ -2,7 +2,9 @@ import { getCommunity, getPosts } from "@/app/actions/community";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MessageSquare } from "lucide-react";
+import { IconUsers } from "@tabler/icons-react";
 import Link from "next/link";
+import { CommunityJoinButton } from "@/components/community/CommunityJoinButton";
 import { CreatePostForm } from "../_components/create-post-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -57,7 +59,28 @@ export default async function CommunityPage({ params }: { params: Promise<{ comm
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 space-y-6">
-          <CreatePostForm communityId={community.id} />
+          {community.isMember ? (
+            <CreatePostForm communityId={community.id} />
+          ) : (
+            <Card className="bg-muted/50 border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-8 text-center space-y-4">
+                <div className="rounded-full bg-background p-3">
+                  <IconUsers className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-semibold">Join the conversation</h3>
+                  <p className="text-sm text-muted-foreground max-w-sm">
+                    Become a member of this community to create posts and interact with others.
+                  </p>
+                </div>
+                <CommunityJoinButton
+                  communityId={community.id}
+                  isMember={false}
+                  className="w-auto px-8"
+                />
+              </CardContent>
+            </Card>
+          )}
 
           <div className="space-y-4">
             {posts.length === 0 ? (
