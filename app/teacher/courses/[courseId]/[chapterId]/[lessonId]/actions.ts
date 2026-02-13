@@ -2,6 +2,7 @@
 
 import { requireTeacher } from "@/app/data/teacher/require-teacher";
 import { prisma } from "@/lib/db";
+import { triggerMuxAssetCreation } from "@/lib/mux-trigger";
 import { ApiResponse } from "@/lib/types";
 import { lessonSchema, LessonSchemaType } from "@/lib/zodSchemas";
 
@@ -51,6 +52,13 @@ export async function updateTeacherLesson(
         videoKey: result.data.videoKey,
       },
     });
+
+    // Trigger Mux asset creation in the background if video is present
+    if (result.data.videoKey) {
+      triggerMuxAssetCreation(lessonId, result.data.videoKey).catch((err) =>
+        console.error("[Mux] Background trigger failed:", err)
+      );
+    }
 
     return {
       status: "success",

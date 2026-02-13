@@ -47,7 +47,7 @@ async function authMiddleware(request: NextRequest) {
 
 export const config = {
   // Run on all routes except static assets, but auth check only on admin routes
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/auth).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/auth|api/webhooks/mux).*)"],
 };
 
 // Combine Arcjet with your existing middleware

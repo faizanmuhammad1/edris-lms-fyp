@@ -17,6 +17,11 @@ export const env = createEnv({
     EMAIL_FROM: z.string().min(1).optional(),
     STRIPE_SECRET_KEY: z.string().optional(),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
+    MUX_TOKEN_ID: z.string().min(1),
+    MUX_TOKEN_SECRET: z.string().min(1),
+    MUX_WEBHOOK_SECRET: z.string().min(1),
+    MUX_SIGNING_KEY_ID: z.string().min(1),
+    MUX_SIGNING_PRIVATE_KEY: z.string().min(1),
   },
 
   client: {

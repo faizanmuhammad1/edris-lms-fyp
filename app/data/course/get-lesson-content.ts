@@ -16,6 +16,8 @@ export async function getLessonContent(lessonId: string) {
       description: true,
       thumbnailKey: true,
       videoKey: true,
+      muxPlaybackId: true,
+      muxStatus: true,
       position: true,
       lessonProgress: {
         where: {

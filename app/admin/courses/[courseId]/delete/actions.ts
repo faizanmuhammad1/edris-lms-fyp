@@ -9,6 +9,7 @@ import { ApiResponse } from "@/lib/types";
 import { request } from "@arcjet/next";
 import { revalidatePath } from "next/cache";
 import { deleteFilesFromS3 } from "@/lib/s3-helper";
+import { deleteMuxAssets } from "@/lib/mux-trigger";
 
 const aj = arcjet.withRule(
   fixedWindow({
@@ -51,6 +52,7 @@ export async function deleteCourse(courseId: string): Promise<ApiResponse> {
               select: {
                 videoKey: true,
                 thumbnailKey: true,
+                muxAssetId: true,
               },
             },
           },
@@ -74,10 +76,12 @@ export async function deleteCourse(courseId: string): Promise<ApiResponse> {
     }
 
     // Lesson assets
+    const muxAssetIds: string[] = [];
     courseWithLessons.chapter.forEach((chapter) => {
       chapter.lessons.forEach((lesson) => {
         if (lesson.videoKey) keysToDelete.push(lesson.videoKey);
         if (lesson.thumbnailKey) keysToDelete.push(lesson.thumbnailKey);
+        if (lesson.muxAssetId) muxAssetIds.push(lesson.muxAssetId);
       });
     });
 
@@ -91,6 +95,11 @@ export async function deleteCourse(courseId: string): Promise<ApiResponse> {
     // 4. Delete from S3
     if (keysToDelete.length > 0) {
       await deleteFilesFromS3(keysToDelete);
+    }
+
+    // 5. Delete Mux assets
+    if (muxAssetIds.length > 0) {
+      deleteMuxAssets(muxAssetIds).catch(() => { });
     }
 
     revalidatePath("/admin/courses");

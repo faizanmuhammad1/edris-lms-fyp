@@ -60,6 +60,7 @@ export function CourseContent({ data, comments }: iAppProps) {
             videoKey={data.videoKey ?? ""}
             thumbnailKey={data.thumbnailKey ?? ""}
             startTime={data.lessonProgress[0]?.lastWatchedPosition ?? 0}
+            muxPlaybackId={data.muxStatus === "ready" ? data.muxPlaybackId : null}
           />
 
           {/* Action Bar */}

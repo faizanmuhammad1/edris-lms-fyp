@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import {
   MediaPlayer,
   MediaProvider,
@@ -13,7 +13,7 @@ import {
 } from "@vidstack/react/player/layouts/default";
 import { useConstructUrl } from "@/hooks/use-construct-url";
 import { saveVideoProgress } from "@/app/dashboard/[slug]/[lessonId]/actions";
-import { BookIcon } from "lucide-react";
+import { BookIcon, Loader2Icon, ShieldAlertIcon } from "lucide-react";
 
 interface VideoPlayerProps {
   lessonId: string;
@@ -22,6 +22,8 @@ interface VideoPlayerProps {
   startTime?: number;
   /** Whether to track and save progress (disabled for public previews) */
   trackProgress?: boolean;
+  /** Mux playback ID for secure streaming (preferred over direct S3) */
+  muxPlaybackId?: string | null;
 }
 
 export function VideoPlayer({
@@ -30,18 +32,74 @@ export function VideoPlayer({
   thumbnailKey,
   startTime = 0,
   trackProgress = true,
+  muxPlaybackId,
 }: VideoPlayerProps) {
-  const videoUrl = useConstructUrl(videoKey);
-  const thumbnailUrl = useConstructUrl(thumbnailKey);
+  const s3VideoUrl = useConstructUrl(videoKey);
+  const s3ThumbnailUrl = useConstructUrl(thumbnailKey);
+
+  // Signed URL state — fetched from server for secure Mux playback
+  const [signedStreamUrl, setSignedStreamUrl] = useState<string | null>(null);
+  const [signedThumbnailUrl, setSignedThumbnailUrl] = useState<string | null>(null);
+  const [isLoadingSignedUrl, setIsLoadingSignedUrl] = useState(!!muxPlaybackId);
+  const [signedUrlError, setSignedUrlError] = useState<string | null>(null);
+
   const playerRef = useRef<MediaPlayerInstance>(null);
   const lastSavedTime = useRef(0);
   const watchedDurationRef = useRef(0);
   const hasInitialized = useRef(false);
 
+  // Fetch signed URL from server when muxPlaybackId is available
+  useEffect(() => {
+    if (!muxPlaybackId) return;
+
+    let cancelled = false;
+
+    fetch("/api/mux/signed-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lessonId }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "Failed to get signed URL");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (cancelled) return;
+        setSignedStreamUrl(data.streamUrl);
+        setSignedThumbnailUrl(data.thumbnailUrl);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("Failed to fetch signed URL:", err);
+        setSignedUrlError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingSignedUrl(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [muxPlaybackId, lessonId]);
+
+  // Determine final video and thumbnail URLs
+  const isHls = !!signedStreamUrl;
+  const videoUrl = signedStreamUrl || s3VideoUrl;
+  const thumbnailUrl = signedThumbnailUrl || s3ThumbnailUrl;
+
+  // For HLS, use a proper source object so vidstack detects the type correctly
+  const videoSrc = isHls
+    ? { src: videoUrl, type: "application/x-mpegurl" as const }
+    : videoUrl;
+
   // Save progress to server
   const persistProgress = useCallback(
     async (currentTime: number, duration: number) => {
-      if (!trackProgress || !duration || duration <= 0) return;
+      // Don't save progress with unreliable duration (HLS initial chunks)
+      if (!trackProgress || !duration || duration <= 10) return;
 
       const percentage = Math.min((currentTime / duration) * 100, 100);
 
@@ -141,7 +199,7 @@ export function VideoPlayer({
     };
   }, [trackProgress, lessonId]);
 
-  if (!videoKey) {
+  if (!videoKey && !muxPlaybackId) {
     return (
       <div className="aspect-video bg-muted rounded-xl flex flex-col items-center justify-center">
         <BookIcon className="size-16 text-primary mx-auto mb-4" />
@@ -152,10 +210,34 @@ export function VideoPlayer({
     );
   }
 
+  // Show loading state while fetching signed URL
+  if (muxPlaybackId && isLoadingSignedUrl) {
+    return (
+      <div className="aspect-video bg-muted rounded-xl flex flex-col items-center justify-center">
+        <Loader2Icon className="size-10 text-primary animate-spin mb-4" />
+        <p className="text-muted-foreground text-sm">
+          Preparing secure playback…
+        </p>
+      </div>
+    );
+  }
+
+  // Show error if signed URL fetch failed
+  if (muxPlaybackId && signedUrlError) {
+    return (
+      <div className="aspect-video bg-muted rounded-xl flex flex-col items-center justify-center">
+        <ShieldAlertIcon className="size-10 text-destructive mb-4" />
+        <p className="text-muted-foreground text-sm">
+          Unable to load secure video
+        </p>
+      </div>
+    );
+  }
+
   return (
     <MediaPlayer
       ref={playerRef}
-      src={videoUrl}
+      src={videoSrc}
       viewType="video"
       streamType="on-demand"
       playsInline
@@ -166,7 +248,7 @@ export function VideoPlayer({
       className="w-full aspect-video overflow-hidden rounded-xl bg-black shadow-lg ring-1 ring-border/10"
     >
       <MediaProvider>
-        {thumbnailKey && (
+        {thumbnailUrl && (
           <Poster
             className="absolute inset-0 block h-full w-full rounded-xl object-cover opacity-0 transition-opacity data-[visible]:opacity-100"
             src={thumbnailUrl}

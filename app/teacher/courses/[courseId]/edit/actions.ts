@@ -3,6 +3,7 @@
 import { requireTeacher } from "@/app/data/teacher/require-teacher";
 import arcjet, { fixedWindow } from "@/lib/arcjet";
 import { prisma } from "@/lib/db";
+import { triggerMuxAssetCreation } from "@/lib/mux-trigger";
 import { ApiResponse } from "@/lib/types";
 import {
   chapterSchema,
@@ -16,6 +17,7 @@ import { stripe } from "@/lib/stripe";
 import { request } from "@arcjet/next";
 import { revalidatePath } from "next/cache";
 import { deleteFilesFromS3 } from "@/lib/s3-helper";
+import { deleteMuxAssets } from "@/lib/mux-trigger";
 
 const aj = arcjet.withRule(
   fixedWindow({
@@ -336,7 +338,7 @@ export async function createTeacherLesson(
       };
     }
 
-    await prisma.$transaction(async (tx) => {
+    const newLesson = await prisma.$transaction(async (tx) => {
       const maxPos = await tx.lesson.findFirst({
         where: {
           chapterId: result.data.chapterId,
@@ -349,7 +351,7 @@ export async function createTeacherLesson(
         },
       });
 
-      await tx.lesson.create({
+      return tx.lesson.create({
         data: {
           title: result.data.name,
           description: result.data.description,
@@ -360,6 +362,13 @@ export async function createTeacherLesson(
         },
       });
     });
+
+    // Trigger Mux asset creation in the background if video is present
+    if (result.data.videoKey) {
+      triggerMuxAssetCreation(newLesson.id, result.data.videoKey).catch((err) =>
+        console.error("[Mux] Background trigger failed:", err)
+      );
+    }
 
     revalidatePath(`/teacher/courses/${chapter.Course.id}/edit`);
 
@@ -416,6 +425,7 @@ export async function deleteTeacherLesson({
             position: true,
             videoKey: true,
             thumbnailKey: true,
+            muxAssetId: true,
           },
         },
       },
@@ -466,6 +476,11 @@ export async function deleteTeacherLesson({
     // Delete files from S3 after successful DB transaction
     if (keysToDelete.length > 0) {
       await deleteFilesFromS3(keysToDelete);
+    }
+
+    // Delete Mux assets
+    if (lessonToDelete.muxAssetId) {
+      deleteMuxAssets([lessonToDelete.muxAssetId]).catch(() => { });
     }
     revalidatePath(`/teacher/courses/${courseId}/edit`);
 
@@ -548,6 +563,7 @@ export async function deleteTeacherChapter({
       select: {
         videoKey: true,
         thumbnailKey: true,
+        muxAssetId: true,
       },
     });
 
@@ -578,6 +594,14 @@ export async function deleteTeacherChapter({
     // Delete files from S3 after successful DB transaction
     if (keysToDelete.length > 0) {
       await deleteFilesFromS3(keysToDelete);
+    }
+
+    // Delete Mux assets
+    const muxAssetIds = lessonsInChapter
+      .map((l) => l.muxAssetId)
+      .filter(Boolean) as string[];
+    if (muxAssetIds.length > 0) {
+      deleteMuxAssets(muxAssetIds).catch(() => { });
     }
     revalidatePath(`/teacher/courses/${courseId}/edit`);
 

@@ -180,6 +180,11 @@ model Lesson {
   videoKey     String?
   position     Int
 
+  // Mux Video Processing
+  muxAssetId    String?
+  muxPlaybackId String?
+  muxStatus     String?  // 'preparing' | 'ready' | 'errored'
+
   // Transcription
   transcript            String?              @db.Text
   transcriptionStatus   TranscriptionStatus  @default(NOT_STARTED)
