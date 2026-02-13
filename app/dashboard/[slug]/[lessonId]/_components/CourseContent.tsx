@@ -61,6 +61,7 @@ export function CourseContent({ data, comments }: iAppProps) {
             thumbnailKey={data.thumbnailKey ?? ""}
             startTime={data.lessonProgress[0]?.lastWatchedPosition ?? 0}
             muxPlaybackId={data.muxStatus === "ready" ? data.muxPlaybackId : null}
+            onComplete={onSubmit}
           />
 
           {/* Action Bar */}

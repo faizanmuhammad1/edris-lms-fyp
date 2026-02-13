@@ -24,6 +24,8 @@ interface VideoPlayerProps {
   trackProgress?: boolean;
   /** Mux playback ID for secure streaming (preferred over direct S3) */
   muxPlaybackId?: string | null;
+  /** Callback when video finishes playing */
+  onComplete?: () => void;
 }
 
 export function VideoPlayer({
@@ -33,6 +35,7 @@ export function VideoPlayer({
   startTime = 0,
   trackProgress = true,
   muxPlaybackId,
+  onComplete,
 }: VideoPlayerProps) {
   const s3VideoUrl = useConstructUrl(videoKey);
   const s3ThumbnailUrl = useConstructUrl(thumbnailKey);
@@ -151,8 +154,11 @@ export function VideoPlayer({
     const player = playerRef.current;
     if (player) {
       persistProgress(player.state.duration, player.state.duration);
+      if (onComplete) {
+        onComplete();
+      }
     }
-  }, [trackProgress, persistProgress]);
+  }, [trackProgress, persistProgress, onComplete]);
 
   // Seek to last position on first load
   const handleCanPlay = useCallback(() => {
