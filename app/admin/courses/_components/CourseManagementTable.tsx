@@ -29,6 +29,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { IconDotsVertical, IconTrash, IconArchive, IconWorld, IconWorldOff } from "@tabler/icons-react";
+import { Loader2 } from "lucide-react";
 import { deleteCourse, archiveCourse, publishCourse, unpublishCourse } from "../actions";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -201,9 +202,15 @@ export function CourseManagementTable({ courses }: { courses: Course[] }) {
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleDelete}
+                            disabled={isPending}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                            Delete
+                            {isPending ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : "Delete"}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

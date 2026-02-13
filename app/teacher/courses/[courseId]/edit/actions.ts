@@ -480,7 +480,7 @@ export async function deleteTeacherLesson({
 
     // Delete Mux assets
     if (lessonToDelete.muxAssetId) {
-      deleteMuxAssets([lessonToDelete.muxAssetId]).catch(() => { });
+      await deleteMuxAssets([lessonToDelete.muxAssetId]);
     }
     revalidatePath(`/teacher/courses/${courseId}/edit`);
 
@@ -601,7 +601,7 @@ export async function deleteTeacherChapter({
       .map((l) => l.muxAssetId)
       .filter(Boolean) as string[];
     if (muxAssetIds.length > 0) {
-      deleteMuxAssets(muxAssetIds).catch(() => { });
+      await deleteMuxAssets(muxAssetIds);
     }
     revalidatePath(`/teacher/courses/${courseId}/edit`);
 

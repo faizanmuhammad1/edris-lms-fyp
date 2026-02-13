@@ -99,7 +99,7 @@ export async function deleteCourse(courseId: string): Promise<ApiResponse> {
 
     // 5. Delete Mux assets
     if (muxAssetIds.length > 0) {
-      deleteMuxAssets(muxAssetIds).catch(() => { });
+      await deleteMuxAssets(muxAssetIds);
     }
 
     revalidatePath("/admin/courses");

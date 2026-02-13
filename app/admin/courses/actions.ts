@@ -42,8 +42,8 @@ export async function deleteCourse(courseId: string) {
     await prisma.course.delete({ where: { id: courseId } });
 
     // Clean up S3 and Mux
-    if (keysToDelete.length > 0) deleteFilesFromS3(keysToDelete).catch(() => { });
-    if (muxAssetIds.length > 0) deleteMuxAssets(muxAssetIds).catch(() => { });
+    if (keysToDelete.length > 0) await deleteFilesFromS3(keysToDelete);
+    if (muxAssetIds.length > 0) await deleteMuxAssets(muxAssetIds);
 
     revalidatePath("/admin/courses");
 }
