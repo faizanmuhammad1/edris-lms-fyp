@@ -56,6 +56,12 @@ export async function createCommunity(values: z.infer<typeof communitySchema>) {
                 description: values.description,
                 slug,
                 courseId: values.courseId || null,
+                members: {
+                    create: {
+                        userId: session.user.id,
+                        role: "ADMIN" // Creator is admin
+                    }
+                }
             },
         });
 
@@ -198,6 +204,22 @@ export async function joinCommunity(communityId: string) {
             return { success: true, message: "Already a member" };
         }
 
+
+
+        // Check if banned
+        const banned = await prisma.communityBan.findUnique({
+            where: {
+                userId_communityId: {
+                    userId: user.id,
+                    communityId,
+                }
+            }
+        });
+
+        if (banned) {
+            throw new Error("You are banned from this community");
+        }
+
         await prisma.communityMember.create({
             data: {
                 userId: user.id,
@@ -227,6 +249,158 @@ export async function leaveCommunity(communityId: string) {
         revalidatePath("/dashboard/forum");
         revalidatePath(`/dashboard/forum/${communityId}`);
         return { success: true, message: "Left community successfully" };
+    })());
+}
+
+// ─── Moderation Actions ───────────────────────────────────────────────────────
+
+export async function getCommunityMembers(communityId: string) {
+    const session = await requireUser();
+
+    // Verify authorization (Admin or Course Owner/Teacher)
+    const community = await prisma.community.findUnique({
+        where: { id: communityId },
+        include: { course: true }
+    });
+
+    if (!community) throw new Error("Community not found");
+
+    const user = await prisma.user.findUnique({
+        where: { id: session.id },
+        select: { role: true }
+    });
+
+    const isGlobalAdmin = user?.role === "admin";
+    const isCourseOwner = community.course?.userId === session.id;
+
+    if (!isGlobalAdmin && !isCourseOwner) {
+        throw new Error("Unauthorized");
+    }
+
+    const [members, bans] = await Promise.all([
+        prisma.communityMember.findMany({
+            where: { communityId },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        image: true,
+                    }
+                }
+            },
+            orderBy: { joinedAt: 'desc' }
+        }),
+        prisma.communityBan.findMany({
+            where: { communityId },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        image: true,
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        })
+    ]);
+
+    return { members, bans };
+}
+
+import { Result } from "@/hooks/try-catch";
+
+export async function banMember(communityId: string, userId: string): Promise<Result<{ success: boolean }, Error>> {
+    const session = await requireUser();
+
+    return await tryCatch((async () => {
+        // Verify authorization
+        const community = await prisma.community.findUnique({
+            where: { id: communityId },
+            include: { course: true }
+        });
+
+        if (!community) throw new Error("Community not found");
+
+        const currentUser = await prisma.user.findUnique({
+            where: { id: session.id },
+            select: { role: true }
+        });
+
+        const isGlobalAdmin = currentUser?.role === "admin";
+        const isCourseOwner = community.course?.userId === session.id;
+
+        if (!isGlobalAdmin && !isCourseOwner) {
+            throw new Error("Unauthorized");
+        }
+
+        // Prevent banning the owner
+        if (community.course?.userId === userId) {
+            throw new Error("Cannot ban the community owner");
+        }
+
+        // Transaction: Remove from members, Add to bans
+        await prisma.$transaction([
+            prisma.communityMember.deleteMany({
+                where: {
+                    communityId,
+                    userId
+                }
+            }),
+            prisma.communityBan.create({
+                data: {
+                    communityId,
+                    userId,
+                    reason: "Violated community guidelines" // Default reason for now
+                }
+            })
+        ]);
+
+        revalidatePath(`/dashboard/forum`);
+        revalidatePath(`/dashboard/forum/${community.slug}`);
+        return { success: true };
+    })());
+}
+
+export async function unbanMember(communityId: string, userId: string): Promise<Result<{ success: boolean }, Error>> {
+    const session = await requireUser();
+
+    return await tryCatch((async () => {
+        // Verify authorization
+        const community = await prisma.community.findUnique({
+            where: { id: communityId },
+            include: { course: true }
+        });
+
+        if (!community) throw new Error("Community not found");
+
+        const currentUser = await prisma.user.findUnique({
+            where: { id: session.id },
+            select: { role: true }
+        });
+
+        const isGlobalAdmin = currentUser?.role === "admin";
+        const isCourseOwner = community.course?.userId === session.id;
+
+        if (!isGlobalAdmin && !isCourseOwner) {
+            throw new Error("Unauthorized");
+        }
+
+        await prisma.communityBan.deleteMany({
+            where: {
+                communityId,
+                userId
+            }
+        });
+
+        // Optionally add them back? No, let them join again.
+
+        revalidatePath(`/dashboard/forum`);
+        revalidatePath(`/dashboard/forum/${community.slug}`);
+        return { success: true };
     })());
 }
 

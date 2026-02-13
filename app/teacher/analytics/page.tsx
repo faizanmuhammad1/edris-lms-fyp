@@ -9,7 +9,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { DollarSign, Users, BookOpen, MessageSquare } from "lucide-react";
+import { DollarSign, Users, BookOpen, MessageSquare, Star } from "lucide-react";
+import Link from "next/link";
 
 export default async function TeacherAnalyticsPage() {
   const data = await getTeacherAnalytics();
@@ -71,6 +72,18 @@ export default async function TeacherAnalyticsPage() {
             <p className="text-xs text-muted-foreground">
               In {data.activeCommunitiesCount} communities
             </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Reviews</CardTitle>
+            <Star className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{data.totalReviews}</div>
+            <Link href="/teacher/reviews" className="text-xs text-primary hover:underline">
+              Manage Reviews
+            </Link>
           </CardContent>
         </Card>
       </div>

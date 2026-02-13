@@ -13,6 +13,7 @@ import { requireUser } from "@/app/data/user/require-user";
 import { deletePost } from "@/app/actions/post";
 import { DeleteButton } from "@/components/general/DeleteButton";
 import { CommunitySettings } from "@/components/general/CommunitySettings";
+import { MemberManagement } from "@/components/community/MemberManagement";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -52,7 +53,8 @@ export default async function CommunityPage({ params }: { params: Promise<{ comm
 
       {/* Teacher/Admin Actions */}
       {(user.role === "admin" || (community.courseId && community.course?.userId === user.id)) && (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <MemberManagement communityId={community.id} />
           <CommunitySettings community={community} />
         </div>
       )}

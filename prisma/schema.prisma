@@ -43,6 +43,7 @@ model User {
   posts          Post[]
   cart           Cart?
   communityMembers CommunityMember[]
+  communityBans    CommunityBan[]
 
   @@map("user")
 }
@@ -443,8 +444,24 @@ model Community {
 
   posts Post[]
   members CommunityMember[]
+  bans    CommunityBan[]
 
   @@index([courseId])
+}
+
+model CommunityBan {
+  id          String   @id @default(uuid())
+  userId      String
+  communityId String
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, communityId])
+  @@index([userId])
+  @@index([communityId])
 }
 
 model CommunityMember {
