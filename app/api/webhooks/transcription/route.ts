@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
                     transcriptionStatus: "COMPLETED",
                 },
             });
-            console.error(`Transcription failed for lesson ${lesson_id} (job ${job_id})`);
+            console.log(`Transcription completed for lesson ${lesson_id} (job ${job_id})`);
         }
 
         return NextResponse.json({ received: true });
