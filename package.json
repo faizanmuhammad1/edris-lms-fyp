@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "node scripts/build-safe.js",
+    "build": "next build",
+    "build:safe": "node scripts/build-safe.js",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
