@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Ban, ShieldCheck, UserX, AlertTriangle, Trash2 } from "lucide-react";
+import { Ban, ShieldCheck, UserX, Trash2 } from "lucide-react";
 import { banMember, getCommunityMembers, unbanMember, removeMember } from "@/app/actions/community";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";

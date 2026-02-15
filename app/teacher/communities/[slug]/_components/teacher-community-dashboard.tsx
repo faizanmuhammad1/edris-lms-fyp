@@ -1,12 +1,13 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { IconUsers, IconMessageCircle, IconSettings, IconExternalLink } from "@tabler/icons-react";
+import { IconUsers, IconMessageCircle, IconExternalLink } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { MemberManagement } from "@/components/community/MemberManagement";
 import { EditCommunityForm } from "@/app/admin/communities/[slug]/edit-community-form";
 
 interface TeacherCommunityDashboardProps {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     community: any; // Type should be inferred ideally or imported
 }
 

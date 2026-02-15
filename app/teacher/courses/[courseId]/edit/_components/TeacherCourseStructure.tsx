@@ -31,7 +31,6 @@ import {
 import {
   ChevronDown,
   ChevronRight,
-  FileText,
   GripVertical,
   BookOpen,
   Play,
@@ -385,73 +384,73 @@ export function TeacherCourseStructure({ data }: iAppProps) {
                                     ? `https://${env.NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES}.fly.storage.tigris.dev/${lesson.thumbnailKey}`
                                     : null;
                                   return (
-                                  <div className="group/lesson relative flex items-center justify-between p-2 hover:bg-accent rounded-sm cursor-pointer">
-                                    {thumbUrl && (
-                                      <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-10 hidden group-hover/lesson:block w-24 aspect-video rounded-md overflow-hidden border bg-muted shadow-lg">
-                                        <Image
-                                          src={thumbUrl}
-                                          alt=""
-                                          fill
-                                          className="object-cover"
-                                          sizes="96px"
-                                        />
+                                    <div className="group/lesson relative flex items-center justify-between p-2 hover:bg-accent rounded-sm cursor-pointer">
+                                      {thumbUrl && (
+                                        <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-10 hidden group-hover/lesson:block w-24 aspect-video rounded-md overflow-hidden border bg-muted shadow-lg">
+                                          <Image
+                                            src={thumbUrl}
+                                            alt=""
+                                            fill
+                                            className="object-cover"
+                                            sizes="96px"
+                                          />
+                                        </div>
+                                      )}
+                                      <div className="flex items-center gap-2">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          {...lessonListeners}
+                                        >
+                                          <GripVertical className="size-4" />
+                                        </Button>
+                                        {lesson.lessonType === "Reading" ? (
+                                          <BookOpen className="size-4 shrink-0 text-muted-foreground" />
+                                        ) : (
+                                          <Play className="size-4 shrink-0 text-muted-foreground" />
+                                        )}
+                                        <Link
+                                          href={`/teacher/courses/${data.id}/${item.id}/${lesson.id}`}
+                                          scroll={false}
+                                          className="font-medium text-foreground hover:underline cursor-pointer"
+                                        >
+                                          {lesson.title}
+                                        </Link>
+                                        {lesson.transcriptionStatus === "QUEUED" && (
+                                          <div className="flex items-center gap-1">
+                                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">Queued</span>
+                                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRetryTranscription(lesson.id)}>
+                                              <RefreshCw className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        )}
+                                        {lesson.transcriptionStatus === "PROCESSING" && (
+                                          <div className="flex items-center gap-1">
+                                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full animate-pulse">Processing</span>
+                                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRetryTranscription(lesson.id)}>
+                                              <RefreshCw className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        )}
+                                        {lesson.transcriptionStatus === "COMPLETED" && (
+                                          <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Transcribed</span>
+                                        )}
+                                        {lesson.transcriptionStatus === "FAILED" && (
+                                          <div className="flex items-center gap-1">
+                                            <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full">Failed</span>
+                                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRetryTranscription(lesson.id)}>
+                                              <RefreshCw className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        )}
                                       </div>
-                                    )}
-                                    <div className="flex items-center gap-2">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        {...lessonListeners}
-                                      >
-                                        <GripVertical className="size-4" />
-                                      </Button>
-                                      {lesson.lessonType === "Reading" ? (
-                                        <BookOpen className="size-4 shrink-0 text-muted-foreground" />
-                                      ) : (
-                                        <Play className="size-4 shrink-0 text-muted-foreground" />
-                                      )}
-                                      <Link
-                                        href={`/teacher/courses/${data.id}/${item.id}/${lesson.id}`}
-                                        scroll={false}
-                                        className="font-medium text-foreground hover:underline cursor-pointer"
-                                      >
-                                        {lesson.title}
-                                      </Link>
-                                      {lesson.transcriptionStatus === "QUEUED" && (
-                                        <div className="flex items-center gap-1">
-                                          <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">Queued</span>
-                                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRetryTranscription(lesson.id)}>
-                                            <RefreshCw className="h-3 w-3" />
-                                          </Button>
-                                        </div>
-                                      )}
-                                      {lesson.transcriptionStatus === "PROCESSING" && (
-                                        <div className="flex items-center gap-1">
-                                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full animate-pulse">Processing</span>
-                                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRetryTranscription(lesson.id)}>
-                                            <RefreshCw className="h-3 w-3" />
-                                          </Button>
-                                        </div>
-                                      )}
-                                      {lesson.transcriptionStatus === "COMPLETED" && (
-                                        <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Transcribed</span>
-                                      )}
-                                      {lesson.transcriptionStatus === "FAILED" && (
-                                        <div className="flex items-center gap-1">
-                                          <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full">Failed</span>
-                                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRetryTranscription(lesson.id)}>
-                                            <RefreshCw className="h-3 w-3" />
-                                          </Button>
-                                        </div>
-                                      )}
-                                    </div>
 
-                                    <TeacherDeleteLesson
-                                      chapterId={item.id}
-                                      courseId={data.id}
-                                      lessonId={lesson.id}
-                                    />
-                                  </div>
+                                      <TeacherDeleteLesson
+                                        chapterId={item.id}
+                                        courseId={data.id}
+                                        lessonId={lesson.id}
+                                      />
+                                    </div>
                                   );
                                 }}
                               </SortableItem>

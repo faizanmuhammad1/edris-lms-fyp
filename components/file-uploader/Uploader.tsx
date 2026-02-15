@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { FileRejection, useDropzone } from "react-dropzone";
+import { Accept, FileRejection, useDropzone } from "react-dropzone";
 import { Card, CardContent } from "../ui/card";
 import { cn } from "@/lib/utils";
 import {
@@ -113,7 +113,7 @@ export function Uploader({ onChange, value, fileTypeAccepted }: iAppProps) {
               progress: 0,
               error: true,
             }));
-            
+
             try {
               const errorResponse = JSON.parse(xhr.responseText);
               toast.error(errorResponse.error || "Upload failed");
@@ -314,6 +314,9 @@ export function Uploader({ onChange, value, fileTypeAccepted }: iAppProps) {
       : fileTypeAccepted === "document"
         ? DOCUMENT_ACCEPT
         : { "image/*": [] };
+
+  const finalAcceptConfig = acceptConfig as Accept;
+
   const maxSize =
     fileTypeAccepted === "image"
       ? 5 * 1024 * 1024
@@ -323,7 +326,7 @@ export function Uploader({ onChange, value, fileTypeAccepted }: iAppProps) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: acceptConfig,
+    accept: finalAcceptConfig,
     maxFiles: 1,
     multiple: false,
     maxSize,

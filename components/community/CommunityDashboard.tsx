@@ -1,6 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { IconUsers, IconMessageCircle, IconSettings } from "@tabler/icons-react";
+import { IconUsers, IconMessageCircle } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { MemberManagement } from "@/components/community/MemberManagement";

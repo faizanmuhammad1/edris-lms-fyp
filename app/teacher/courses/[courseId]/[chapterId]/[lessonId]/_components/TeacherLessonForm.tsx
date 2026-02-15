@@ -246,83 +246,83 @@ export function TeacherLessonForm({ chapterId, data, courseId }: iAppProps) {
                   <FormField
                     control={form.control}
                     name="videoKey"
-                render={({ field }) => {
-                  const isMuxOptimized =
-                    data.muxStatus === "ready" && field.value === data.videoKey;
+                    render={({ field }) => {
+                      const isMuxOptimized =
+                        data.muxStatus === "ready" && field.value === data.videoKey;
 
-                  return (
-                    <FormItem>
-                      <FormLabel>Video File</FormLabel>
-                      <FormControl>
-                        <div className="space-y-4">
-                          {field.value ? (
-                            <div className="rounded-md overflow-hidden border relative">
-                              <VideoPlayer
-                                lessonId={data.id}
-                                videoKey={field.value}
-                                thumbnailKey={data.thumbnailKey ?? ""}
-                                muxPlaybackId={
-                                  isMuxOptimized ? data.muxPlaybackId : null
-                                }
-                                trackProgress={false}
-                              />
-                              {!isMuxOptimized && (
-                                <div className="p-2 bg-yellow-500/10 text-xs text-yellow-600 dark:text-yellow-400 text-center flex items-center justify-center gap-2">
-                                  <Loader2 className="size-3 animate-spin" />
-                                  Video is processing for optimized playback
+                      return (
+                        <FormItem>
+                          <FormLabel>Video File</FormLabel>
+                          <FormControl>
+                            <div className="space-y-4">
+                              {field.value ? (
+                                <div className="rounded-md overflow-hidden border relative">
+                                  <VideoPlayer
+                                    lessonId={data.id}
+                                    videoKey={field.value}
+                                    thumbnailKey={data.thumbnailKey ?? ""}
+                                    muxPlaybackId={
+                                      isMuxOptimized ? data.muxPlaybackId : null
+                                    }
+                                    trackProgress={false}
+                                  />
+                                  {!isMuxOptimized && (
+                                    <div className="p-2 bg-yellow-500/10 text-xs text-yellow-600 dark:text-yellow-400 text-center flex items-center justify-center gap-2">
+                                      <Loader2 className="size-3 animate-spin" />
+                                      Video is processing for optimized playback
+                                    </div>
+                                  )}
+
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="sm"
+                                    className="absolute top-2 right-2 z-10"
+                                    disabled={isDeleting}
+                                    onClick={async () => {
+                                      setIsDeleting(true);
+                                      try {
+                                        await fetch("/api/s3/delete", {
+                                          method: "DELETE",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                          },
+                                          body: JSON.stringify({
+                                            key: field.value,
+                                          }),
+                                        });
+                                        field.onChange("");
+                                        toast.success("Video removed");
+                                      } catch {
+                                        toast.error("Failed to remove video");
+                                      } finally {
+                                        setIsDeleting(false);
+                                      }
+                                    }}
+                                  >
+                                    {isDeleting ? (
+                                      "Removing..."
+                                    ) : (
+                                      <>
+                                        <Trash className="size-4 mr-2" />
+                                        Remove Video
+                                      </>
+                                    )}
+                                  </Button>
                                 </div>
+                              ) : (
+                                <Uploader
+                                  onChange={field.onChange}
+                                  value={field.value}
+                                  fileTypeAccepted="video"
+                                />
                               )}
-
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="sm"
-                                className="absolute top-2 right-2 z-10"
-                                disabled={isDeleting}
-                                onClick={async () => {
-                                  setIsDeleting(true);
-                                  try {
-                                    await fetch("/api/s3/delete", {
-                                      method: "DELETE",
-                                      headers: {
-                                        "Content-Type": "application/json",
-                                      },
-                                      body: JSON.stringify({
-                                        key: field.value,
-                                      }),
-                                    });
-                                    field.onChange("");
-                                    toast.success("Video removed");
-                                  } catch (error) {
-                                    toast.error("Failed to remove video");
-                                  } finally {
-                                    setIsDeleting(false);
-                                  }
-                                }}
-                              >
-                                {isDeleting ? (
-                                  "Removing..."
-                                ) : (
-                                  <>
-                                    <Trash className="size-4 mr-2" />
-                                    Remove Video
-                                  </>
-                                )}
-                              </Button>
                             </div>
-                          ) : (
-                            <Uploader
-                              onChange={field.onChange}
-                              value={field.value}
-                              fileTypeAccepted="video"
-                            />
-                          )}
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                 </>
               )}

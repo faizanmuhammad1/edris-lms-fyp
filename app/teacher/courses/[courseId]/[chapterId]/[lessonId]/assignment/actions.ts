@@ -75,7 +75,19 @@ export async function gradeSubmission(
         },
       },
       include: {
-        Assignment: { Lesson: { Chapter: { select: { courseId: true } } } },
+        Assignment: {
+          include: {
+            Lesson: {
+              include: {
+                Chapter: {
+                  select: {
+                    courseId: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
     if (!submission) {

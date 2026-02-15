@@ -42,7 +42,6 @@ import {
   Users,
   TrendingUp,
   Award,
-  ShieldAlert,
   Eye,
   Loader2,
   FileText,
