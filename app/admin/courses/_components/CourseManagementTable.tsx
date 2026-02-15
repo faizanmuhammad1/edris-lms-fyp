@@ -33,33 +33,29 @@ import { Loader2 } from "lucide-react";
 import { deleteCourse, archiveCourse, publishCourse, unpublishCourse } from "../actions";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import type { CourseForManagement } from "./CourseManagementView";
 
-interface Course {
-    id: string;
-    title: string;
-    slug: string;
-    status: string;
-    price: number;
-    createdAt: Date;
-    user: {
-        id: string;
-        name: string;
-        email: string;
-    };
-    _count: {
-        enrollment: number;
-        chapter: number;
-    };
-}
-
-export function CourseManagementTable({ courses }: { courses: Course[] }) {
+export function CourseManagementTable({
+    courses,
+    onAction,
+}: {
+    courses: CourseForManagement[];
+    onAction?: () => void;
+}) {
     const [isPending, startTransition] = useTransition();
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+    const [selectedCourse, setSelectedCourse] = useState<CourseForManagement | null>(null);
+
+    const runAction = (fn: () => Promise<void>) => {
+        startTransition(async () => {
+            await fn();
+            onAction?.();
+        });
+    };
 
     const handleDelete = () => {
         if (!selectedCourse) return;
-        startTransition(async () => {
+        runAction(async () => {
             await deleteCourse(selectedCourse.id);
             toast.success(`"${selectedCourse.title}" has been deleted`);
             setDeleteDialogOpen(false);
@@ -67,22 +63,22 @@ export function CourseManagementTable({ courses }: { courses: Course[] }) {
         });
     };
 
-    const handleArchive = (course: Course) => {
-        startTransition(async () => {
+    const handleArchive = (course: CourseForManagement) => {
+        runAction(async () => {
             await archiveCourse(course.id);
             toast.success(`"${course.title}" has been archived`);
         });
     };
 
-    const handlePublish = (course: Course) => {
-        startTransition(async () => {
+    const handlePublish = (course: CourseForManagement) => {
+        runAction(async () => {
             await publishCourse(course.id);
             toast.success(`"${course.title}" is now published`);
         });
     };
 
-    const handleUnpublish = (course: Course) => {
-        startTransition(async () => {
+    const handleUnpublish = (course: CourseForManagement) => {
+        runAction(async () => {
             await unpublishCourse(course.id);
             toast.success(`"${course.title}" has been unpublished`);
         });
@@ -103,43 +99,43 @@ export function CourseManagementTable({ courses }: { courses: Course[] }) {
 
     return (
         <>
-            <div className="rounded-md border">
+            <div className="rounded-lg border border-border/80 bg-white shadow-sm dark:bg-zinc-950/80 dark:border-zinc-800 overflow-hidden">
                 <Table>
                     <TableHeader>
-                        <TableRow>
-                            <TableHead>Course</TableHead>
-                            <TableHead>Teacher</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Price</TableHead>
-                            <TableHead>Enrollments</TableHead>
-                            <TableHead>Created</TableHead>
-                            <TableHead className="w-[70px]">Actions</TableHead>
+                        <TableRow className="bg-muted/50 hover:bg-muted/50 dark:bg-zinc-900/50">
+                            <TableHead className="px-5 py-4">Course</TableHead>
+                            <TableHead className="px-5 py-4">Teacher</TableHead>
+                            <TableHead className="px-5 py-4">Status</TableHead>
+                            <TableHead className="px-5 py-4">Price</TableHead>
+                            <TableHead className="px-5 py-4">Enrollments</TableHead>
+                            <TableHead className="px-5 py-4">Created</TableHead>
+                            <TableHead className="w-[80px] px-5 py-4">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {courses.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                                    No courses found
+                                <TableCell colSpan={7} className="text-center text-muted-foreground py-16 px-5">
+                                    No courses in this category
                                 </TableCell>
                             </TableRow>
                         ) : (
                             courses.map((course) => (
                                 <TableRow key={course.id}>
-                                    <TableCell>
-                                        <div>
-                                            <p className="font-medium">{course.title}</p>
+                                    <TableCell className="px-5 py-4">
+                                        <div className="min-w-0 space-y-0.5">
+                                            <p className="font-medium truncate">{course.title}</p>
                                             <p className="text-sm text-muted-foreground">{course._count.chapter} chapters</p>
                                         </div>
                                     </TableCell>
-                                    <TableCell>
-                                        <div>
-                                            <p className="text-sm">{course.user.name}</p>
-                                            <p className="text-xs text-muted-foreground">{course.user.email}</p>
+                                    <TableCell className="px-5 py-4">
+                                        <div className="min-w-0 space-y-0.5">
+                                            <p className="text-sm truncate">{course.user.name}</p>
+                                            <p className="text-xs text-muted-foreground truncate">{course.user.email}</p>
                                         </div>
                                     </TableCell>
-                                    <TableCell>{getStatusBadge(course.status)}</TableCell>
-                                    <TableCell>
+                                    <TableCell className="px-5 py-4">{getStatusBadge(course.status)}</TableCell>
+                                    <TableCell className="px-5 py-4">
                                         {course.price === 0
                                             ? "Free"
                                             : new Intl.NumberFormat("en-US", {
@@ -147,9 +143,9 @@ export function CourseManagementTable({ courses }: { courses: Course[] }) {
                                                 currency: "USD",
                                             }).format(course.price)}
                                     </TableCell>
-                                    <TableCell>{course._count.enrollment}</TableCell>
-                                    <TableCell>{format(new Date(course.createdAt), "MMM d, yyyy")}</TableCell>
-                                    <TableCell>
+                                    <TableCell className="px-5 py-4">{course._count.enrollment}</TableCell>
+                                    <TableCell className="px-5 py-4">{format(new Date(course.createdAt), "MMM d, yyyy")}</TableCell>
+                                    <TableCell className="px-5 py-4">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button variant="ghost" size="icon" disabled={isPending}>

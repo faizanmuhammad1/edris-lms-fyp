@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 
 async function isAdmin(email: string): Promise<boolean> {
     const user = await prisma.user.findUnique({
@@ -28,7 +29,7 @@ export async function approveTeacher(userId: string) {
             role: "teacher",
         },
     });
-
+    revalidatePath("/admin/teachers");
     return { success: true, message: "Teacher approved successfully!" };
 }
 
@@ -52,7 +53,28 @@ export async function rejectTeacher(userId: string, reason: string) {
             teacherRejectionReason: reason,
         },
     });
-
+    revalidatePath("/admin/teachers");
     return { success: true, message: "Teacher application rejected." };
+}
+
+export async function approveTeacherAgain(userId: string) {
+    const session = await auth.api.getSession({
+        headers: await headers(),
+    });
+
+    if (!session || !(await isAdmin(session.user.email))) {
+        return { success: false, error: "Unauthorized. Only admins can approve teachers." };
+    }
+
+    await prisma.user.update({
+        where: { id: userId },
+        data: {
+            teacherStatus: "Approved",
+            role: "teacher",
+            teacherRejectionReason: null,
+        },
+    });
+    revalidatePath("/admin/teachers");
+    return { success: true, message: "Teacher approved again. Access restored." };
 }
 

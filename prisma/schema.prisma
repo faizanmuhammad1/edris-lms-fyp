@@ -47,6 +47,11 @@ model User {
   assignmentSubmissions AssignmentSubmission[]
   mailCampaigns    MailCampaign[]
 
+  // Support Ticket relations
+  ticketsCreated   SupportTicket[]  @relation("ticketsCreated")
+  ticketsAssigned  SupportTicket[]  @relation("ticketsAssigned")
+  ticketMessages   TicketMessage[]
+
   @@map("user")
 }
 
@@ -125,12 +130,13 @@ model Course {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Relations
-  chapter      Chapter[]
-  enrollment   Enrollment[]
-  reviews      Review[]
-  certificates Certificate[]
-  cartItems    CartItem[]
-  communities  Community[]
+  chapter        Chapter[]
+  enrollment     Enrollment[]
+  reviews        Review[]
+  certificates   Certificate[]
+  cartItems      CartItem[]
+  communities    Community[]
+  supportTickets SupportTicket[]
 
   @@index([userId])
   @@index([status])
@@ -693,6 +699,89 @@ model MailRecipient {
   @@index([mailCampaignId])
   @@index([email])
   @@map("mail_recipient")
+}
+
+// ─── Support & Help Tickets ─────────────────────────────────────────────────
+
+enum TicketCategory {
+  TechnicalIssue
+  CourseRelated
+  AccountIssue
+  PaymentBilling
+  AssignmentGrading
+  CommunityForum
+  TeacherApplication
+  FeatureRequest
+  Other
+}
+
+enum TicketPriority {
+  Low
+  Medium
+  High
+  Urgent
+}
+
+enum TicketStatus {
+  Open
+  InProgress
+  Resolved
+  Closed
+  Escalated
+}
+
+model SupportTicket {
+  id           String         @id @default(uuid())
+  ticketNumber String         @unique
+  subject      String
+  description  String         @db.Text
+  category     TicketCategory
+  priority     TicketPriority @default(Medium)
+  status       TicketStatus   @default(Open)
+
+  createdById  String
+  createdBy    User           @relation("ticketsCreated", fields: [createdById], references: [id], onDelete: Cascade)
+
+  assignedToId String?
+  assignedTo   User?          @relation("ticketsAssigned", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  courseId      String?
+  course        Course?       @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  escalatedToAdmin Boolean   @default(false)
+
+  messages     TicketMessage[]
+
+  resolvedAt   DateTime?
+  closedAt     DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([createdById])
+  @@index([assignedToId])
+  @@index([courseId])
+  @@index([status])
+  @@index([category])
+  @@index([priority])
+  @@map("support_ticket")
+}
+
+model TicketMessage {
+  id         String        @id @default(uuid())
+  message    String        @db.Text
+  isInternal Boolean       @default(false)
+
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  senderId   String
+  sender     User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime      @default(now())
+
+  @@index([ticketId])
+  @@index([senderId])
+  @@map("ticket_message")
 }
 
 // ─── Platform Settings (admin-configured, singleton) ────────────────────────

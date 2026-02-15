@@ -3,18 +3,33 @@ import { prisma } from "@/lib/db";
 export async function getTeacherApplications() {
     const applications = await prisma.user.findMany({
         where: {
-            teacherStatus: {
-                in: ["Pending", "Approved", "Rejected"],
-            },
+            OR: [
+                {
+                    teacherStatus: {
+                        in: ["Pending", "Approved", "Rejected"],
+                    },
+                },
+                {
+                    banned: true,
+                    OR: [
+                        { role: "teacher" },
+                        { teacherStatus: { not: null } },
+                    ],
+                },
+            ],
         },
         select: {
             id: true,
             name: true,
             email: true,
             image: true,
+            role: true,
             teacherStatus: true,
             teacherApplicationDate: true,
             teacherRejectionReason: true,
+            banned: true,
+            banReason: true,
+            banExpires: true,
             createdAt: true,
             _count: {
                 select: {
@@ -23,9 +38,8 @@ export async function getTeacherApplications() {
             },
         },
         orderBy: [
-            {
-                teacherApplicationDate: "desc",
-            },
+            { teacherApplicationDate: "desc" },
+            { createdAt: "desc" },
         ],
     });
 

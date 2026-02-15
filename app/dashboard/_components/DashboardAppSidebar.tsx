@@ -9,6 +9,7 @@ import {
   IconSettings,
   IconCertificate,
   IconMessageCircle,
+  IconHeadset,
 } from "@tabler/icons-react";
 import Logo from "@/public/bc413ab4-3838-4b3d-ae28-e8f3cd721b33.png";
 
@@ -98,6 +99,11 @@ const data = {
       title: "Settings",
       url: "/dashboard/settings",
       icon: IconSettings,
+    },
+    {
+      title: "Support & Help",
+      url: "/dashboard/support",
+      icon: IconHeadset,
     },
   ],
 };

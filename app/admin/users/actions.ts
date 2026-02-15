@@ -12,6 +12,7 @@ export async function banUser(userId: string, reason?: string) {
         },
     });
     revalidatePath("/admin/users");
+    revalidatePath("/admin/teachers");
 }
 
 export async function unbanUser(userId: string) {
@@ -23,6 +24,7 @@ export async function unbanUser(userId: string) {
         },
     });
     revalidatePath("/admin/users");
+    revalidatePath("/admin/teachers");
 }
 
 export async function deleteUser(userId: string) {

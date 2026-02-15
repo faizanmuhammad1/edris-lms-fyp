@@ -12,6 +12,7 @@ import {
   IconMessageCircle,
   IconChartLine,
   IconSchool,
+  IconHeadset,
   type Icon,
 } from "@tabler/icons-react";
 import Logo from "@/public/bc413ab4-3838-4b3d-ae28-e8f3cd721b33.png";
@@ -76,6 +77,11 @@ const adminData = {
       url: "/admin/settings",
       icon: IconSettings,
     },
+    {
+      title: "Support Center",
+      url: "/admin/support",
+      icon: IconHeadset,
+    },
   ],
 };
 
@@ -122,6 +128,11 @@ const teacherData = {
       title: "Settings",
       url: "/teacher/settings",
       icon: IconSettings,
+    },
+    {
+      title: "Support & Help",
+      url: "/teacher/support",
+      icon: IconHeadset,
     },
   ],
 };

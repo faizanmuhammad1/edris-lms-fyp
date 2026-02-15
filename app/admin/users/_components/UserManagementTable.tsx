@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -32,35 +33,44 @@ import { IconDotsVertical, IconBan, IconUserCheck, IconTrash, IconShield } from 
 import { banUser, unbanUser, deleteUser, updateUserRole } from "../actions";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import type { UserForManagement } from "./UserManagementView";
 
-interface User {
-    id: string;
-    name: string;
-    email: string;
-    role: string | null;
-    banned: boolean | null;
-    banReason: string | null;
-    createdAt: Date;
-    _count: {
-        enrollment: number;
-        courses: number;
-    };
+function getInitials(name: string) {
+    return name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
 }
 
-export function UserManagementTable({ users }: { users: User[] }) {
+export function UserManagementTable({
+    users,
+    onAction,
+}: {
+    users: UserForManagement[];
+    onAction?: () => void;
+}) {
     const [isPending, startTransition] = useTransition();
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-    const handleBan = (user: User) => {
+    const runAction = (fn: () => Promise<void>) => {
         startTransition(async () => {
+            await fn();
+            onAction?.();
+        });
+    };
+
+    const handleBan = (user: UserForManagement) => {
+        runAction(async () => {
             await banUser(user.id, "Banned by admin");
             toast.success(`${user.name} has been banned`);
         });
     };
 
-    const handleUnban = (user: User) => {
-        startTransition(async () => {
+    const handleUnban = (user: UserForManagement) => {
+        runAction(async () => {
             await unbanUser(user.id);
             toast.success(`${user.name} has been unbanned`);
         });
@@ -68,7 +78,7 @@ export function UserManagementTable({ users }: { users: User[] }) {
 
     const handleDelete = () => {
         if (!selectedUser) return;
-        startTransition(async () => {
+        runAction(async () => {
             await deleteUser(selectedUser.id);
             toast.success(`${selectedUser.name} has been deleted`);
             setDeleteDialogOpen(false);
@@ -76,22 +86,22 @@ export function UserManagementTable({ users }: { users: User[] }) {
         });
     };
 
-    const handleMakeAdmin = (user: User) => {
-        startTransition(async () => {
+    const handleMakeAdmin = (user: UserForManagement) => {
+        runAction(async () => {
             await updateUserRole(user.id, "admin");
             toast.success(`${user.name} is now an admin`);
         });
     };
 
-    const handleMakeTeacher = (user: User) => {
-        startTransition(async () => {
+    const handleMakeTeacher = (user: UserForManagement) => {
+        runAction(async () => {
             await updateUserRole(user.id, "teacher");
             toast.success(`${user.name} is now a teacher`);
         });
     };
 
-    const handleRemoveRole = (user: User) => {
-        startTransition(async () => {
+    const handleRemoveRole = (user: UserForManagement) => {
+        runAction(async () => {
             await updateUserRole(user.id, "student");
             toast.success(`${user.name} role removed (now student)`);
         });
@@ -113,39 +123,45 @@ export function UserManagementTable({ users }: { users: User[] }) {
 
     return (
         <>
-            <div className="rounded-md border">
+            <div className="rounded-lg border border-border/80 bg-white shadow-sm dark:bg-zinc-950/80 dark:border-zinc-800 overflow-hidden">
                 <Table>
                     <TableHeader>
-                        <TableRow>
-                            <TableHead>User</TableHead>
-                            <TableHead>Role</TableHead>
-                            <TableHead>Enrollments</TableHead>
-                            <TableHead>Courses Created</TableHead>
-                            <TableHead>Joined</TableHead>
-                            <TableHead className="w-[70px]">Actions</TableHead>
+                        <TableRow className="bg-muted/50 hover:bg-muted/50 dark:bg-zinc-900/50">
+                            <TableHead className="px-5 py-4">User</TableHead>
+                            <TableHead className="px-5 py-4">Role</TableHead>
+                            <TableHead className="px-5 py-4">Enrollments</TableHead>
+                            <TableHead className="px-5 py-4">Courses Created</TableHead>
+                            <TableHead className="px-5 py-4">Joined</TableHead>
+                            <TableHead className="w-[80px] px-5 py-4">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {users.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                                    No users found
+                                <TableCell colSpan={6} className="text-center text-muted-foreground py-16 px-5">
+                                    No users in this category
                                 </TableCell>
                             </TableRow>
                         ) : (
                             users.map((user) => (
                                 <TableRow key={user.id}>
-                                    <TableCell>
-                                        <div>
-                                            <p className="font-medium">{user.name}</p>
-                                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                                    <TableCell className="px-5 py-4">
+                                        <div className="flex items-center gap-4 min-w-0">
+                                            <Avatar className="h-10 w-10 shrink-0">
+                                                <AvatarImage src={user.image || undefined} alt={user.name} />
+                                                <AvatarFallback className="text-xs">{getInitials(user.name)}</AvatarFallback>
+                                            </Avatar>
+                                            <div className="min-w-0 space-y-0.5">
+                                                <p className="font-medium truncate">{user.name}</p>
+                                                <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                                            </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell>{getRoleBadge(user.role, user.banned)}</TableCell>
-                                    <TableCell>{user._count.enrollment}</TableCell>
-                                    <TableCell>{user._count.courses}</TableCell>
-                                    <TableCell>{format(new Date(user.createdAt), "MMM d, yyyy")}</TableCell>
-                                    <TableCell>
+                                    <TableCell className="px-5 py-4">{getRoleBadge(user.role, user.banned)}</TableCell>
+                                    <TableCell className="px-5 py-4">{user._count.enrollment}</TableCell>
+                                    <TableCell className="px-5 py-4">{user._count.courses}</TableCell>
+                                    <TableCell className="px-5 py-4">{format(new Date(user.createdAt), "MMM d, yyyy")}</TableCell>
+                                    <TableCell className="px-5 py-4">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button variant="ghost" size="icon" disabled={isPending}>
