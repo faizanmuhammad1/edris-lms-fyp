@@ -1,8 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
-import { IconMessageCircle, IconPlus, IconUsers } from "@tabler/icons-react";
+import { IconMessageCircle, IconPlus, IconUsers, IconSchool } from "@tabler/icons-react";
 import { getCommunities } from "@/app/actions/community";
+import { Badge } from "@/components/ui/badge";
 
 export const dynamic = "force-dynamic";
 
@@ -29,39 +30,50 @@ export default async function TeacherCommunitiesPage() {
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {communities.map((community) => (
-                    <Card key={community.id} className="hover:shadow-lg transition-shadow">
-                        <CardHeader>
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                    <IconMessageCircle className="h-5 w-5 text-primary" />
+                    <Card key={community.id} className="hover:shadow-lg transition-shadow overflow-hidden">
+                        <CardHeader className="pb-3">
+                            <div className="flex items-start gap-3">
+                                <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                                    <IconMessageCircle className="h-6 w-6 text-primary" />
                                 </div>
-                                <CardTitle className="text-lg">{community.name}</CardTitle>
+                                <div className="min-w-0 flex-1">
+                                    <CardTitle className="text-lg leading-tight">{community.name}</CardTitle>
+                                    <CardDescription className="line-clamp-2 mt-1.5">
+                                        {community.description}
+                                    </CardDescription>
+                                </div>
                             </div>
-                            <CardDescription className="line-clamp-2">
-                                {community.description}
-                            </CardDescription>
+                            {community.course && (
+                                <div className="mt-3 pt-3 border-t">
+                                    <Badge variant="secondary" className="font-normal gap-1.5 px-2.5 py-0.5">
+                                        <IconSchool className="h-3.5 w-3.5" />
+                                        <span className="truncate max-w-[180px]" title={community.course.title}>
+                                            {community.course.title}
+                                        </span>
+                                    </Badge>
+                                </div>
+                            )}
                         </CardHeader>
-                        <CardContent>
-                            <div className="flex items-center gap-1">
-                                <IconUsers className="h-4 w-4" />
-                                <span>0 members</span>
+                        <CardContent className="pt-0">
+                            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
+                                <span className="flex items-center gap-1.5">
+                                    <IconUsers className="h-4 w-4" />
+                                    {community._count.members} members
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                    <IconMessageCircle className="h-4 w-4" />
+                                    {community._count.posts} posts
+                                </span>
                             </div>
-                            <div className="flex items-center gap-1">
-                                <IconMessageCircle className="h-4 w-4" />
-                                <span>{community._count.posts} posts</span>
-                            </div>
-                            <div className="mt-4 flex gap-2">
+                            <div className="flex gap-2">
                                 <Button variant="outline" className="flex-1" asChild>
-                                    {/* Point to dashboard forum for now as "Manage" might not exist yet, or link to edit if create exists */}
-                                    {/* If user wants to "create like admin", they likely want to "edit like admin" too. */}
-                                    {/* For now keeping same link structure as Admin, assuming we will fix/create the [id] page later */}
                                     <Link href={`/teacher/communities/${community.slug}`}>
                                         Manage
                                     </Link>
                                 </Button>
-                                <Button variant="ghost" className="px-2" asChild>
-                                    <Link href={`/dashboard/forum/${community.slug}`}>
-                                        View
+                                <Button variant="default" className="flex-1" asChild>
+                                    <Link href={`/teacher/communities/${community.slug}/forum`}>
+                                        Forum
                                     </Link>
                                 </Button>
                             </div>

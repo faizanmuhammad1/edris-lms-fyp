@@ -1,6 +1,7 @@
-import { ReactNode } from "react";
+import { ReactNode, Suspense } from "react";
 import { Navbar } from "./_components/Navbar";
 import { Footer } from "./_components/Footer";
+import { SubscriptionParamsToasts } from "./_components/SubscriptionParamsToasts";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
@@ -32,6 +33,9 @@ export default async function LayoutPublic({ children }: { children: ReactNode }
 
   return (
     <div className="flex min-h-screen flex-col">
+      <Suspense fallback={null}>
+        <SubscriptionParamsToasts />
+      </Suspense>
       <Navbar />
       <main className="flex-1">
         {children}

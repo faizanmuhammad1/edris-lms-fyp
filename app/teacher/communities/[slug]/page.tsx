@@ -1,6 +1,6 @@
 import { getCommunity } from "@/app/actions/community";
 import { notFound } from "next/navigation";
-import { EditCommunityForm } from "@/app/admin/communities/[slug]/edit-community-form";
+import { CommunityDashboard } from "@/components/community/CommunityDashboard";
 
 export default async function TeacherManageCommunityPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
@@ -10,8 +10,5 @@ export default async function TeacherManageCommunityPage({ params }: { params: P
         notFound();
     }
 
-    // Determine role or just pass "teacher".
-    // Assuming access control is handled in layout or actions (requireTeacher).
-
-    return <EditCommunityForm initialData={community} role="teacher" />;
+    return <CommunityDashboard community={community} role="teacher" />;
 }

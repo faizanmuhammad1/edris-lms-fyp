@@ -338,6 +338,18 @@ export async function createTeacherLesson(
       };
     }
 
+    if (result.data.lessonType === "Reading") {
+      const hasContent =
+        (result.data.description && result.data.description.trim().length > 0) ||
+        !!result.data.pdfKey;
+      if (!hasContent) {
+        return {
+          status: "error",
+          message: "Reading lessons must have at least a description or PDF (you can add attachments after creating the lesson)",
+        };
+      }
+    }
+
     const newLesson = await prisma.$transaction(async (tx) => {
       const maxPos = await tx.lesson.findFirst({
         where: {
@@ -357,6 +369,9 @@ export async function createTeacherLesson(
           description: result.data.description,
           videoKey: result.data.videoKey,
           thumbnailKey: result.data.thumbnailKey,
+          lessonType: result.data.lessonType ?? "Video",
+          pdfKey: result.data.pdfKey ?? null,
+          pdfFileName: result.data.pdfFileName ?? null,
           chapterId: result.data.chapterId,
           position: (maxPos?.position ?? 0) + 1,
         },

@@ -17,6 +17,9 @@ import { CommentWithReplies } from "@/app/actions/comments";
 import { CommentSection } from "@/components/general/CommentSection";
 import { LessonChatbot } from "@/components/dashboard/LessonChatbot";
 import { VideoPlayer } from "@/components/dashboard/VideoPlayer";
+import { LessonPdfViewer } from "./LessonPdfViewer";
+import { LessonAttachmentsList } from "./LessonAttachmentsList";
+import { LessonAssignmentCard } from "./LessonAssignmentCard";
 
 interface iAppProps {
   data: LessonContentType;
@@ -49,50 +52,83 @@ export function CourseContent({ data, comments }: iAppProps) {
       }
     });
   }
+  const lessonType = data.lessonType ?? "Video";
+  const showVideo =
+    (lessonType === "Video" || lessonType === "Mixed") &&
+    (data.videoKey ?? data.muxPlaybackId);
+  const isReading = lessonType === "Reading";
+
   return (
     <div className="flex flex-col h-full bg-background/50 min-h-screen">
       <div className="max-w-5xl mx-auto w-full px-4 md:px-6 py-6 md:py-8 space-y-8">
 
-        {/* Video Section */}
-        <div className="space-y-4">
-          <VideoPlayer
-            lessonId={data.id}
-            videoKey={data.videoKey ?? ""}
-            thumbnailKey={data.thumbnailKey ?? ""}
-            startTime={data.lessonProgress[0]?.lastWatchedPosition ?? 0}
-            muxPlaybackId={data.muxStatus === "ready" ? data.muxPlaybackId : null}
-            onComplete={onSubmit}
-          />
-
-          {/* Action Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4 border-b border-border/50">
-            <div className="space-y-1">
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
-                {data.title}
-              </h1>
-            </div>
-
-            <div className="flex-shrink-0">
-              {data.lessonProgress.length > 0 ? (
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 text-green-600 border border-green-500/20 font-medium text-sm">
-                  <CheckCircle className="size-4" />
-                  <span>Lesson Completed</span>
-                </div>
-              ) : (
-                <Button onClick={onSubmit} disabled={pending} size="lg" className="w-full sm:w-auto shadow-sm">
-                  {pending ? <Loader2 className="size-4 animate-spin mr-2" /> : <CheckCircle className="size-4 mr-2" />}
-                  Mark as Complete
-                </Button>
-              )}
-            </div>
+        {/* Title & Action Bar - always first */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4 border-b border-border/50">
+          <div className="space-y-1">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+              {data.title}
+            </h1>
+            {isReading && (
+              <p className="text-sm text-muted-foreground">Reading lesson — when you&apos;ve finished, mark as complete.</p>
+            )}
+          </div>
+          <div className="flex-shrink-0">
+            {data.lessonProgress.length > 0 ? (
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 text-green-600 border border-green-500/20 font-medium text-sm">
+                <CheckCircle className="size-4" />
+                <span>Lesson Completed</span>
+              </div>
+            ) : (
+              <Button onClick={onSubmit} disabled={pending} size="lg" className="w-full sm:w-auto shadow-sm">
+                {pending ? <Loader2 className="size-4 animate-spin mr-2" /> : <CheckCircle className="size-4 mr-2" />}
+                Mark as Complete
+              </Button>
+            )}
           </div>
         </div>
+
+        {/* Video Section - only for Video/Mixed with video */}
+        {showVideo && (
+          <div className="space-y-4">
+            <VideoPlayer
+              lessonId={data.id}
+              videoKey={data.videoKey ?? ""}
+              thumbnailKey={data.thumbnailKey ?? ""}
+              startTime={data.lessonProgress[0]?.lastWatchedPosition ?? 0}
+              muxPlaybackId={data.muxStatus === "ready" ? data.muxPlaybackId : null}
+              onComplete={onSubmit}
+            />
+          </div>
+        )}
 
         {/* Description Section */}
         {data.description && (
           <div className="prose prose-neutral dark:prose-invert max-w-none">
             <RenderDescription json={JSON.parse(data.description)} />
           </div>
+        )}
+
+        {/* Lesson PDF */}
+        {data.pdfKey && (
+          <LessonPdfViewer
+            lessonId={data.id}
+            fileKey={data.pdfKey}
+            fileName={data.pdfFileName}
+          />
+        )}
+
+        {/* Attachments */}
+        {data.attachments && data.attachments.length > 0 && (
+          <LessonAttachmentsList lessonId={data.id} attachments={data.attachments} />
+        )}
+
+        {/* Assignment */}
+        {data.assignment && (
+          <LessonAssignmentCard
+            assignment={data.assignment}
+            slug={data.Chapter.Course.slug}
+            lessonId={data.id}
+          />
         )}
 
         {/* Quiz Section */}
@@ -170,7 +206,7 @@ export function CourseContent({ data, comments }: iAppProps) {
                   </div>
                   <CardTitle className="text-lg">Quiz Locked</CardTitle>
                   <CardDescription>
-                    Complete the video lesson above to unlock this quiz.
+                    Complete the lesson above to unlock this quiz.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="text-center pb-6">

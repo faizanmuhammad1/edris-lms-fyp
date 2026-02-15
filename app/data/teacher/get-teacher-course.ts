@@ -39,6 +39,7 @@ export async function getTeacherCourse(id: string) {
               position: true,
               videoKey: true,
               transcriptionStatus: true,
+              lessonType: true,
             },
           },
         },

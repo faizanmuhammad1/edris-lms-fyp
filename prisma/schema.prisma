@@ -44,6 +44,8 @@ model User {
   cart           Cart?
   communityMembers CommunityMember[]
   communityBans    CommunityBan[]
+  assignmentSubmissions AssignmentSubmission[]
+  mailCampaigns    MailCampaign[]
 
   @@map("user")
 }
@@ -173,6 +175,12 @@ model Chapter {
 
 // ─── Lessons & Content ───────────────────────────────────────────────────────
 
+enum LessonType {
+  Video
+  Reading
+  Mixed
+}
+
 model Lesson {
   id String @id @default(uuid())
 
@@ -181,6 +189,10 @@ model Lesson {
   thumbnailKey String?
   videoKey     String?
   position     Int
+
+  lessonType   LessonType @default(Video)
+  pdfKey       String?
+  pdfFileName  String?
 
   // Mux Video Processing
   muxAssetId    String?
@@ -202,9 +214,70 @@ model Lesson {
   lessonProgress LessonProgress[]
   quiz           Quiz?
   comments       Comment[]
+  attachments    LessonAttachment[]
+  assignment     Assignment?
 
   @@index([chapterId])
   @@index([chapterId, position])
+}
+
+model LessonAttachment {
+  id        String   @id @default(uuid())
+  lessonId  String
+  Lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  fileKey   String
+  fileName  String
+  fileSize  Int
+  mimeType  String
+  position  Int
+  createdAt DateTime @default(now())
+
+  @@index([lessonId])
+}
+
+enum AssignmentSubmissionStatus {
+  Submitted
+  Graded
+}
+
+model Assignment {
+  id          String    @id @default(uuid())
+  lessonId    String    @unique
+  Lesson      Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  title       String
+  description String?   @db.Text
+  dueDate     DateTime?
+  maxScore    Int?
+  allowFile   Boolean   @default(true)
+  allowText   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  submissions AssignmentSubmission[]
+
+  @@index([lessonId])
+}
+
+model AssignmentSubmission {
+  id           String                    @id @default(uuid())
+  assignmentId String
+  Assignment   Assignment               @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  userId       String
+  User         User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fileKey      String?
+  fileName     String?
+  fileSize     Int?
+  mimeType     String?
+  textAnswer   String?                  @db.Text
+  submittedAt  DateTime                 @default(now())
+  status       AssignmentSubmissionStatus @default(Submitted)
+  score        Int?
+  feedback     String?                  @db.Text
+  gradedAt     DateTime?
+  gradedById   String?
+
+  @@unique([assignmentId, userId])
+  @@index([assignmentId])
+  @@index([userId])
 }
 
 enum TranscriptionStatus {
@@ -544,4 +617,99 @@ model CartItem {
   @@unique([cartId, courseId])
   @@index([cartId])
   @@index([courseId])
+}
+
+// ─── Newsletter / Admin Mail ────────────────────────────────────────────────
+
+enum SubscriberStatus {
+  Pending
+  Confirmed
+  Unsubscribed
+}
+
+model Subscriber {
+  id             String           @id @default(uuid())
+  email          String           @unique
+  status         SubscriberStatus @default(Pending)
+  token          String           @unique
+  confirmedAt    DateTime?
+  unsubscribedAt DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@index([token])
+  @@map("subscriber")
+}
+
+enum MailAudienceType {
+  Subscribers
+  AllStudents
+  CourseStudents
+  AllTeachers
+  CategoryStudents
+  LevelStudents
+  Manual
+}
+
+model MailCampaign {
+  id              String           @id @default(uuid())
+  subject         String
+  bodyHtml        String           @db.Text
+  bodyJson        String?          @db.Text
+  audienceType    MailAudienceType
+  audiencePayload Json?
+  recipientCount  Int              @default(0)
+  sentAt          DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  recipients  MailRecipient[]
+
+  @@index([createdById])
+  @@index([sentAt])
+  @@map("mail_campaign")
+}
+
+enum MailRecipientStatus {
+  Sent
+  Bounced
+  Unsubscribed
+}
+
+model MailRecipient {
+  id             String             @id @default(uuid())
+  mailCampaignId String
+  mailCampaign   MailCampaign       @relation(fields: [mailCampaignId], references: [id], onDelete: Cascade)
+  email          String
+  userId         String?
+  subscriberId   String?
+  sentAt         DateTime           @default(now())
+  status         MailRecipientStatus @default(Sent)
+
+  @@index([mailCampaignId])
+  @@index([email])
+  @@map("mail_recipient")
+}
+
+// ─── Platform Settings (admin-configured, singleton) ────────────────────────
+
+model PlatformSettings {
+  id           String   @id @default("default")
+  platformName String   @default("Edris LMS")
+  supportEmail String   @default("support@example.com")
+  // Notification preferences
+  notifyNewEnrollments     Boolean @default(true)
+  notifyTeacherApplications Boolean @default(true)
+  notifySystemAlerts       Boolean @default(true)
+  // Security
+  require2FAForAdmin   Boolean @default(false)
+  sessionTimeoutEnabled Boolean @default(true)
+  sessionTimeoutMinutes Int     @default(30)
+  updatedAt            DateTime @updatedAt
+
+  @@map("platform_settings")
 }

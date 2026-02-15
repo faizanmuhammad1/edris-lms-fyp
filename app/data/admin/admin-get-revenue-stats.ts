@@ -80,9 +80,10 @@ export async function adminGetRevenueStats(): Promise<RevenueStats> {
         ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
         : thisMonthRevenue > 0 ? 100 : 0;
 
-    // Revenue by day for the last 30 days -- build a map for O(1) lookups
+    // Revenue by day for the last 30 days — only include enrollments in this window
     const dayMap = new Map<string, { revenue: number; enrollments: number }>();
     for (const enrollment of activeEnrollments) {
+        if (enrollment.createdAt < thirtyDaysAgo) continue;
         const dateStr = enrollment.createdAt.toISOString().split("T")[0];
         const existing = dayMap.get(dateStr);
         if (existing) {

@@ -39,44 +39,57 @@ export function RevenueChart({ data }: RevenueChartProps) {
         }),
     }));
 
+    const maxRevenueCents = Math.max(...data.map((d) => d.revenue), 0);
+    const yDomain: [number, number] = [0, maxRevenueCents * 1.15 || 100];
+
     return (
-        <Card>
-            <CardHeader>
+        <Card className="overflow-hidden">
+            <CardHeader className="pb-2">
                 <CardTitle>Revenue Over Time</CardTitle>
-                <CardDescription>Daily revenue for the last 30 days</CardDescription>
+                <CardDescription>Daily revenue for the last 30 days (from enrollments)</CardDescription>
             </CardHeader>
-            <CardContent>
-                <div className="h-[300px]">
+            <CardContent className="pl-2 pr-4 pb-4">
+                <div className="h-[320px] w-full min-w-0">
                     <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={formattedData}>
+                        <AreaChart
+                            data={formattedData}
+                            margin={{ top: 8, right: 8, left: 4, bottom: 4 }}
+                        >
                             <defs>
                                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
                                     <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                                 </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
                             <XAxis
                                 dataKey="displayDate"
-                                tick={{ fontSize: 12 }}
+                                tick={{ fontSize: 11 }}
                                 tickLine={false}
                                 axisLine={false}
                                 interval="preserveStartEnd"
+                                minTickGap={24}
                             />
                             <YAxis
                                 tickFormatter={(value) => formatCurrency(value)}
-                                tick={{ fontSize: 12 }}
+                                tick={{ fontSize: 11 }}
                                 tickLine={false}
                                 axisLine={false}
-                                width={80}
+                                width={52}
+                                domain={yDomain}
+                                tickCount={6}
                             />
                             <Tooltip
-                                formatter={(value: number) => [formatCurrency(value), "Revenue"]}
-                                labelFormatter={(label) => `Date: ${label}`}
+                                formatter={(value: number) => [
+                                    value === 0 ? "No revenue" : formatCurrency(value),
+                                    "Revenue",
+                                ]}
+                                labelFormatter={(label) => label}
                                 contentStyle={{
                                     backgroundColor: "hsl(var(--card))",
                                     border: "1px solid hsl(var(--border))",
                                     borderRadius: "8px",
+                                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                                 }}
                             />
                             <Area
@@ -86,6 +99,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
                                 fillOpacity={1}
                                 fill="url(#colorRevenue)"
                                 strokeWidth={2}
+                                isAnimationActive={true}
                             />
                         </AreaChart>
                     </ResponsiveContainer>

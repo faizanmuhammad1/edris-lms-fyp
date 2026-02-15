@@ -3,9 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import Logo from "@/public/bc413ab4-3838-4b3d-ae28-e8f3cd721b33.png";
-import { Facebook, Twitter, Instagram, Linkedin, Mail, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
+import { NewsletterSubscribe } from "./NewsletterSubscribe";
 
 export function Footer() {
     const currentYear = new Date().getFullYear();
@@ -23,20 +22,7 @@ export function Footer() {
                             Get the latest courses, learning tips, and exclusive offers in your inbox.
                         </p>
                     </div>
-                    <div className="flex w-full md:w-auto gap-2">
-                        <div className="relative flex-1 md:w-64">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                type="email"
-                                placeholder="Enter your email"
-                                className="pl-9 h-10 bg-background"
-                            />
-                        </div>
-                        <Button className="h-10 shrink-0">
-                            Subscribe
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                        </Button>
-                    </div>
+                    <NewsletterSubscribe />
                 </div>
             </div>
 

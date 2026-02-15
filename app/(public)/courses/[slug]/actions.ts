@@ -121,13 +121,16 @@ export async function enrollInCourseAction(
 
       let enrollment;
 
+      // Store amount in cents (Stripe uses cents; course.price is in dollars)
+      const amountCents = Math.round(Number(course.price) * 100);
+
       if (existingEnrollment) {
         enrollment = await tx.enrollment.update({
           where: {
             id: existingEnrollment.id,
           },
           data: {
-            amount: course.price,
+            amount: amountCents,
             status: "Pending",
             updatedAt: new Date(),
           },
@@ -137,7 +140,7 @@ export async function enrollInCourseAction(
           data: {
             userId: user.id,
             courseId: course.id,
-            amount: course.price,
+            amount: amountCents,
             status: "Pending",
           },
         });

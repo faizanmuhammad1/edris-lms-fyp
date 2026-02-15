@@ -1,6 +1,6 @@
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Check, Play } from "lucide-react";
+import { Check, Play, BookOpen } from "lucide-react";
 import Link from "next/link";
 
 interface iAppProps {
@@ -9,6 +9,8 @@ interface iAppProps {
     title: string;
     position: number;
     description: string | null;
+    lessonType?: string | null;
+    videoKey?: string | null;
   };
   slug: string;
   isActive?: boolean;
@@ -47,12 +49,21 @@ export function LessonItem({ lesson, slug, isActive, completed }: iAppProps) {
                   : "border-muted-foreground/60"
               )}
             >
-              <Play
-                className={cn(
-                  "size-2.5 fill-current",
-                  isActive ? "text-primary" : "text-muted-foreground"
-                )}
-              />
+              {lesson.lessonType === "Reading" || (lesson.lessonType === "Mixed" && !lesson.videoKey) ? (
+                <BookOpen
+                  className={cn(
+                    "size-2.5",
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  )}
+                />
+              ) : (
+                <Play
+                  className={cn(
+                    "size-2.5 fill-current",
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  )}
+                />
+              )}
             </div>
           )}
         </div>

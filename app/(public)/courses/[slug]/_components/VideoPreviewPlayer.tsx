@@ -16,22 +16,44 @@ import {
     defaultLayoutIcons,
 } from "@vidstack/react/player/layouts/default";
 
+const PLACEHOLDER_THUMBNAIL =
+    "data:image/svg+xml," +
+    encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720"><rect fill="%231e293b" width="1280" height="720"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%2394a3b8" font-family="system-ui,sans-serif" font-size="24">No preview</text></svg>'
+    );
+
 interface VideoPreviewPlayerProps {
-    thumbnailKey: string;
+    thumbnailKey: string | null;
     videoKey: string | null;
     title: string;
+    muxStreamUrl?: string | null;
+    muxThumbnailUrl?: string | null;
 }
 
 export function VideoPreviewPlayer({
     thumbnailKey,
     videoKey,
     title,
+    muxStreamUrl,
+    muxThumbnailUrl,
 }: VideoPreviewPlayerProps) {
     const [isOpen, setIsOpen] = useState(false);
-    const thumbnailUrl = `https://${env.NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES}.fly.storage.tigris.dev/${thumbnailKey}`;
-    const videoUrl = videoKey
+    const s3ThumbnailUrl =
+        thumbnailKey != null && thumbnailKey !== ""
+            ? `https://${env.NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES}.fly.storage.tigris.dev/${thumbnailKey}`
+            : null;
+    const s3VideoUrl = videoKey
         ? `https://${env.NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES}.fly.storage.tigris.dev/${videoKey}`
         : null;
+
+    const thumbnailUrl =
+        muxThumbnailUrl || s3ThumbnailUrl || PLACEHOLDER_THUMBNAIL;
+    const videoUrl = muxStreamUrl || s3VideoUrl;
+
+    // For HLS, we need to pass a source object to MediaPlayer
+    const videoSrc = muxStreamUrl
+        ? { src: muxStreamUrl, type: "application/x-mpegurl" as const }
+        : videoUrl;
 
     return (
         <>
@@ -90,9 +112,10 @@ export function VideoPreviewPlayer({
                     {videoUrl && isOpen && (
                         <div className="aspect-video w-full">
                             <MediaPlayer
-                                src={videoUrl}
+                                src={videoSrc!}
                                 viewType="video"
                                 streamType="on-demand"
+                                preferNativeHLS={false}
                                 autoPlay
                                 crossOrigin
                                 playsInline

@@ -3,6 +3,7 @@
 import { requireUser } from "@/app/data/user/require-user";
 import { prisma } from "@/lib/db";
 import { ApiResponse } from "@/lib/types";
+import { assignmentSubmissionSchema, type AssignmentSubmissionSchemaType } from "@/lib/zodSchemas";
 import { revalidatePath } from "next/cache";
 
 // ── Video Progress Tracking ──────────────────────────────────────────────────
@@ -89,6 +90,84 @@ export async function markLessonComplete(
       status: "error",
       message: "Failed to mark lesson as complete",
     };
+  }
+}
+
+export async function submitAssignment(
+  assignmentId: string,
+  values: AssignmentSubmissionSchemaType,
+  slug: string,
+  lessonId: string
+): Promise<ApiResponse> {
+  const session = await requireUser();
+  try {
+    const assignment = await prisma.assignment.findFirst({
+      where: {
+        id: assignmentId,
+        Lesson: {
+          Chapter: {
+            Course: {
+              enrollment: {
+                some: {
+                  userId: session.id,
+                  status: "Active",
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!assignment) {
+      return { status: "error", message: "Assignment not found or you are not enrolled" };
+    }
+    const parsed = assignmentSubmissionSchema.safeParse(values);
+    if (!parsed.success) {
+      return { status: "error", message: "Invalid submission data" };
+    }
+    const { fileKey, fileName, fileSize, mimeType, textAnswer } = parsed.data;
+    const hasFile = !!fileKey;
+    const hasText = !!textAnswer?.trim();
+    if (assignment.allowFile && assignment.allowText && !hasFile && !hasText) {
+      return { status: "error", message: "Please provide a file and/or text answer" };
+    }
+    if (assignment.allowFile && !assignment.allowText && !hasFile) {
+      return { status: "error", message: "Please upload a file" };
+    }
+    if (assignment.allowText && !assignment.allowFile && !hasText) {
+      return { status: "error", message: "Please provide a text answer" };
+    }
+    const existing = await prisma.assignmentSubmission.findUnique({
+      where: { assignmentId_userId: { assignmentId, userId: session.id } },
+    });
+    if (existing?.status === "Graded") {
+      return { status: "error", message: "Already graded; resubmission not allowed" };
+    }
+    await prisma.assignmentSubmission.upsert({
+      where: { assignmentId_userId: { assignmentId, userId: session.id } },
+      create: {
+        assignmentId,
+        userId: session.id,
+        fileKey: fileKey ?? null,
+        fileName: fileName ?? null,
+        fileSize: fileSize ?? null,
+        mimeType: mimeType ?? null,
+        textAnswer: textAnswer ?? null,
+        status: "Submitted",
+      },
+      update: {
+        fileKey: fileKey ?? null,
+        fileName: fileName ?? null,
+        fileSize: fileSize ?? null,
+        mimeType: mimeType ?? null,
+        textAnswer: textAnswer ?? null,
+        status: "Submitted",
+      },
+    });
+    revalidatePath(`/dashboard/${slug}/${lessonId}`);
+    return { status: "success", message: "Submission saved" };
+  } catch {
+    return { status: "error", message: "Failed to submit" };
   }
 }
 

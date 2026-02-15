@@ -75,6 +75,8 @@ export async function getIndividualCourse(slug: string) {
               title: true,
               videoKey: true,
               thumbnailKey: true,
+              muxPlaybackId: true,
+              muxStatus: true,
             },
             orderBy: {
               position: "asc",
@@ -99,10 +101,32 @@ export async function getIndividualCourse(slug: string) {
       course.reviews.length
       : 0;
 
-  // Get first lesson with video for preview
-  const previewLesson = course.chapter
-    .flatMap((ch) => ch.lessons)
-    .find((lesson) => lesson.videoKey);
+  // Use first lesson by position (first chapter, first lesson) for preview.
+  // If it has no video, we still show course thumbnail and no play button (no error).
+  const firstLesson = course.chapter[0]?.lessons[0] ?? null;
+  const previewLesson =
+    firstLesson?.videoKey != null ? firstLesson : null;
+
+  let muxStreamUrl: string | null = null;
+  let muxThumbnailUrl: string | null = null;
+
+  if (previewLesson?.muxPlaybackId && previewLesson?.muxStatus === "ready") {
+    try {
+      const { getMuxSignedStreamUrl, getMuxSignedThumbnailUrl } = await import(
+        "@/lib/mux"
+      );
+      muxStreamUrl = getMuxSignedStreamUrl(previewLesson.muxPlaybackId);
+      muxThumbnailUrl = getMuxSignedThumbnailUrl(previewLesson.muxPlaybackId, {
+        width: 1920,
+      });
+    } catch (err) {
+      console.error("[get-course] Mux signed URL failed:", err);
+      // Leave mux URLs null; page will fall back to S3 or no preview
+    }
+  }
+
+  const previewThumbnailKey =
+    previewLesson?.thumbnailKey ?? firstLesson?.thumbnailKey ?? course.fileKey;
 
   return {
     ...course,
@@ -110,7 +134,9 @@ export async function getIndividualCourse(slug: string) {
     studentCount: course._count.enrollment,
     reviewCount: course._count.reviews,
     previewVideoKey: previewLesson?.videoKey ?? null,
-    previewThumbnailKey: previewLesson?.thumbnailKey ?? course.fileKey,
+    previewThumbnailKey,
+    muxStreamUrl,
+    muxThumbnailUrl,
   };
 }
 

@@ -14,6 +14,15 @@ import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { useConstructUrl } from "@/hooks/use-construct-url";
 
+const DOCUMENT_ACCEPT = {
+  "application/pdf": [".pdf"],
+  "application/msword": [".doc"],
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+  "application/zip": [".zip"],
+};
+
+const DOCUMENT_MAX_SIZE = 50 * 1024 * 1024; // 50MB
+
 interface UploaderState {
   id: string | null;
   file: File | null;
@@ -23,13 +32,13 @@ interface UploaderState {
   isDeleting: boolean;
   error: boolean;
   objectUrl?: string;
-  fileType: "image" | "video";
+  fileType: "image" | "video" | "document";
 }
 
 interface iAppProps {
   value?: string;
   onChange?: (value: string) => void;
-  fileTypeAccepted: "image" | "video";
+  fileTypeAccepted: "image" | "video" | "document";
 }
 
 export function Uploader({ onChange, value, fileTypeAccepted }: iAppProps) {
@@ -283,6 +292,7 @@ export function Uploader({ onChange, value, fileTypeAccepted }: iAppProps) {
           previewUrl={fileState.objectUrl}
           isDeleting={fileState.isDeleting}
           fileType={fileState.fileType}
+          fileName={fileState.file?.name}
         />
       );
     }
@@ -298,14 +308,25 @@ export function Uploader({ onChange, value, fileTypeAccepted }: iAppProps) {
     };
   }, [fileState.objectUrl]);
 
+  const acceptConfig =
+    fileTypeAccepted === "video"
+      ? { "video/*": [] }
+      : fileTypeAccepted === "document"
+        ? DOCUMENT_ACCEPT
+        : { "image/*": [] };
+  const maxSize =
+    fileTypeAccepted === "image"
+      ? 5 * 1024 * 1024
+      : fileTypeAccepted === "document"
+        ? DOCUMENT_MAX_SIZE
+        : 5000 * 1024 * 1024;
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept:
-      fileTypeAccepted === "video" ? { "video/*": [] } : { "image/*": [] },
+    accept: acceptConfig,
     maxFiles: 1,
     multiple: false,
-    maxSize:
-      fileTypeAccepted === "image" ? 5 * 1024 * 1024 : 5000 * 1024 * 1024,
+    maxSize,
     onDropRejected: rejectedFiles,
     disabled: fileState.uploading || (!!fileState.objectUrl && !fileState.error),
   });

@@ -33,6 +33,8 @@ import {
   ChevronRight,
   FileText,
   GripVertical,
+  BookOpen,
+  Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -75,6 +77,7 @@ export function TeacherCourseStructure({ data }: iAppProps) {
         order: lesson.position,
         transcriptionStatus: lesson.transcriptionStatus,
         thumbnailKey: lesson.thumbnailKey ?? null,
+        lessonType: lesson.lessonType ?? "Video",
       })),
     })) || [];
 
@@ -95,6 +98,7 @@ export function TeacherCourseStructure({ data }: iAppProps) {
             order: lesson.position,
             transcriptionStatus: lesson.transcriptionStatus,
             thumbnailKey: lesson.thumbnailKey ?? null,
+            lessonType: lesson.lessonType ?? "Video",
           })),
         })) || [];
 
@@ -401,7 +405,11 @@ export function TeacherCourseStructure({ data }: iAppProps) {
                                       >
                                         <GripVertical className="size-4" />
                                       </Button>
-                                      <FileText className="size-4 shrink-0" />
+                                      {lesson.lessonType === "Reading" ? (
+                                        <BookOpen className="size-4 shrink-0 text-muted-foreground" />
+                                      ) : (
+                                        <Play className="size-4 shrink-0 text-muted-foreground" />
+                                      )}
                                       <Link
                                         href={`/teacher/courses/${data.id}/${item.id}/${lesson.id}`}
                                         scroll={false}

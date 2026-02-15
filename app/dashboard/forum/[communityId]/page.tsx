@@ -52,12 +52,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ comm
       </div>
 
       {/* Teacher/Admin Actions */}
-      {(user.role === "admin" || (community.courseId && community.course?.userId === user.id)) && (
-        <div className="flex justify-end gap-2">
-          <MemberManagement communityId={community.id} />
-          <CommunitySettings community={community} />
-        </div>
-      )}
+
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 space-y-6">
@@ -139,7 +134,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ comm
               <div className="mt-4 pt-4 border-t flex flex-col gap-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Members</span>
-                  <span className="font-medium">{community.course?._count?.enrollment ?? 0}</span>
+                  <span className="font-medium">{community.memberCount}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Posts</span>

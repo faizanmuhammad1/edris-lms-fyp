@@ -1,6 +1,5 @@
 "use server";
 
-import { requireTeacher } from "@/app/data/teacher/require-teacher";
 import { prisma } from "@/lib/db";
 import { tryCatch } from "@/hooks/try-catch";
 import { revalidatePath } from "next/cache";
@@ -27,9 +26,17 @@ const commentSchema = z.object({
 });
 
 export async function createCommunity(values: z.infer<typeof communitySchema>) {
-    const session = await requireTeacher();
+    const sessionUser = await requireUser();
 
     return await tryCatch((async () => {
+        const user = await prisma.user.findUnique({
+            where: { id: sessionUser.id },
+            select: { id: true, role: true },
+        });
+        if (!user || (user.role !== "admin" && user.role !== "teacher")) {
+            throw new Error("Unauthorized");
+        }
+
         const slug = slugify(values.name, { lower: true });
 
         const existing = await prisma.community.findUnique({
@@ -40,12 +47,12 @@ export async function createCommunity(values: z.infer<typeof communitySchema>) {
             throw new Error("A community with this name already exists");
         }
 
-        // If courseId provided, verify teacher owns the course
-        if (values.courseId) {
+        // If teacher and courseId provided, verify they own the course; admin can attach any course or none
+        if (user.role === "teacher" && values.courseId) {
             const course = await prisma.course.findUnique({
                 where: { id: values.courseId },
             });
-            if (!course || course.userId !== session.user.id) {
+            if (!course || course.userId !== user.id) {
                 throw new Error("You can only create communities for your own courses");
             }
         }
@@ -58,7 +65,7 @@ export async function createCommunity(values: z.infer<typeof communitySchema>) {
                 courseId: values.courseId || null,
                 members: {
                     create: {
-                        userId: session.user.id,
+                        userId: user.id,
                         role: "ADMIN" // Creator is admin
                     }
                 }
@@ -77,7 +84,7 @@ export async function createCommunity(values: z.infer<typeof communitySchema>) {
 const communityUpdateSchema = communitySchema.partial();
 
 export async function updateCommunity(slug: string, values: z.infer<typeof communityUpdateSchema>) {
-    const session = await requireTeacher();
+    const sessionUser = await requireUser();
 
     return await tryCatch((async () => {
         // 1. Fetch current community to check ownership
@@ -93,7 +100,7 @@ export async function updateCommunity(slug: string, values: z.infer<typeof commu
         if (!currentCommunity) throw new Error("Community not found");
 
         const user = await prisma.user.findUnique({
-            where: { email: session.user.email },
+            where: { id: sessionUser.id },
             select: { id: true, role: true }
         });
 
@@ -128,7 +135,7 @@ export async function updateCommunity(slug: string, values: z.infer<typeof commu
 }
 
 export async function deleteCommunity(slug: string) {
-    const session = await requireTeacher();
+    const sessionUser = await requireUser();
 
     return await tryCatch((async () => {
         // 1. Fetch current community to check ownership
@@ -144,7 +151,7 @@ export async function deleteCommunity(slug: string) {
         if (!currentCommunity) throw new Error("Community not found");
 
         const user = await prisma.user.findUnique({
-            where: { email: session.user.email },
+            where: { id: sessionUser.id },
             select: { id: true, role: true }
         });
 
@@ -175,10 +182,16 @@ export async function getCommunities() {
         orderBy: { createdAt: "desc" },
         include: {
             _count: {
-                select: { posts: true },
+                select: { posts: true, members: true },
             },
             course: {
-                select: { id: true, title: true },
+                select: {
+                    id: true,
+                    title: true,
+                    user: {
+                        select: { id: true, name: true, email: true },
+                    },
+                },
             },
         },
     });
@@ -273,7 +286,18 @@ export async function getCommunityMembers(communityId: string) {
     const isGlobalAdmin = user?.role === "admin";
     const isCourseOwner = community.course?.userId === session.id;
 
-    if (!isGlobalAdmin && !isCourseOwner) {
+    const memberRecord = await prisma.communityMember.findUnique({
+        where: {
+            userId_communityId: {
+                userId: session.id,
+                communityId,
+            }
+        },
+        select: { role: true }
+    });
+    const isCommunityAdmin = memberRecord?.role === "ADMIN";
+
+    if (!isGlobalAdmin && !isCourseOwner && !isCommunityAdmin) {
         throw new Error("Unauthorized");
     }
 
@@ -333,7 +357,18 @@ export async function banMember(communityId: string, userId: string): Promise<Re
         const isGlobalAdmin = currentUser?.role === "admin";
         const isCourseOwner = community.course?.userId === session.id;
 
-        if (!isGlobalAdmin && !isCourseOwner) {
+        const memberRecord = await prisma.communityMember.findUnique({
+            where: {
+                userId_communityId: {
+                    userId: session.id,
+                    communityId,
+                }
+            },
+            select: { role: true }
+        });
+        const isCommunityAdmin = memberRecord?.role === "ADMIN";
+
+        if (!isGlobalAdmin && !isCourseOwner && !isCommunityAdmin) {
             throw new Error("Unauthorized");
         }
 
@@ -385,7 +420,18 @@ export async function unbanMember(communityId: string, userId: string): Promise<
         const isGlobalAdmin = currentUser?.role === "admin";
         const isCourseOwner = community.course?.userId === session.id;
 
-        if (!isGlobalAdmin && !isCourseOwner) {
+        const memberRecord = await prisma.communityMember.findUnique({
+            where: {
+                userId_communityId: {
+                    userId: session.id,
+                    communityId,
+                }
+            },
+            select: { role: true }
+        });
+        const isCommunityAdmin = memberRecord?.role === "ADMIN";
+
+        if (!isGlobalAdmin && !isCourseOwner && !isCommunityAdmin) {
             throw new Error("Unauthorized");
         }
 
@@ -481,8 +527,35 @@ export async function getStudentCommunities() {
     }));
 }
 
+// ... existing imports
+
 export async function getCommunity(slug: string) {
     const user = await requireUser(); // Need user context to check membership
+
+    // Check if user is banned
+    const communityId = (await prisma.community.findUnique({ where: { slug }, select: { id: true } }))?.id;
+
+    if (communityId) {
+        const banned = await prisma.communityBan.findUnique({
+            where: {
+                userId_communityId: {
+                    userId: user.id,
+                    communityId,
+                }
+            }
+        });
+
+        // If banned, and NOT an admin/owner, deny access
+        if (banned) {
+            const userData = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } });
+            if (userData?.role !== 'admin') {
+                // You might want to return a specific error or separate state, 
+                // but for now, we can throw or return specific "banned" object.
+                // Throwing unauthorized is simplest for security.
+                throw new Error("You are banned from this community");
+            }
+        }
+    }
 
     const community = await prisma.community.findUnique({
         where: { slug },
@@ -501,26 +574,120 @@ export async function getCommunity(slug: string) {
             },
             members: {
                 where: { userId: user.id },
-                select: { id: true }
+                select: { id: true, role: true }
             }
         },
     });
 
     if (!community) return null;
 
+    const isCreator = !!community.course && community.course.userId === user.id;
+    const isMember = community.members.length > 0 || isCreator;
+
     return {
         ...community,
-        isMember: community.members.length > 0,
+        isMember,
         memberCount: community._count.members,
+        role: community.members[0]?.role || (isCreator ? "ADMIN" : "GUEST"),
     };
 }
 
 
-// Post Actions
+// Post Actions ... (keep existing)
 
+export async function removeMember(communityId: string, userId: string): Promise<Result<{ success: boolean }, Error>> {
+    const session = await requireUser();
 
+    return await tryCatch((async () => {
+        // Verify authorization
+        const community = await prisma.community.findUnique({
+            where: { id: communityId },
+            include: { course: true }
+        });
+
+        if (!community) throw new Error("Community not found");
+
+        const currentUser = await prisma.user.findUnique({
+            where: { id: session.id },
+            select: { role: true }
+        });
+
+        const isGlobalAdmin = currentUser?.role === "admin";
+        const isCourseOwner = community.course?.userId === session.id;
+
+        const memberRecord = await prisma.communityMember.findUnique({
+            where: {
+                userId_communityId: {
+                    userId: session.id,
+                    communityId,
+                }
+            },
+            select: { role: true }
+        });
+        const isCommunityAdmin = memberRecord?.role === "ADMIN";
+
+        if (!isGlobalAdmin && !isCourseOwner && !isCommunityAdmin) {
+            throw new Error("Unauthorized");
+        }
+
+        // Prevent removing the owner
+        if (community.course?.userId === userId) {
+            throw new Error("Cannot remove the community owner");
+        }
+
+        // Cascading Cleanup
+        await prisma.$transaction(async (tx) => {
+            // 1. Delete Comments by this user in this community
+            // We find comments where the POST belongs to this community
+            await tx.comment.deleteMany({
+                where: {
+                    userId,
+                    Post: {
+                        communityId
+                    }
+                }
+            });
+
+            // 2. Delete Posts by this user in this community
+            await tx.post.deleteMany({
+                where: {
+                    userId,
+                    communityId
+                }
+            });
+
+            // 3. Remove from CommunityMember
+            await tx.communityMember.deleteMany({
+                where: {
+                    userId,
+                    communityId
+                }
+            });
+
+            // 4. Remove from CommunityBan (if they were banned, just to be clean, though usually remove implies unban logic or separate? 
+            // Requirement says "remove" - enforcing "cleanup". If they were banned, we might want to keep the ban? 
+            // "Remove" usually means "kick". If they are banned, they are already "removed".
+            // But if we are doing a "Hard Delete" of a student, we likely want to wipe their slate.
+            // Let's remove the ban too to ensure clean state, or keep it?
+            // "remove or ban student... banning should restrict access but keep stats... deleting should cascading db cleanup"
+            // So "deleting" (removing) should clean up.
+            await tx.communityBan.deleteMany({
+                where: {
+                    userId,
+                    communityId
+                }
+            });
+        });
+
+        revalidatePath(`/dashboard/forum`);
+        revalidatePath(`/dashboard/forum/${community.slug}`);
+        return { success: true };
+    })());
+}
 
 export async function createPost(communityId: string, values: z.infer<typeof postSchema>) {
+    // ... rest of createPost
+
     const user = await requireUser();
 
     return await tryCatch((async () => {

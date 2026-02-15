@@ -23,18 +23,21 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
         }
 
+        // Replay protection: reject if timestamp is older than 5 minutes
+        const ts = Number(timestamp);
+        if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 300) {
+            return NextResponse.json({ error: "Invalid or expired timestamp" }, { status: 401 });
+        }
+
         const payload = `${timestamp}.${rawBody}`;
         const expectedSignature = crypto
             .createHmac("sha256", webhookSecret)
             .update(payload)
             .digest("hex");
 
-        if (
-            !crypto.timingSafeEqual(
-                Buffer.from(signature),
-                Buffer.from(expectedSignature)
-            )
-        ) {
+        const sigBuf = Buffer.from(signature, "hex");
+        const expectedBuf = Buffer.from(expectedSignature, "hex");
+        if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
             return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
         }
 

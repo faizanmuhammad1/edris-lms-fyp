@@ -139,7 +139,14 @@ export function CourseManagementTable({ courses }: { courses: Course[] }) {
                                         </div>
                                     </TableCell>
                                     <TableCell>{getStatusBadge(course.status)}</TableCell>
-                                    <TableCell>${(course.price / 100).toFixed(2)}</TableCell>
+                                    <TableCell>
+                                        {course.price === 0
+                                            ? "Free"
+                                            : new Intl.NumberFormat("en-US", {
+                                                style: "currency",
+                                                currency: "USD",
+                                            }).format(course.price)}
+                                    </TableCell>
                                     <TableCell>{course._count.enrollment}</TableCell>
                                     <TableCell>{format(new Date(course.createdAt), "MMM d, yyyy")}</TableCell>
                                     <TableCell>

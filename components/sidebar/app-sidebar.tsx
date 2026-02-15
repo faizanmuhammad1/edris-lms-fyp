@@ -3,10 +3,10 @@
 import * as React from "react";
 import {
   IconChartBar,
-  // IconChartBar removed here to fix duplicate
   IconDashboard,
   IconFileDescription,
   IconListDetails,
+  IconMail,
   IconSettings,
   IconUsers,
   IconMessageCircle,
@@ -40,6 +40,11 @@ const adminData = {
       icon: IconDashboard,
     },
     {
+      title: "Mail",
+      url: "/admin/mail",
+      icon: IconMail,
+    },
+    {
       title: "User Management",
       url: "/admin/users",
       icon: IconUsers,
@@ -53,6 +58,11 @@ const adminData = {
       title: "Course Management",
       url: "/admin/courses",
       icon: IconListDetails,
+    },
+    {
+      title: "Community Management",
+      url: "/admin/communities",
+      icon: IconMessageCircle,
     },
     {
       title: "Revenue Earnings",
@@ -92,8 +102,8 @@ const teacherData = {
       icon: IconUsers,
     },
     {
-      title: "Quiz attempts",
-      url: "/teacher/quiz-attempts",
+      title: "Student Progress",
+      url: "/teacher/student-progress",
       icon: IconChartLine,
     },
     {

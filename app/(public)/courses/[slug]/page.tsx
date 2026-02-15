@@ -94,6 +94,8 @@ export default async function SlugPage({ params }: { params: Params }) {
                   thumbnailKey={course.previewThumbnailKey}
                   videoKey={course.previewVideoKey}
                   title={course.title}
+                  muxStreamUrl={course.muxStreamUrl}
+                  muxThumbnailUrl={course.muxThumbnailUrl}
                 />
               </div>
 

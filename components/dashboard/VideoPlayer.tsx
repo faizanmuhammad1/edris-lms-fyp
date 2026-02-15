@@ -246,7 +246,9 @@ export function VideoPlayer({
       src={videoSrc}
       viewType="video"
       streamType="on-demand"
+      preferNativeHLS={false}
       playsInline
+      crossOrigin
       onTimeUpdate={handleTimeUpdate}
       onPause={handlePause}
       onEnded={handleEnded}

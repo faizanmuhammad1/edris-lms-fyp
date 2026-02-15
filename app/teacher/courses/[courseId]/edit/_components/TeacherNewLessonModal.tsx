@@ -43,8 +43,11 @@ export function TeacherNewLessonModal({
       courseId: courseId,
       chapterId: chapterId,
       description: "",
+      lessonType: "Video",
       videoKey: "",
       thumbnailKey: "",
+      pdfKey: "",
+      pdfFileName: "",
     },
   });
 

@@ -70,6 +70,8 @@ export const chapterSchema = z.object({
   courseId: uuidSchema,
 });
 
+export const lessonTypes = ["Video", "Reading", "Mixed"] as const;
+
 export const lessonSchema = z.object({
   name: z
     .string()
@@ -79,11 +81,43 @@ export const lessonSchema = z.object({
   description: z
     .string()
     .optional(),
-
+  lessonType: z.enum(lessonTypes).optional(),
   videoKey: z.string().optional(),
   thumbnailKey: z.string().optional(),
+  pdfKey: z.string().optional(),
+  pdfFileName: z.string().optional(),
+});
+
+export const assignmentSchema = z
+  .object({
+    title: z.string().min(1, "Title is required"),
+    description: z.string().optional(),
+    dueDate: z.string().optional(),
+    maxScore: z.coerce.number().int().min(0).max(10000).optional().nullable(),
+    allowFile: z.boolean(),
+    allowText: z.boolean(),
+  })
+  .refine((data) => data.allowFile || data.allowText, {
+    message: "At least one of file upload or text answer must be allowed",
+    path: ["allowFile"],
+  });
+
+export const assignmentSubmissionSchema = z.object({
+  fileKey: z.string().optional(),
+  fileName: z.string().optional(),
+  fileSize: z.number().optional(),
+  mimeType: z.string().optional(),
+  textAnswer: z.string().optional(),
+});
+
+export const gradeSubmissionSchema = z.object({
+  score: z.coerce.number().int().min(0).max(10000).optional().nullable(),
+  feedback: z.string().optional(),
 });
 
 export type CourseSchemaType = z.infer<typeof courseSchema>;
 export type ChapterSchemaType = z.infer<typeof chapterSchema>;
 export type LessonSchemaType = z.infer<typeof lessonSchema>;
+export type AssignmentSchemaType = z.infer<typeof assignmentSchema>;
+export type AssignmentSubmissionSchemaType = z.infer<typeof assignmentSubmissionSchema>;
+export type GradeSubmissionSchemaType = z.infer<typeof gradeSubmissionSchema>;

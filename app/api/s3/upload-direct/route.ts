@@ -53,8 +53,18 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate file size
-    const maxSize = file.type.startsWith("image/") ? 5 * 1024 * 1024 : 5000 * 1024 * 1024; // 5MB for images, 5GB for videos
+    // Validate file size and type for documents
+    const isImage = file.type.startsWith("image/");
+    const isDocument =
+      file.type === "application/pdf" ||
+      file.type === "application/msword" ||
+      file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      file.type === "application/zip";
+    const maxSize = isImage
+      ? 5 * 1024 * 1024
+      : isDocument
+        ? 50 * 1024 * 1024 // 50MB for documents
+        : 5000 * 1024 * 1024; // 5GB for videos
     if (file.size > maxSize) {
       return NextResponse.json(
         { error: "File size exceeds limit" },
