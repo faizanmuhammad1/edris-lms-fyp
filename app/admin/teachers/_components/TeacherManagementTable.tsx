@@ -27,16 +27,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { IconDotsVertical, IconBan, IconUserCheck, IconCircleCheck, IconCircleX } from "@tabler/icons-react";
@@ -205,8 +195,8 @@ export function TeacherManagementTable({ teachers }: { teachers: TeacherApplicat
                                         {teacher.banned && teacher.banReason
                                             ? teacher.banReason
                                             : teacher.teacherStatus === "Rejected" && teacher.teacherRejectionReason
-                                              ? teacher.teacherRejectionReason
-                                              : "—"}
+                                                ? teacher.teacherRejectionReason
+                                                : "—"}
                                     </TableCell>
                                     <TableCell className="px-5 py-4">
                                         <DropdownMenu>

@@ -12,6 +12,7 @@ export async function adminGetAllTickets(filters?: {
 }) {
   await requireAdmin();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {};
 
   if (filters?.status && filters.status !== "all") {

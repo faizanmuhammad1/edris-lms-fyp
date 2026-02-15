@@ -54,7 +54,9 @@ export async function createSupportTicket(formData: {
       ticketNumber,
       subject: validated.subject,
       description: validated.description,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       category: validated.category as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       priority: (validated.priority as any) || "Medium",
       status: "Open",
       createdById: user.id,

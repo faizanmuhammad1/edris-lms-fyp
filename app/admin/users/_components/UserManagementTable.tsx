@@ -53,7 +53,7 @@ export function UserManagementTable({
 }) {
     const [isPending, startTransition] = useTransition();
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [selectedUser, setSelectedUser] = useState<User | null>(null);
+    const [selectedUser, setSelectedUser] = useState<UserForManagement | null>(null);
 
     const runAction = (fn: () => Promise<void>) => {
         startTransition(async () => {

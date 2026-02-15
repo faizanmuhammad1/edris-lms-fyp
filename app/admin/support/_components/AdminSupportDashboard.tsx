@@ -13,7 +13,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   TrendingUp,
-  PlusCircle,
 } from "lucide-react";
 
 interface AdminSupportDashboardProps {
@@ -31,6 +30,8 @@ interface AdminSupportDashboardProps {
     priorityBreakdown: { priority: string; count: number }[];
   };
 }
+
+type Ticket = Awaited<ReturnType<typeof adminGetAllTickets>>[number];
 
 const statCards = [
   {
@@ -71,8 +72,8 @@ const statCards = [
 ];
 
 export function AdminSupportDashboard({ stats }: AdminSupportDashboardProps) {
-  const [tickets, setTickets] = useState<any[]>([]);
-  const [isLoading, startTransition] = useTransition();
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [, startTransition] = useTransition();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [category, setCategory] = useState("all");

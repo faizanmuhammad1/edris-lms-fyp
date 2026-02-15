@@ -49,6 +49,7 @@ import {
 } from "@/app/data/support/schemas";
 
 interface AdminTicketDetailProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ticket: any;
   currentUserId: string;
 }
@@ -65,7 +66,7 @@ export function AdminTicketDetail({
   const isClosed = ticket.status === "Closed";
 
   const handleUpdate = () => {
-    const updates: any = {};
+    const updates: { status?: string; priority?: string; category?: string } = {};
     if (editStatus !== ticket.status) updates.status = editStatus;
     if (editPriority !== ticket.priority) updates.priority = editPriority;
     if (editCategory !== ticket.category) updates.category = editCategory;

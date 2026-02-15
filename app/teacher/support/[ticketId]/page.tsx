@@ -22,7 +22,6 @@ export default async function TeacherTicketDetailPage({
         ticket={ticket}
         currentUserId={session.user.id}
         backHref="/teacher/support"
-        role="teacher"
       />
     </div>
   );

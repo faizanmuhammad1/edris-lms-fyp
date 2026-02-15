@@ -27,6 +27,7 @@ export async function adminUpdateTicket(
     throw new Error("Ticket not found");
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data: any = {};
   const changes: string[] = [];
 

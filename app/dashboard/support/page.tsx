@@ -21,11 +21,14 @@ const studentCategoryOptions = studentCategories.map((c) => {
     Other: "Other",
   };
   return { value: c, label: labels[c] || c };
+  return { value: c, label: labels[c] || c };
 });
 
+type Ticket = Awaited<ReturnType<typeof getUserTickets>>[number];
+
 export default function StudentSupportPage() {
-  const [tickets, setTickets] = useState<any[]>([]);
-  const [isLoading, startTransition] = useTransition();
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [, startTransition] = useTransition();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [category, setCategory] = useState("all");

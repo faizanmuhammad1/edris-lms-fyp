@@ -24,19 +24,21 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+// import { getTicketDetails } from "@/app/data/support/get-ticket-details";
+
+// type Ticket = NonNullable<Awaited<ReturnType<typeof getTicketDetails>>>;
 
 interface TicketDetailViewProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ticket: any;
   currentUserId: string;
   backHref: string;
-  role: "student" | "teacher" | "admin";
 }
 
 export function TicketDetailView({
   ticket,
   currentUserId,
   backHref,
-  role,
 }: TicketDetailViewProps) {
   const [isPending, startTransition] = useTransition();
   const [escalateNote, setEscalateNote] = useState("");

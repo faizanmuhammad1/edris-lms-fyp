@@ -12,8 +12,8 @@ import { formatDistanceToNow } from "date-fns";
 import { requireUser } from "@/app/data/user/require-user";
 import { deletePost } from "@/app/actions/post";
 import { DeleteButton } from "@/components/general/DeleteButton";
-import { CommunitySettings } from "@/components/general/CommunitySettings";
-import { MemberManagement } from "@/components/community/MemberManagement";
+
+
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";

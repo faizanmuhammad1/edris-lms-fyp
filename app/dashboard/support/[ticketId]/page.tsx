@@ -22,7 +22,6 @@ export default async function StudentTicketDetailPage({
         ticket={ticket}
         currentUserId={user.id}
         backHref="/dashboard/support"
-        role="student"
       />
     </div>
   );

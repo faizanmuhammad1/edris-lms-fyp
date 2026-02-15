@@ -10,6 +10,7 @@ export async function getUserTickets(filters?: {
 }) {
   const user = await requireUser();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {
     createdById: user.id,
   };

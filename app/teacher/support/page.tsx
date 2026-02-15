@@ -6,13 +6,16 @@ import { TicketListCard } from "@/components/support/TicketListCard";
 import { TicketFilters } from "@/components/support/TicketFilters";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ticketCategoryOptions } from "@/app/data/support/schemas";
 import { PlusCircle, Headset, Loader2, Inbox, Send, User } from "lucide-react";
 import Link from "next/link";
 
+// ... (imports)
+
+type Ticket = Awaited<ReturnType<typeof getTeacherTickets>>[number];
+
 export default function TeacherSupportPage() {
-  const [tickets, setTickets] = useState<any[]>([]);
-  const [isLoading, startTransition] = useTransition();
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [, startTransition] = useTransition();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [category, setCategory] = useState("all");
@@ -81,7 +84,7 @@ export default function TeacherSupportPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "assigned" | "student" | "mine")}>
         <TabsList>
           {Object.entries(tabInfo).map(([key, info]) => (
             <TabsTrigger key={key} value={key} className="gap-1.5">

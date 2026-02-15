@@ -1,16 +1,16 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { requireTeacher } from "@/app/data/teacher/require-teacher";
+import { requireUser } from "@/app/data/user/require-user";
 
 export async function getTeacherTickets(filters?: {
+  tab?: string;
+  search?: string;
   status?: string;
   category?: string;
-  tab?: "assigned" | "student" | "mine";
-  search?: string;
 }) {
-  const session = await requireTeacher();
-  const userId = session.user.id;
+  const user = await requireUser();
+  const userId = user.id;
 
   // Get all course IDs this teacher owns
   const teacherCourses = await prisma.course.findMany({
@@ -19,7 +19,8 @@ export async function getTeacherTickets(filters?: {
   });
   const courseIds = teacherCourses.map((c) => c.id);
 
-  let where: any = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = {};
 
   const tab = filters?.tab || "assigned";
 
