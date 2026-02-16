@@ -16,9 +16,15 @@ import { useConstructUrl } from "@/hooks/use-construct-url";
 
 const DOCUMENT_ACCEPT = {
   "application/pdf": [".pdf"],
+  "application/x-pdf": [".pdf"],
   "application/msword": [".doc"],
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
   "application/zip": [".zip"],
+  "application/x-zip-compressed": [".zip"],
+  "application/x-compressed": [".zip"],
+  "multipart/x-zip": [".zip"],
+  "application/x-rar-compressed": [".rar"],
+  "application/octet-stream": [".zip", ".pdf", ".rar"],
 };
 
 const DOCUMENT_MAX_SIZE = 50 * 1024 * 1024; // 50MB
@@ -39,9 +45,12 @@ interface iAppProps {
   value?: string;
   onChange?: (value: string) => void;
   fileTypeAccepted: "image" | "video" | "document";
+  className?: string; // Allow custom styling
+  onUploadSuccess?: (data: { key: string; name: string; size: number; type: string }) => void;
+  fileName?: string;
 }
 
-export function Uploader({ onChange, value, fileTypeAccepted }: iAppProps) {
+export function Uploader({ onChange, value, fileTypeAccepted, className, onUploadSuccess, fileName }: iAppProps) {
   const fileUrl = useConstructUrl(value || "");
   const [fileState, setFileState] = useState<UploaderState>({
     error: false,
@@ -95,6 +104,12 @@ export function Uploader({ onChange, value, fileTypeAccepted }: iAppProps) {
               }));
 
               onChange?.(key);
+              onUploadSuccess?.({
+                key,
+                name: file.name,
+                size: file.size,
+                type: file.type,
+              });
               toast.success("File uploaded successfully");
             } catch (parseError) {
               console.error("Failed to parse response:", parseError);
@@ -292,7 +307,7 @@ export function Uploader({ onChange, value, fileTypeAccepted }: iAppProps) {
           previewUrl={fileState.objectUrl}
           isDeleting={fileState.isDeleting}
           fileType={fileState.fileType}
-          fileName={fileState.file?.name}
+          fileName={fileState.file?.name || fileName}
         />
       );
     }
@@ -340,7 +355,8 @@ export function Uploader({ onChange, value, fileTypeAccepted }: iAppProps) {
         "relative border-2 border-dashed transition-colors duration-200 ease-in-out w-full h-64",
         isDragActive
           ? "border-primary bg-primary/10 border-solid"
-          : "border-border hover:border-primary"
+          : "border-border hover:border-primary",
+        className
       )}
     >
       <CardContent className="flex items-center justify-center h-full w-full p-4">

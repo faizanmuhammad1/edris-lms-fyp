@@ -30,9 +30,7 @@ export async function POST(request: Request) {
     select: { role: true },
   });
 
-  if (user?.role !== "admin" && user?.role !== "teacher") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  // Role check removed to allow students to upload assignments
 
   const formData = await request.formData();
   const file = formData.get("file") as File;
@@ -57,9 +55,15 @@ export async function POST(request: Request) {
     const isImage = file.type.startsWith("image/");
     const isDocument =
       file.type === "application/pdf" ||
+      file.type === "application/x-pdf" ||
       file.type === "application/msword" ||
       file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-      file.type === "application/zip";
+      file.type === "application/zip" ||
+      file.type === "application/x-zip-compressed" ||
+      file.type === "application/x-compressed" ||
+      file.type === "multipart/x-zip" ||
+      file.type === "application/x-rar-compressed" ||
+      file.type === "application/octet-stream";
     const maxSize = isImage
       ? 5 * 1024 * 1024
       : isDocument
@@ -93,7 +97,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json(
-      { error: "Failed to upload file" },
+      { error: error instanceof Error ? error.message : "Failed to upload file" },
       { status: 500 }
     );
   }

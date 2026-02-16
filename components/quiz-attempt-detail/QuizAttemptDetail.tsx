@@ -93,12 +93,12 @@ export function QuizAttemptDetail({ attempt }: { attempt: QuizAttemptDetailData 
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Summary Card */}
       <Card className="border-0 shadow-none bg-transparent">
-        <CardHeader className="px-0 pt-0 pb-4">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <User className="h-5 w-5 text-primary" />
+        <CardHeader className="px-0 pt-0 pb-6">
+          <CardTitle className="text-xl flex items-center gap-3">
+            <User className="h-6 w-6 text-primary" />
             Summary
           </CardTitle>
         </CardHeader>
@@ -120,30 +120,30 @@ export function QuizAttemptDetail({ attempt }: { attempt: QuizAttemptDetailData 
           {/* Details Grid */}
           <div className="space-y-4">
             {/* Course & Quiz Info */}
-            <div className="grid gap-4">
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors">
                 <BookOpen className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Course</p>
-                  <p className="font-medium mt-0.5 truncate">{attempt.course.title}</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Course</p>
+                  <p className="font-medium truncate text-sm md:text-base">{attempt.course.title}</p>
                 </div>
               </div>
 
               {attempt.lesson && (
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
+                <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors">
                   <GraduationCap className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Lesson</p>
-                    <p className="font-medium mt-0.5 truncate">{attempt.lesson.title}</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Lesson</p>
+                    <p className="font-medium truncate text-sm md:text-base">{attempt.lesson.title}</p>
                   </div>
                 </div>
               )}
 
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
+              <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors">
                 <FileText className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Quiz</p>
-                  <p className="font-medium mt-0.5 truncate">{attempt.quiz.title}</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Quiz</p>
+                  <p className="font-medium truncate text-sm md:text-base">{attempt.quiz.title}</p>
                 </div>
               </div>
             </div>
@@ -231,19 +231,21 @@ export function QuizAttemptDetail({ attempt }: { attempt: QuizAttemptDetailData 
           </div>
 
           {/* Integrity Counts Grid */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {integrityCounts.map(({ label, value }) => (
               <div
                 key={label}
                 className={cn(
-                  "flex items-center justify-between p-3 rounded-lg border",
-                  value > 0 ? "bg-red-50/50 dark:bg-red-950/10 border-red-200 dark:border-red-900" : "bg-muted/30 border-transparent"
+                  "flex flex-col items-center justify-center gap-2 p-4 rounded-xl border text-center transition-all",
+                  value > 0
+                    ? "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900 shadow-sm"
+                    : "bg-muted/20 border-border/50 hover:bg-muted/40"
                 )}
               >
-                <span className="text-sm text-muted-foreground">{label}</span>
-                <span className={cn("text-sm font-semibold", value > 0 && "text-red-600 dark:text-red-400")}>
+                <div className={cn("text-2xl font-bold tabular-nums", value > 0 ? "text-red-600 dark:text-red-400" : "text-foreground")}>
                   {value}
-                </span>
+                </div>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide leading-tight">{label}</span>
               </div>
             ))}
           </div>

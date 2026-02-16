@@ -141,7 +141,7 @@ function SingleComment({ comment, lessonId }: { comment: CommentWithReplies, les
 
 export function CommentSection({ lessonId, comments }: { lessonId: string, comments: CommentWithReplies[] }) {
     return (
-        <div className="max-w-4xl space-y-8">
+        <div className="max-w-4xl space-y-8 bg-card border rounded-xl p-6 shadow-sm">
             <div className="flex items-center gap-2">
                 <h3 className="text-xl font-bold">Discussion</h3>
                 <span className="px-2 py-0.5 rounded-full bg-muted text-xs font-medium">

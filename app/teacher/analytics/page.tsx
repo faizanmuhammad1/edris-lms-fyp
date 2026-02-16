@@ -1,4 +1,5 @@
 import { getTeacherAnalytics } from "@/app/data/teacher/get-teacher-analytics";
+import { getTeacherTransactions } from "@/app/data/teacher/get-teacher-transactions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -13,7 +14,10 @@ import { DollarSign, Users, BookOpen, MessageSquare, Star } from "lucide-react";
 import Link from "next/link";
 
 export default async function TeacherAnalyticsPage() {
-  const data = await getTeacherAnalytics();
+  const [data, transactions] = await Promise.all([
+    getTeacherAnalytics(),
+    getTeacherTransactions(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -27,10 +31,6 @@ export default async function TeacherAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {/* Assuming amount is in cents if from Stripe, usually. But here schema says Int. 
-                  If it's direct dollar value, then just format. 
-                  Let's assume it's standard units (dollars) based on schema 'price Int'. 
-               */}
               ${data.totalRevenue.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -100,7 +100,7 @@ export default async function TeacherAnalyticsPage() {
                   <TableHead className="w-[200px]">Course Name</TableHead>
                   <TableHead>Students</TableHead>
                   <TableHead>Price</TableHead>
-                  <TableHead className="text-right">Est. Revenue</TableHead>
+                  <TableHead className="text-right">Total Revenue</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -148,6 +148,65 @@ export default async function TeacherAnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Transaction History Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Transaction History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Student</TableHead>
+                <TableHead>Course</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {transactions.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                    No transactions found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                transactions.map((transaction) => (
+                  <TableRow key={transaction.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={transaction.studentImage || "/avatar-placeholder.png"} />
+                          <AvatarFallback>{transaction.studentName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm">{transaction.studentName}</span>
+                          <span className="text-xs text-muted-foreground">{transaction.studentEmail}</span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">{transaction.courseTitle}</TableCell>
+                    <TableCell>
+                      {new Date(transaction.date).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      ${transaction.amount.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
     </div>
   );
 }

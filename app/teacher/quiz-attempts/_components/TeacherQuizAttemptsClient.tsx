@@ -340,7 +340,7 @@ export function TeacherQuizAttemptsClient({
           <SheetHeader>
             <SheetTitle>Attempt details</SheetTitle>
           </SheetHeader>
-          <div className="mt-6 px-1">
+          <div className="mt-6 px-6">
             {selectedAttempt && (
               <QuizAttemptDetail attempt={toDetailData(selectedAttempt)} />
             )}

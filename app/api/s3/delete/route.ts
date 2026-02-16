@@ -31,9 +31,7 @@ export async function DELETE(request: Request) {
     select: { role: true },
   });
 
-  if (user?.role !== "admin" && user?.role !== "teacher") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  // Role check removed to allow students to delete their own uploads
   try {
     const decision = await aj.protect(request, {
       fingerprint: session?.user.id as string,

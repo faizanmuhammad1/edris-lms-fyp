@@ -336,8 +336,17 @@ export function TeacherLessonForm({ chapterId, data, courseId }: iAppProps) {
                     <FormControl>
                       <Uploader
                         fileTypeAccepted="document"
-                        onChange={field.onChange}
+                        onChange={(key) => {
+                          field.onChange(key);
+                          if (!key) {
+                            form.setValue("pdfFileName", undefined);
+                          }
+                        }}
                         value={field.value}
+                        fileName={form.watch("pdfFileName")}
+                        onUploadSuccess={(data) => {
+                          form.setValue("pdfFileName", data.name);
+                        }}
                       />
                     </FormControl>
                     <p className="text-xs text-muted-foreground">

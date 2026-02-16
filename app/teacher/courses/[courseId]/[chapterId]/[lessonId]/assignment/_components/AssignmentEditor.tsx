@@ -10,6 +10,8 @@ import { TeacherAssignmentType } from "@/app/data/teacher/get-teacher-assignment
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Form,
   FormControl,
@@ -109,19 +111,42 @@ export function AssignmentEditor({
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="dueDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Due date (optional)</FormLabel>
-                    <FormControl>
-                      <Input type="datetime-local" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="always-open"
+                    checked={!form.watch("dueDate")}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        form.setValue("dueDate", undefined);
+                      } else {
+                        // Default to tomorrow if enabled
+                        const tomorrow = new Date();
+                        tomorrow.setDate(tomorrow.getDate() + 1);
+                        form.setValue("dueDate", tomorrow.toISOString().slice(0, 16));
+                      }
+                    }}
+                  />
+                  <Label htmlFor="always-open">Always Open (No Due Date)</Label>
+                </div>
+              </div>
+
+              {form.watch("dueDate") !== undefined && (
+                <FormField
+                  control={form.control}
+                  name="dueDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Due date</FormLabel>
+                      <FormControl>
+                        <Input type="datetime-local" {...field} value={field.value ?? ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
               <FormField
                 control={form.control}
                 name="maxScore"

@@ -65,8 +65,9 @@ export async function getTeacherAnalytics() {
             select: {
                 id: true,
                 title: true,
-                _count: {
-                    select: { enrollment: true },
+                enrollment: {
+                    where: { status: "Active" },
+                    select: { amount: true }
                 },
                 price: true,
             },
@@ -108,18 +109,23 @@ export async function getTeacherAnalytics() {
 
 
     return {
-        totalRevenue: totalRevenueData._sum.amount || 0,
+        totalRevenue: (totalRevenueData._sum.amount || 0) / 100,
         totalStudents,
         totalCourses,
         totalPosts,
         activeCommunitiesCount,
         totalReviews,
         recentEnrollments,
-        coursePerformance: coursePerformance.map(course => ({
-            title: course.title,
-            students: course._count.enrollment,
-            revenue: course._count.enrollment * course.price,
-            price: course.price
-        }))
+        coursePerformance: coursePerformance.map(course => {
+            const activeStudents = course.enrollment.length;
+            const revenueCents = course.enrollment.reduce((sum, e) => sum + e.amount, 0);
+
+            return {
+                title: course.title,
+                students: activeStudents,
+                revenue: revenueCents / 100,
+                price: course.price
+            };
+        })
     };
 }

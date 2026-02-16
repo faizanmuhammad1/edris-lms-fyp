@@ -10,6 +10,7 @@ import { submitAssignment } from "../actions";
 import { tryCatch } from "@/hooks/try-catch";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { Uploader } from "@/components/file-uploader/Uploader";
 
 interface AssignmentType {
   id: string;
@@ -53,27 +54,7 @@ export function LessonAssignmentCard({
 
   const mySubmission = assignment.submissions[0] ?? null;
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/s3/upload-direct", { method: "POST", body: formData });
-      if (!res.ok) throw new Error("Upload failed");
-      const data = await res.json();
-      setFileKey(data.key);
-      setFileName(file.name);
-      setFileSize(file.size);
-      setMimeType(file.type);
-    } catch {
-      toast.error("File upload failed");
-    } finally {
-      setUploading(false);
-      e.target.value = "";
-    }
-  }
+
 
   function handleSubmit() {
     const hasFile = !!fileKey;
@@ -194,16 +175,37 @@ export function LessonAssignmentCard({
         ) : (
           <>
             {assignment.allowFile && (
-              <div>
-                <label className="text-sm font-medium mb-2 block">Upload file</label>
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx,.zip,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/zip"
-                  onChange={handleFileChange}
-                  disabled={uploading}
-                  className="text-sm"
-                />
-                {fileName && <p className="text-xs text-muted-foreground mt-1">{fileName}</p>}
+              <div className="space-y-4">
+                <label className="text-sm font-medium block">Upload file</label>
+                <div className="w-full">
+                  <Uploader
+                    fileTypeAccepted="document"
+                    value={fileKey}
+                    onChange={(key: string) => {
+                      setFileKey(key);
+                      if (!key) {
+                        setFileName("");
+                        setFileSize(0);
+                        setMimeType("");
+                      }
+                    }}
+                    onUploadSuccess={(data: { key: string; name: string; size: number; type: string }) => {
+                      setFileName(data.name);
+                      setFileSize(data.size);
+                      setMimeType(data.type);
+                    }}
+                    className="h-48"
+                  />
+                </div>
+                {fileName && fileKey && (
+                  <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-2 rounded-md border border-green-100">
+                    <FileText className="size-4" />
+                    <span className="truncate flex-1">{fileName}</span>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {(fileSize / 1024 / 1024).toFixed(2)} MB
+                    </span>
+                  </div>
+                )}
               </div>
             )}
             {assignment.allowText && (
@@ -217,7 +219,7 @@ export function LessonAssignmentCard({
                 />
               </div>
             )}
-            <Button onClick={handleSubmit} disabled={pending || uploading}>
+            <Button onClick={handleSubmit} disabled={pending}>
               {pending ? <Loader2 className="size-4 animate-spin mr-2" /> : <Upload className="size-4 mr-2" />}
               Submit
             </Button>
