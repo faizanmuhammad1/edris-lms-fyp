@@ -1,0 +1,105 @@
+﻿node.exe : 
+At line:1 char:1
++ & "C:\Program Files
+\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (:String   
+ ) [], RemoteExce    
+ption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+./app/api/s3/delete/r
+oute.ts
+3:10  Error: 
+'prisma' is defined 
+but never used.  @typ
+escript-eslint/no-unu
+sed-vars
+
+./app/api/s3/upload-d
+irect/route.ts
+3:10  Error: 
+'prisma' is defined 
+but never used.  @typ
+escript-eslint/no-unu
+sed-vars
+
+./app/teacher/courses
+/[courseId]/[chapterI
+d]/[lessonId]/assignm
+ent/_components/Assig
+nmentEditor.tsx
+118:31  Warning: 
+Compilation Skipped: 
+Use of incompatible 
+library
+
+This API returns 
+functions which 
+cannot be memoized 
+without leading to 
+stale UI. To prevent 
+this, by default 
+React Compiler will 
+skip memoizing this 
+component/hook. 
+However, you may see 
+issues if values 
+from this API are 
+passed to other 
+components/hooks 
+that are memoized.
+
+C:\Users\faiza\Worksp
+ace\edris-lms-fyp\app
+\teacher\courses\[cou
+rseId]\[chapterId]\[l
+essonId]\assignment\_
+components\Assignment
+Editor.tsx:118:31
+  116 |              
+     <Switch
+  117 |              
+       
+id="always-open"
+> 118 |              
+       checked={!form
+.watch("dueDate")}
+      |              
+                 
+^^^^ React Hook 
+Form's `useForm()` 
+API returns a 
+`watch()` function 
+which cannot be 
+memoized safely.
+  119 |              
+       onCheckedChang
+e={(checked) => {
+  120 |              
+         if 
+(checked) {
+  121 |              
+           form.setVa
+lue("dueDate", 
+undefined);  react-ho
+oks/incompatible-libr
+ary
+
+info  - Need to 
+disable some ESLint 
+rules? Learn more 
+here: https://nextjs.
+org/docs/app/api-refe
+rence/config/eslint#d
+isabling-rules

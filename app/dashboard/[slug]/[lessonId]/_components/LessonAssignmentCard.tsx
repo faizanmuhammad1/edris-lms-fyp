@@ -50,7 +50,7 @@ export function LessonAssignmentCard({
   const [fileSize, setFileSize] = useState<number>(0);
   const [mimeType, setMimeType] = useState<string>("");
   const [textAnswer, setTextAnswer] = useState<string>("");
-  const [uploading, setUploading] = useState(false);
+
 
   const mySubmission = assignment.submissions[0] ?? null;
 

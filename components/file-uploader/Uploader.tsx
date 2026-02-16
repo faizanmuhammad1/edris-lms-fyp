@@ -171,7 +171,7 @@ export function Uploader({ onChange, value, fileTypeAccepted, className, onUploa
         toast.error("Something went wrong");
       }
     },
-    [onChange]
+    [onChange, onUploadSuccess]
   );
 
   const onDrop = useCallback(

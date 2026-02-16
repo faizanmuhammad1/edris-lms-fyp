@@ -164,6 +164,14 @@ export function CourseContent({ data, comments }: iAppProps) {
                       startedAt: attempt.startedAt,
                       submittedAt: attempt.submittedAt,
                       isCompleted: attempt.isCompleted,
+                      tabSwitchCount: attempt.tabSwitchCount,
+                      backButtonCount: attempt.backButtonCount,
+                      windowBlurCount: attempt.windowBlurCount,
+                      visibilityChangeCount: attempt.visibilityChangeCount,
+                      copyAttemptCount: attempt.copyAttemptCount,
+                      pasteAttemptCount: attempt.pasteAttemptCount,
+                      rightClickCount: attempt.rightClickCount,
+                      devToolsAttemptCount: attempt.devToolsAttemptCount,
                     }))}
                     onStartQuiz={() => {
                       const quizUrl = `/dashboard/${data.Chapter.Course.slug}/${data.id}/quiz`;

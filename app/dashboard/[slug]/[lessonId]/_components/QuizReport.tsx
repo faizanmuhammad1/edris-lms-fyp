@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, Clock, ExternalLink, BarChart3, AlertTriangle, ShieldAlert } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, ExternalLink, BarChart3, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
