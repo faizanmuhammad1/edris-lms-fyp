@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     try {
         const data = JSON.parse(rawBody);
-        const { lesson_id, status, transcript, segments, job_id } = data;
+        const { lesson_id, status, transcript, segments } = data;
 
         if (status === "completed") {
             await prisma.lesson.update({
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
                     transcriptionStatus: "COMPLETED",
                 },
             });
-            console.log(`Transcription completed for lesson ${lesson_id} (job ${job_id})`);
+
 
             // Auto-generate video summary in the background (don't block the webhook response)
             generateLessonSummary(lesson_id).catch((err) =>

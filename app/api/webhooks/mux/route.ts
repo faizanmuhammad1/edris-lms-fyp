@@ -58,7 +58,7 @@ export async function POST(request: Request) {
                     },
                 });
 
-                console.log(`Mux asset ${assetId} is ready`);
+
                 break;
             }
 
