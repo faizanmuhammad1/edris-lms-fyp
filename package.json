@@ -14,6 +14,7 @@
     "add:quizzes": "tsx scripts/add-quizzes.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.29",
     "@arcjet/inspect": "1.0.0-beta.8",
     "@arcjet/ip": "1.0.0-beta.8",
     "@arcjet/next": "1.0.0-beta.8",
@@ -53,6 +54,7 @@
     "@tiptap/react": "^2.14.0",
     "@tiptap/starter-kit": "^2.14.0",
     "@vidstack/react": "^1.12.13",
+    "ai": "^6.0.86",
     "better-auth": "^1.2.8",
     "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.1",

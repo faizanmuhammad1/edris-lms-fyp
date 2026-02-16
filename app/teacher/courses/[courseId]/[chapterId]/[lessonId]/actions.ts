@@ -152,3 +152,23 @@ export async function deleteLessonAttachment(attachmentId: string): Promise<ApiR
   }
 }
 
+export async function regenerateSummary(lessonId: string): Promise<ApiResponse> {
+  await requireTeacher();
+
+  try {
+    const { generateLessonSummary } = await import("@/lib/generate-summary");
+    await generateLessonSummary(lessonId);
+
+    return {
+      status: "success",
+      message: "Summary generated successfully",
+    };
+  } catch (error) {
+    console.error("Failed to generate summary:", error);
+    return {
+      status: "error",
+      message: "Failed to generate summary",
+    };
+  }
+}
+

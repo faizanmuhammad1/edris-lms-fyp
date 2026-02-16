@@ -24,6 +24,7 @@ export async function getTeacherLesson(lessonId: string) {
       videoKey: true,
       muxPlaybackId: true,
       muxStatus: true,
+      transcriptionStatus: true,
       position: true,
       chapterId: true,
       lessonType: true,

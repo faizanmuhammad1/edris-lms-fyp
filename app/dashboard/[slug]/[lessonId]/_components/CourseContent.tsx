@@ -4,7 +4,7 @@ import { LessonContentType } from "@/app/data/course/get-lesson-content";
 import { RenderDescription } from "@/components/rich-text-editor/RenderDescription";
 import { Button } from "@/components/ui/button";
 import { tryCatch } from "@/hooks/try-catch";
-import { CheckCircle, Lock, Loader2, FileText } from "lucide-react";
+import { CheckCircle, Lock, Loader2 } from "lucide-react";
 import { useCallback, useRef, useTransition } from "react";
 import { markLessonComplete } from "../actions";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ import {
 import { LessonPdfViewer } from "./LessonPdfViewer";
 import { LessonAttachmentsList } from "./LessonAttachmentsList";
 import { LessonAssignmentCard } from "./LessonAssignmentCard";
+import { LiveLessonSummary } from "@/components/dashboard/LiveLessonSummary";
 
 interface iAppProps {
   data: LessonContentType;
@@ -119,19 +120,7 @@ export function CourseContent({ data, comments }: iAppProps) {
         )}
 
         {/* Video Summary */}
-        {data.videoSummary && (
-          <div className="rounded-xl border border-border/60 bg-card/50 p-5">
-            <div className="flex items-center gap-2.5 mb-3">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <FileText className="size-4 text-primary" />
-              </div>
-              <h3 className="font-semibold text-sm text-foreground">Lesson Summary</h3>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {data.videoSummary}
-            </p>
-          </div>
-        )}
+        {data.videoSummary && <LiveLessonSummary key={data.videoSummary} summary={data.videoSummary} />}
 
         {/* Description Section */}
         {data.description && (

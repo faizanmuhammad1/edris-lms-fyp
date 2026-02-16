@@ -27,12 +27,13 @@ import { RichTextEditor } from "@/components/rich-text-editor/Editor";
 import { Uploader } from "@/components/file-uploader/Uploader";
 import { useTransition, useState, useRef } from "react";
 import { tryCatch } from "@/hooks/try-catch";
-import { updateTeacherLesson, createLessonAttachment, deleteLessonAttachment } from "../actions";
+import { updateTeacherLesson, createLessonAttachment, deleteLessonAttachment, regenerateSummary } from "../actions";
 import { VideoPlayer } from "@/components/dashboard/VideoPlayer";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Wand2 } from "lucide-react";
 
 function AddAttachmentButton({
   lessonId,
@@ -112,6 +113,8 @@ interface iAppProps {
 export function TeacherLessonForm({ chapterId, data, courseId }: iAppProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [summaryPending, startSummaryTransition] = useTransition();
+
   const [isDeleting, setIsDeleting] = useState(false);
   const [attachmentUploading, setAttachmentUploading] = useState(false);
   const form = useForm<LessonSchemaType>({
@@ -149,6 +152,20 @@ export function TeacherLessonForm({ chapterId, data, courseId }: iAppProps) {
       }
     });
   }
+
+  function onRegenerateSummary() {
+    startSummaryTransition(async () => {
+      const { status, message } = await regenerateSummary(data.id);
+
+      if (status === "success") {
+        toast.success(message);
+        router.refresh();
+      } else {
+        toast.error(message);
+      }
+    });
+  }
+
   return (
     <div>
       <Link
@@ -162,10 +179,29 @@ export function TeacherLessonForm({ chapterId, data, courseId }: iAppProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Lesson Configuration</CardTitle>
-          <CardDescription>
-            Configure the video, PDF, resources, and description for this lesson.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Lesson Configuration</CardTitle>
+              <CardDescription>
+                Configure the video, PDF, resources, and description for this lesson.
+              </CardDescription>
+            </div>
+            {data.transcriptionStatus === "COMPLETED" && (
+              <Button
+                onClick={onRegenerateSummary}
+                variant="outline"
+                disabled={summaryPending}
+                type="button"
+              >
+                {summaryPending ? (
+                  <Loader2 className="size-4 animate-spin mr-2" />
+                ) : (
+                  <Wand2 className="size-4 mr-2" />
+                )}
+                Regenerate Summary
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <Form {...form}>

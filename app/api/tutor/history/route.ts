@@ -90,3 +90,35 @@ export async function GET(req: NextRequest) {
     hasMore,
   });
 }
+
+export async function DELETE(req: NextRequest) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const lessonId = req.nextUrl.searchParams.get("lessonId");
+  if (!lessonId) {
+    return NextResponse.json(
+      { error: "lessonId query param is required" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    await prisma.tutorChat.deleteMany({
+      where: {
+        userId: session.user.id,
+        lessonId,
+      },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Failed to clear chat history:", error);
+    return NextResponse.json(
+      { error: "Failed to clear chat history" },
+      { status: 500 }
+    );
+  }
+}
