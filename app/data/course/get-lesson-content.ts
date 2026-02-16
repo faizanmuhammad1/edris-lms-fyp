@@ -22,6 +22,8 @@ export async function getLessonContent(lessonId: string) {
       lessonType: true,
       pdfKey: true,
       pdfFileName: true,
+      transcriptionStatus: true,
+      videoSummary: true,
       attachments: {
         orderBy: { position: "asc" },
         select: {
@@ -48,9 +50,11 @@ export async function getLessonContent(lessonId: string) {
       Chapter: {
         select: {
           courseId: true,
+          title: true,
           Course: {
             select: {
               slug: true,
+              title: true,
             },
           },
         },

@@ -22,6 +22,7 @@ export const env = createEnv({
     MUX_WEBHOOK_SECRET: z.string().min(1),
     MUX_SIGNING_KEY_ID: z.string().min(1),
     MUX_SIGNING_PRIVATE_KEY: z.string().min(1),
+    OPENAI_API_KEY: z.string().min(1),
   },
 
   client: {

@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useCallback,
+  useState,
+  useImperativeHandle,
+  forwardRef,
+} from "react";
 import {
   MediaPlayer,
   MediaProvider,
@@ -15,6 +22,10 @@ import { useConstructUrl } from "@/hooks/use-construct-url";
 import { saveVideoProgress } from "@/app/dashboard/[slug]/[lessonId]/actions";
 import { BookIcon, Loader2Icon, ShieldAlertIcon } from "lucide-react";
 
+export interface VideoPlayerHandle {
+  seekTo: (seconds: number) => void;
+}
+
 interface VideoPlayerProps {
   lessonId: string;
   videoKey: string;
@@ -26,17 +37,24 @@ interface VideoPlayerProps {
   muxPlaybackId?: string | null;
   /** Callback when video finishes playing */
   onComplete?: () => void;
+  /** Fires with the current playback time (seconds) on every time update */
+  onCurrentTimeUpdate?: (currentTime: number) => void;
 }
 
-export function VideoPlayer({
-  lessonId,
-  videoKey,
-  thumbnailKey,
-  startTime = 0,
-  trackProgress = true,
-  muxPlaybackId,
-  onComplete,
-}: VideoPlayerProps) {
+export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
+  function VideoPlayer(
+    {
+      lessonId,
+      videoKey,
+      thumbnailKey,
+      startTime = 0,
+      trackProgress = true,
+      muxPlaybackId,
+      onComplete,
+      onCurrentTimeUpdate,
+    },
+    ref
+  ) {
   const s3VideoUrl = useConstructUrl(videoKey);
   const s3ThumbnailUrl = useConstructUrl(thumbnailKey);
 
@@ -50,6 +68,15 @@ export function VideoPlayer({
   const lastSavedTime = useRef(0);
   const watchedDurationRef = useRef(0);
   const hasInitialized = useRef(false);
+  const lastEmittedTimeRef = useRef(0);
+
+  useImperativeHandle(ref, () => ({
+    seekTo(seconds: number) {
+      if (playerRef.current) {
+        playerRef.current.currentTime = seconds;
+      }
+    },
+  }));
 
   // Fetch signed URL from server when muxPlaybackId is available
   useEffect(() => {
@@ -123,9 +150,16 @@ export function VideoPlayer({
   // Debounced save on time update (every ~10 seconds of playback)
   const handleTimeUpdate = useCallback(
     (detail: { currentTime: number; played: TimeRanges }) => {
+      const { currentTime } = detail;
+
+      // Throttle timestamp updates to at most once per second
+      if (currentTime - lastEmittedTimeRef.current >= 1) {
+        lastEmittedTimeRef.current = currentTime;
+        onCurrentTimeUpdate?.(currentTime);
+      }
+
       if (!trackProgress) return;
 
-      const { currentTime } = detail;
       watchedDurationRef.current += 0.25; // rough increment per event
 
       if (Math.abs(currentTime - lastSavedTime.current) >= 10) {
@@ -136,7 +170,7 @@ export function VideoPlayer({
         }
       }
     },
-    [trackProgress, persistProgress]
+    [trackProgress, persistProgress, onCurrentTimeUpdate]
   );
 
   // Save on pause
@@ -272,4 +306,4 @@ export function VideoPlayer({
       />
     </MediaPlayer>
   );
-}
+});

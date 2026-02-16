@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyTranscriptionSignature } from "@/lib/transcription";
+import { generateLessonSummary } from "@/lib/generate-summary";
 
 export async function POST(req: NextRequest) {
     const signature = req.headers.get("X-Signature");
@@ -31,6 +32,11 @@ export async function POST(req: NextRequest) {
                 },
             });
             console.log(`Transcription completed for lesson ${lesson_id} (job ${job_id})`);
+
+            // Auto-generate video summary in the background (don't block the webhook response)
+            generateLessonSummary(lesson_id).catch((err) =>
+                console.error(`Failed to generate summary for lesson ${lesson_id}:`, err)
+            );
         }
 
         return NextResponse.json({ received: true });

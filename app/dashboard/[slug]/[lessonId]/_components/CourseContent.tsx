@@ -4,8 +4,8 @@ import { LessonContentType } from "@/app/data/course/get-lesson-content";
 import { RenderDescription } from "@/components/rich-text-editor/RenderDescription";
 import { Button } from "@/components/ui/button";
 import { tryCatch } from "@/hooks/try-catch";
-import { CheckCircle, Lock, Loader2 } from "lucide-react";
-import { useTransition } from "react";
+import { CheckCircle, Lock, Loader2, FileText } from "lucide-react";
+import { useCallback, useRef, useTransition } from "react";
 import { markLessonComplete } from "../actions";
 import { toast } from "sonner";
 import { useConfetti } from "@/hooks/use-confetti";
@@ -16,7 +16,10 @@ import { useRouter } from "next/navigation";
 import { CommentWithReplies } from "@/app/actions/comments";
 import { CommentSection } from "@/components/general/CommentSection";
 import { LessonChatbot } from "@/components/dashboard/LessonChatbot";
-import { VideoPlayer } from "@/components/dashboard/VideoPlayer";
+import {
+  VideoPlayer,
+  type VideoPlayerHandle,
+} from "@/components/dashboard/VideoPlayer";
 import { LessonPdfViewer } from "./LessonPdfViewer";
 import { LessonAttachmentsList } from "./LessonAttachmentsList";
 import { LessonAssignmentCard } from "./LessonAssignmentCard";
@@ -30,6 +33,18 @@ export function CourseContent({ data, comments }: iAppProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const { triggerConfetti } = useConfetti();
+  const videoTimestampRef = useRef(0);
+  const videoPlayerRef = useRef<VideoPlayerHandle>(null);
+
+  const handleVideoTimeUpdate = useCallback((currentTime: number) => {
+    videoTimestampRef.current = currentTime;
+  }, []);
+
+  const getVideoTimestamp = useCallback(() => videoTimestampRef.current, []);
+
+  const handleSeekVideo = useCallback((seconds: number) => {
+    videoPlayerRef.current?.seekTo(seconds);
+  }, []);
 
   function onSubmit() {
     startTransition(async () => {
@@ -91,13 +106,30 @@ export function CourseContent({ data, comments }: iAppProps) {
         {showVideo && (
           <div className="space-y-4">
             <VideoPlayer
+              ref={videoPlayerRef}
               lessonId={data.id}
               videoKey={data.videoKey ?? ""}
               thumbnailKey={data.thumbnailKey ?? ""}
               startTime={data.lessonProgress[0]?.lastWatchedPosition ?? 0}
               muxPlaybackId={data.muxStatus === "ready" ? data.muxPlaybackId : null}
               onComplete={onSubmit}
+              onCurrentTimeUpdate={handleVideoTimeUpdate}
             />
+          </div>
+        )}
+
+        {/* Video Summary */}
+        {data.videoSummary && (
+          <div className="rounded-xl border border-border/60 bg-card/50 p-5">
+            <div className="flex items-center gap-2.5 mb-3">
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <FileText className="size-4 text-primary" />
+              </div>
+              <h3 className="font-semibold text-sm text-foreground">Lesson Summary</h3>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {data.videoSummary}
+            </p>
           </div>
         )}
 
@@ -235,7 +267,12 @@ export function CourseContent({ data, comments }: iAppProps) {
           <CommentSection lessonId={data.id} comments={comments} />
         </div>
       </div>
-      <LessonChatbot />
+      <LessonChatbot
+        lessonId={data.id}
+        getVideoTimestamp={getVideoTimestamp}
+        hasTranscript={data.transcriptionStatus === "COMPLETED"}
+        onSeekVideo={handleSeekVideo}
+      />
     </div>
   );
 }
