@@ -1,2 +1,0 @@
-﻿app/dashboard/[slug]/[lessonId]/_components/CourseContent.tsx(160,21): error TS2322: Type '{ id: string; score: number | null; timeSpent: number | null; startedAt: Date; submittedAt: Date | null; isCompleted: boolean; }[]' is not assignable to type 'QuizAttempt[]'.
-  Type '{ id: string; score: number | null; timeSpent: number | null; startedAt: Date; submittedAt: Date | null; isCompleted: boolean; }' is missing the following properties from type 'QuizAttempt': tabSwitchCount, backButtonCount, windowBlurCount, visibilityChangeCount, and 4 more.
