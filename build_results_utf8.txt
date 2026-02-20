@@ -1,0 +1,165 @@
+﻿
+> edris-lms@0.1.0 build C:\Users\faiza\Workspace\edris-lms-fyp
+> next build
+
+   Γû▓ Next.js 15.3.8
+   - Environments: .env.local, .env
+
+   Creating an optimized production build ...
+pnpm : <w> [webpack.cac
+he.PackFileCacheStrateg
+y] Serializing big 
+strings (128kiB) 
+impacts 
+deserialization 
+performance (consider 
+using Buffer instead 
+and decode when needed)
+At line:1 char:1
++ pnpm build > 
+build_results.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (<w> [webpack.   
+ ca...de when neede    
+d):String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+ Γ£ô Compiled successfully in 35.0s
+   Linting and checking validity of types ...
+
+./app/teacher/courses/[courseId]/[chapterId]/[lessonId]/assignment/_components/AssignmentEditor.tsx
+118:31  Warning: Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+C:\Users\faiza\Workspace\edris-lms-fyp\app\teacher\courses\[courseId]\[chapterId]\[lessonId]\assignment\_components\AssignmentEditor.tsx:118:31
+  116 |                   <Switch
+  117 |                     id="always-open"
+> 118 |                     checked={!form.watch("dueDate")}
+      |                               ^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  119 |                     onCheckedChange={(checked) => {
+  120 |                       if (checked) {
+  121 |                         form.setValue("dueDate", undefined);  react-hooks/incompatible-library
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+   Collecting page data ...
+   Generating static pages (0/65) ...
+   Generating static pages (16/65) 
+   Generating static pages (32/65) 
+   Generating static pages (48/65) 
+ Γ£ô Generating static pages (65/65)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                                           Size  First Load JS
+Γöî ╞Æ /                                                              16.1 kB         172 kB
+Γö£ Γùï /_not-found                                                      213 B         103 kB
+Γö£ ╞Æ /about                                                         5.44 kB         125 kB
+Γö£ ╞Æ /accessibility                                                 2.45 kB         113 kB
+Γö£ ╞Æ /admin                                                           199 B         106 kB
+Γö£ ╞Æ /admin/analytics                                                110 kB         227 kB
+Γö£ ╞Æ /admin/communities                                               199 B         106 kB
+Γö£ ╞Æ /admin/communities/[slug]                                        170 B         174 kB
+Γö£ ╞Æ /admin/communities/[slug]/forum                                2.87 kB         134 kB
+Γö£ ╞Æ /admin/communities/[slug]/forum/[postId]                       5.12 kB         128 kB
+Γö£ ╞Æ /admin/communities/create                                      5.33 kB         153 kB
+Γö£ ╞Æ /admin/courses                                                 6.58 kB         171 kB
+Γö£ ╞Æ /admin/courses/[courseId]/[chapterId]/[lessonId]               9.25 kB         294 kB
+Γö£ ╞Æ /admin/courses/[courseId]/delete                               4.06 kB         127 kB
+Γö£ ╞Æ /admin/courses/[courseId]/edit                                 5.64 kB         339 kB
+Γö£ ╞Æ /admin/courses/create                                            460 B         318 kB
+Γö£ ╞Æ /admin/mail                                                      748 B         115 kB
+Γö£ ╞Æ /admin/mail/compose                                              191 B         262 kB
+Γö£ ╞Æ /admin/mail/compose/[campaignId]                                 191 B         262 kB
+Γö£ ╞Æ /admin/settings                                                7.15 kB         129 kB
+Γö£ ╞Æ /admin/student-progress                                        3.43 kB         139 kB
+Γö£ ╞Æ /admin/support                                                 3.63 kB         169 kB
+Γö£ ╞Æ /admin/support/[ticketId]                                      3.21 kB         189 kB
+Γö£ ╞Æ /admin/teachers                                                7.17 kB         166 kB
+Γö£ ╞Æ /admin/users                                                   4.42 kB         169 kB
+Γö£ ╞Æ /api/admin/export                                                213 B         103 kB
+Γö£ ╞Æ /api/assignment-submissions/signed-url                           213 B         103 kB
+Γö£ ╞Æ /api/auth/[...all]                                               213 B         103 kB
+Γö£ ╞Æ /api/backfill-summaries                                          213 B         103 kB
+Γö£ ╞Æ /api/lesson-files/signed-url                                     213 B         103 kB
+Γö£ ╞Æ /api/mux/asset                                                   213 B         103 kB
+Γö£ ╞Æ /api/mux/signed-url                                              213 B         103 kB
+Γö£ ╞Æ /api/s3/delete                                                   213 B         103 kB
+Γö£ ╞Æ /api/s3/upload                                                   213 B         103 kB
+Γö£ ╞Æ /api/s3/upload-direct                                            213 B         103 kB
+Γö£ ╞Æ /api/tutor/chat                                                  213 B         103 kB
+Γö£ ╞Æ /api/tutor/history                                               213 B         103 kB
+Γö£ ╞Æ /api/video-progress                                              213 B         103 kB
+Γö£ ╞Æ /api/webhook/stripe                                              213 B         103 kB
+Γö£ ╞Æ /api/webhooks/mux                                                213 B         103 kB
+Γö£ ╞Æ /api/webhooks/transcription                                      213 B         103 kB
+Γö£ ╞Æ /blog                                                          4.63 kB         118 kB
+Γö£ ╞Æ /confirm-subscription                                            213 B         103 kB
+Γö£ ╞Æ /contact                                                       5.95 kB         131 kB
+Γö£ ╞Æ /cookies                                                       2.48 kB         113 kB
+Γö£ ╞Æ /courses                                                         192 B         111 kB
+Γö£ ╞Æ /courses/[slug]                                                8.49 kB         413 kB
+Γö£ ╞Æ /dashboard                                                     6.27 kB         138 kB
+Γö£ ╞Æ /dashboard/[slug]                                              4.92 kB         268 kB
+Γö£ ╞Æ /dashboard/[slug]/[lessonId]                                   64.7 kB         525 kB
+Γö£ ╞Æ /dashboard/[slug]/[lessonId]/quiz                               7.2 kB         135 kB
+Γö£ ╞Æ /dashboard/[slug]/certificate                                    199 B         106 kB
+Γö£ ╞Æ /dashboard/certificates                                          176 B         106 kB
+Γö£ ╞Æ /dashboard/forum                                               4.07 kB         156 kB
+Γö£ ╞Æ /dashboard/forum/[communityId]                                  5.6 kB         185 kB
+Γö£ ╞Æ /dashboard/forum/[communityId]/[postId]                        1.92 kB         142 kB
+Γö£ ╞Æ /dashboard/settings                                            5.65 kB         125 kB
+Γö£ ╞Æ /dashboard/support                                              3.8 kB         169 kB
+Γö£ ╞Æ /dashboard/support/[ticketId]                                    171 B         170 kB
+Γö£ ╞Æ /dashboard/support/new                                           170 B         171 kB
+Γö£ Γùï /icon.png                                                          0 B            0 B
+Γö£ ╞Æ /login                                                         4.64 kB         135 kB
+Γö£ Γùï /not-admin                                                       199 B         106 kB
+Γö£ Γùï /payment/cancel                                                  199 B         106 kB
+Γö£ ╞Æ /payment/success                                               4.26 kB         119 kB
+Γö£ ╞Æ /privacy                                                       2.63 kB         113 kB
+Γö£ ╞Æ /profile-setup                                                 4.42 kB         124 kB
+Γö£ ╞Æ /teach                                                         6.33 kB         140 kB
+Γö£ ╞Æ /teacher                                                         192 B         111 kB
+Γö£ ╞Æ /teacher/analytics                                             3.42 kB         117 kB
+Γö£ ╞Æ /teacher/communities                                             199 B         106 kB
+Γö£ ╞Æ /teacher/communities/[slug]                                      171 B         174 kB
+Γö£ ╞Æ /teacher/communities/[slug]/forum                              1.71 kB         161 kB
+Γö£ ╞Æ /teacher/communities/[slug]/forum/[postId]                     2.35 kB         142 kB
+Γö£ ╞Æ /teacher/communities/create                                    4.27 kB         182 kB
+Γö£ ╞Æ /teacher/courses                                                7.7 kB         169 kB
+Γö£ ╞Æ /teacher/courses/[courseId]/[chapterId]/[lessonId]              7.6 kB         408 kB
+Γö£ ╞Æ /teacher/courses/[courseId]/[chapterId]/[lessonId]/assignment   7.9 kB         283 kB
+Γö£ ╞Æ /teacher/courses/[courseId]/[chapterId]/[lessonId]/quiz        9.71 kB         166 kB
+Γö£ ╞Æ /teacher/courses/[courseId]/edit                               6.99 kB         340 kB
+Γö£ ╞Æ /teacher/courses/create                                          464 B         318 kB
+Γö£ ╞Æ /teacher/quiz-attempts                                           213 B         103 kB
+Γö£ ╞Æ /teacher/quizzes                                                 199 B         106 kB
+Γö£ ╞Æ /teacher/reviews                                               5.35 kB         125 kB
+Γö£ ╞Æ /teacher/settings                                                 4 kB         117 kB
+Γö£ ╞Æ /teacher/student-progress                                      5.67 kB         173 kB
+Γö£ ╞Æ /teacher/students                                               7.7 kB         159 kB
+Γö£ ╞Æ /teacher/support                                               7.57 kB         173 kB
+Γö£ ╞Æ /teacher/support/[ticketId]                                      171 B         170 kB
+Γö£ ╞Æ /teacher/support/new                                             171 B         171 kB
+Γö£ ╞Æ /terms                                                         2.62 kB         113 kB
+Γö£ ╞Æ /unsubscribe                                                   3.45 kB         114 kB
+Γö£ Γùï /verification                                                  6.22 kB         154 kB
+Γöö Γùï /verify-request                                                7.08 kB         138 kB
++ First Load JS shared by all                                       102 kB
+  Γö£ chunks/3062-108bcd078c027d46.js                                46.8 kB
+  Γö£ chunks/75e55187-396e2e578f51aff0.js                            53.2 kB
+  Γöö other shared chunks (total)                                    2.28 kB
+
+
+╞Æ Middleware                                                         87 kB
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+

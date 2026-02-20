@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { assignmentSchema, type AssignmentSchemaType } from "@/lib/zodSchemas";
 import { createOrUpdateAssignment } from "../actions";
@@ -53,6 +53,11 @@ export function AssignmentEditor({
       allowFile: assignment?.allowFile ?? true,
       allowText: assignment?.allowText ?? false,
     },
+  });
+
+  const dueDate = useWatch({
+    control: form.control,
+    name: "dueDate",
   });
 
   function onSubmit(values: AssignmentSchemaType) {
@@ -115,7 +120,7 @@ export function AssignmentEditor({
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="always-open"
-                    checked={!form.watch("dueDate")}
+                    checked={!dueDate}
                     onCheckedChange={(checked) => {
                       if (checked) {
                         form.setValue("dueDate", undefined);
@@ -131,7 +136,7 @@ export function AssignmentEditor({
                 </div>
               </div>
 
-              {form.watch("dueDate") !== undefined && (
+              {dueDate !== undefined && (
                 <FormField
                   control={form.control}
                   name="dueDate"

@@ -1,0 +1,74 @@
+﻿
+> edris-lms@0.1.0 build C:\Users\faiza\Workspace\edris-lms-fyp
+> next build
+
+   Γû▓ Next.js 15.3.8
+   - Environments: .env.local, .env
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 30.0s
+   Linting and checking validity of types ...
+pnpm : Failed to 
+compile.
+At line:1 char:1
++ pnpm build > final_bu
+ild_results.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (Failed to com   
+ pile.:String) [],     
+RemoteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+
+./app/teacher/courses/[
+courseId]/[chapterId]/[
+lessonId]/assignment/_c
+omponents/AssignmentEdi
+tor.tsx:44:15
+Type error: Cannot 
+find name 
+'zodResolver'.
+
+[0m [90m 42 
+|[39m[0m
+[0m [90m 43 |[39m   
+[36mconst[39m form 
+[33m=[39m useForm[33
+m<[39m[33mAssignmentS
+chemaType[39m[33m>[3
+9m({[0m
+[0m[31m[1m>[22m[39
+m[90m 44 |[39m     
+resolver[33m:[39m zod
+Resolver(assignmentSche
+ma)[33m,[39m[0m
+[0m [90m    |[39m   
+            [31m[1m^
+[22m[39m[0m
+[0m [90m 45 |[39m   
+  defaultValues[33m:[
+39m {[0m
+[0m [90m 46 |[39m   
+    title[33m:[39m as
+signment[33m?[39m[33
+m.[39mtitle 
+[33m?[39m[33m?[39m 
+[32m"Assignment"[39m
+[33m,[39m[0m
+[0m [90m 47 |[39m   
+    
+description[33m:[39m 
+assignment[33m?[39m[
+33m.[39mdescription 
+[33m?[39m[33m?[39m 
+undefined[33m,[39m[0
+m
+Next.js build worker 
+exited with code: 1 
+and signal: null
+ΓÇëELIFECYCLEΓÇë Command failed with exit code 1.
