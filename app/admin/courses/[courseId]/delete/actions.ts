@@ -53,6 +53,17 @@ export async function deleteCourse(courseId: string): Promise<ApiResponse> {
                 videoKey: true,
                 thumbnailKey: true,
                 muxAssetId: true,
+                pdfKey: true,
+                attachments: {
+                  select: { fileKey: true }
+                },
+                assignment: {
+                  select: {
+                    submissions: {
+                      select: { fileKey: true }
+                    }
+                  }
+                }
               },
             },
           },
@@ -81,6 +92,16 @@ export async function deleteCourse(courseId: string): Promise<ApiResponse> {
       chapter.lessons.forEach((lesson) => {
         if (lesson.videoKey) keysToDelete.push(lesson.videoKey);
         if (lesson.thumbnailKey) keysToDelete.push(lesson.thumbnailKey);
+        if (lesson.pdfKey) keysToDelete.push(lesson.pdfKey);
+
+        lesson.attachments?.forEach((att) => {
+          if (att.fileKey) keysToDelete.push(att.fileKey);
+        });
+
+        lesson.assignment?.submissions?.forEach((sub) => {
+          if (sub.fileKey) keysToDelete.push(sub.fileKey);
+        });
+
         if (lesson.muxAssetId) muxAssetIds.push(lesson.muxAssetId);
       });
     });
@@ -108,8 +129,8 @@ export async function deleteCourse(courseId: string): Promise<ApiResponse> {
       status: "success",
       message: "Course deleted successfully",
     };
-  } catch {
-
+  } catch (err) {
+    console.error("[deleteCourse] Error deleting course:", err);
     return {
       status: "error",
       message: "Failed to delete Course!",
