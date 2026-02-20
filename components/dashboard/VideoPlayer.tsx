@@ -20,7 +20,8 @@ import {
 } from "@vidstack/react/player/layouts/default";
 import { useConstructUrl } from "@/hooks/use-construct-url";
 import { saveVideoProgress } from "@/app/dashboard/[slug]/[lessonId]/actions";
-import { BookIcon, Loader2Icon, ShieldAlertIcon } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { BookIcon, Loader2Icon, ShieldAlertIcon, AlertCircleIcon } from "lucide-react";
 
 export interface VideoPlayerHandle {
   seekTo: (seconds: number) => void;
@@ -35,6 +36,8 @@ interface VideoPlayerProps {
   trackProgress?: boolean;
   /** Mux playback ID for secure streaming (preferred over direct S3) */
   muxPlaybackId?: string | null;
+  /** Mux asset status; when "errored", show "Video processing failed" instead of silent S3 fallback */
+  muxStatus?: string | null;
   /** Callback when video finishes playing */
   onComplete?: () => void;
   /** Fires with the current playback time (seconds) on every time update */
@@ -50,6 +53,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       startTime = 0,
       trackProgress = true,
       muxPlaybackId,
+      muxStatus,
       onComplete,
       onCurrentTimeUpdate,
     },
@@ -274,7 +278,18 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     );
   }
 
+  const showMuxErroredBanner = muxStatus === "errored";
+
   return (
+    <div className="space-y-3">
+      {showMuxErroredBanner && (
+        <Alert variant="destructive" className="rounded-lg">
+          <AlertCircleIcon className="size-4" />
+          <AlertDescription>
+            Video processing failed. {videoKey ? "Playing from backup source." : ""}
+          </AlertDescription>
+        </Alert>
+      )}
     <MediaPlayer
       ref={playerRef}
       src={videoSrc}
@@ -305,5 +320,6 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         seekStep={10}
       />
     </MediaPlayer>
+    </div>
   );
 });

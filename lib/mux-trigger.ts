@@ -39,6 +39,19 @@ export async function triggerMuxAssetCreation(
     videoKey: string
 ): Promise<void> {
     try {
+        // Presigned URLs must target the same storage as uploads. If you use Tigris, set AWS_ENDPOINT_URL_S3.
+        if (!env.AWS_ENDPOINT_URL_S3) {
+            console.error(
+                "[Mux] AWS_ENDPOINT_URL_S3 is not set. Set it so Mux can fetch the video: " +
+                    "Tigris on Fly use https://fly.storage.tigris.dev, Tigris elsewhere use https://t3.storage.dev"
+            );
+            await prisma.lesson.update({
+                where: { id: lessonId },
+                data: { muxStatus: "errored" },
+            }).catch(() => {});
+            return;
+        }
+
         // Check if this lesson already has a Mux asset (avoid duplicates)
         const existingLesson = await prisma.lesson.findUnique({
             where: { id: lessonId },
@@ -65,7 +78,8 @@ export async function triggerMuxAssetCreation(
             `[Mux] Creating asset for lesson ${lessonId}, video: ${videoKey}`
         );
 
-        // Generate a presigned URL so Mux can fetch the video from Tigris S3
+        // Generate a presigned URL so Mux can fetch the video from S3 (Tigris or AWS).
+        // S3 client must use the same endpoint as uploads (e.g. AWS_ENDPOINT_URL_S3 for Tigris).
         const command = new GetObjectCommand({
             Bucket: env.NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES,
             Key: videoKey,
@@ -99,10 +113,24 @@ export async function triggerMuxAssetCreation(
             console.warn("[Mux] Polling failed:", err)
         );
     } catch (error) {
+        const err = error as Error & { body?: unknown; data?: unknown; response?: { body?: unknown } };
+        const detail =
+            err.body ?? err.data ?? err.response?.body ?? err.message ?? String(error);
         console.error(
             `[Mux] Failed to create asset for lesson ${lessonId}:`,
-            error
+            err.message ?? error,
+            "detail:",
+            typeof detail === "object" ? JSON.stringify(detail) : detail
         );
+        // Mark lesson as errored so UI shows "Video processing failed" instead of silent fallback
+        try {
+            await prisma.lesson.update({
+                where: { id: lessonId },
+                data: { muxStatus: "errored" },
+            });
+        } catch (updateErr) {
+            console.warn("[Mux] Failed to update lesson muxStatus to errored:", updateErr);
+        }
     }
 }
 

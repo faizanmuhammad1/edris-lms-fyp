@@ -113,6 +113,7 @@ export function CourseContent({ data, comments }: iAppProps) {
               thumbnailKey={data.thumbnailKey ?? ""}
               startTime={data.lessonProgress[0]?.lastWatchedPosition ?? 0}
               muxPlaybackId={data.muxStatus === "ready" ? data.muxPlaybackId : null}
+              muxStatus={data.muxStatus ?? undefined}
               onComplete={onSubmit}
               onCurrentTimeUpdate={handleVideoTimeUpdate}
             />

@@ -86,7 +86,15 @@ export async function POST(request: Request) {
             status: asset.status,
         });
     } catch (error) {
-        console.error("Mux asset creation error:", error);
+        const err = error as Error & { body?: unknown; data?: unknown; response?: { body?: unknown } };
+        const detail =
+            err.body ?? err.data ?? err.response?.body ?? err.message ?? String(error);
+        console.error(
+            "Mux asset creation error:",
+            err.message ?? error,
+            "detail:",
+            typeof detail === "object" ? JSON.stringify(detail) : detail
+        );
         return NextResponse.json(
             { error: "Failed to create Mux asset" },
             { status: 500 }

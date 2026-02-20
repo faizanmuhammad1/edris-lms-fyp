@@ -21,6 +21,8 @@
    - `lib/mux.ts` uses **RS256** JWT with `MUX_SIGNING_KEY_ID` and base64 `MUX_SIGNING_PRIVATE_KEY`.
    - Signed URL API ensures only authorized users (owner, enrolled, or admin) get tokens.
 
+**Required for Tigris:** Set **`AWS_ENDPOINT_URL_S3`** in `.env` so uploads and Mux presigned URLs target Tigris. Use `https://fly.storage.tigris.dev` when the app runs on Fly.io, or `https://t3.storage.dev` when running elsewhere (e.g. local or Vercel). If unset, `triggerMuxAssetCreation` will set the lesson to `muxStatus: "errored"` and log the required value.
+
 ---
 
 ## What’s in Place

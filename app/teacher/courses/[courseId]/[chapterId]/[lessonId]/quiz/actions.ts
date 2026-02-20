@@ -3,6 +3,11 @@
 import { requireTeacher } from "@/app/data/teacher/require-teacher";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import {
+  generateQuizQuestionsFromTranscript,
+  type QuizGenerateOptions,
+  type GeneratedQuestion,
+} from "@/lib/generate-quiz-questions";
 
 // -----------------------------------------------------------------------------
 // QUIZ ACTIONS
@@ -126,6 +131,47 @@ export async function createQuestion(
     return { success: true };
 }
 
+export async function updateQuestion(
+    questionId: string,
+    data: {
+        question: string;
+        points?: number;
+        options: { text: string; isCorrect: boolean }[];
+    }
+) {
+    const session = await requireTeacher();
+
+    const existing = await prisma.quizQuestion.findUnique({
+        where: { id: questionId },
+        include: { Quiz: { include: { Lesson: { include: { Chapter: { include: { Course: true } } } } } } },
+    });
+
+    if (!existing || existing.Quiz.Lesson.Chapter.Course.userId !== session.user.id) {
+        throw new Error("Unauthorized or Question not found");
+    }
+
+    await prisma.quizQuestion.update({
+        where: { id: questionId },
+        data: {
+            question: data.question,
+            points: data.points ?? 1,
+            options: {
+                deleteMany: {},
+                create: data.options.map((opt, idx) => ({
+                    text: opt.text,
+                    isCorrect: opt.isCorrect,
+                    position: idx + 1,
+                })),
+            },
+        },
+    });
+
+    revalidatePath(
+        `/teacher/courses/${existing.Quiz.Lesson.Chapter.courseId}/${existing.Quiz.Lesson.chapterId}/${existing.Quiz.lessonId}/quiz`
+    );
+    return { success: true };
+}
+
 export async function deleteQuestion(questionId: string) {
     const session = await requireTeacher();
 
@@ -170,4 +216,98 @@ export async function updateQuestionOrder(quizId: string, items: { id: string; p
     await prisma.$transaction(transaction);
     revalidatePath(`/teacher/courses/${quiz.Lesson.Chapter.courseId}/${quiz.Lesson.chapterId}/${quiz.lessonId}/quiz`);
     return { success: true };
+}
+
+// -----------------------------------------------------------------------------
+// AI QUIZ GENERATION
+// -----------------------------------------------------------------------------
+
+export type GenerateQuizQuestionsResult =
+  | { success: true; questions: GeneratedQuestion[] }
+  | { success: false; error: "NO_TRANSCRIPT" | "GENERATION_FAILED" };
+
+export async function generateQuizQuestions(
+  lessonId: string,
+  options: QuizGenerateOptions
+): Promise<GenerateQuizQuestionsResult> {
+  const session = await requireTeacher();
+
+  const lesson = await prisma.lesson.findFirst({
+    where: {
+      id: lessonId,
+      Chapter: { Course: { userId: session.user.id } },
+    },
+    select: {
+      id: true,
+      transcript: true,
+      transcriptionStatus: true,
+      chapterId: true,
+      Chapter: { select: { courseId: true } },
+    },
+  });
+
+  if (!lesson) {
+    return { success: false, error: "GENERATION_FAILED" };
+  }
+
+  if (lesson.transcriptionStatus !== "COMPLETED" || !lesson.transcript?.trim()) {
+    return { success: false, error: "NO_TRANSCRIPT" };
+  }
+
+  try {
+    const questions = await generateQuizQuestionsFromTranscript(lessonId, options);
+    return { success: true, questions };
+  } catch {
+    return { success: false, error: "GENERATION_FAILED" };
+  }
+}
+
+export async function addGeneratedQuestions(
+  quizId: string,
+  questions: GeneratedQuestion[]
+): Promise<{ success: boolean; error?: string }> {
+  const session = await requireTeacher();
+
+  const quiz = await prisma.quiz.findUnique({
+    where: { id: quizId },
+    include: { Lesson: { include: { Chapter: { include: { Course: true } } } } },
+  });
+
+  if (!quiz || quiz.Lesson.Chapter.Course.userId !== session.user.id) {
+    return { success: false, error: "Unauthorized or Quiz not found" };
+  }
+
+  if (questions.length === 0) {
+    return { success: true };
+  }
+
+  const maxPos = await prisma.quizQuestion.findFirst({
+    where: { quizId },
+    orderBy: { position: "desc" },
+    select: { position: true },
+  });
+  let nextPosition = (maxPos?.position ?? 0) + 1;
+
+  for (const q of questions) {
+    await prisma.quizQuestion.create({
+      data: {
+        quizId,
+        question: q.question,
+        points: 1,
+        position: nextPosition++,
+        options: {
+          create: q.options.map((opt, idx) => ({
+            text: opt.text,
+            isCorrect: opt.isCorrect,
+            position: idx + 1,
+          })),
+        },
+      },
+    });
+  }
+
+  revalidatePath(
+    `/teacher/courses/${quiz.Lesson.Chapter.courseId}/${quiz.Lesson.chapterId}/${quiz.lessonId}/quiz`
+  );
+  return { success: true };
 }

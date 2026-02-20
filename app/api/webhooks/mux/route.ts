@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { env } from "@/lib/env";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 
@@ -7,8 +8,8 @@ export async function POST(request: Request) {
         const rawBody = await request.text();
         const signatureHeader = request.headers.get("mux-signature") || "";
 
-        // Verify webhook signature
-        const webhookSecret = process.env.MUX_WEBHOOK_SECRET;
+        // Verify webhook signature (use validated env for consistency)
+        const webhookSecret = env.MUX_WEBHOOK_SECRET;
         if (!webhookSecret) {
             console.error("MUX_WEBHOOK_SECRET is not set");
             return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });

@@ -117,6 +117,7 @@ export function TeacherLessonForm({ chapterId, data, courseId }: iAppProps) {
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [attachmentUploading, setAttachmentUploading] = useState(false);
+  const [deletingAttachmentId, setDeletingAttachmentId] = useState<string | null>(null);
   const form = useForm<LessonSchemaType>({
     resolver: zodResolver(lessonSchema),
     defaultValues: {
@@ -399,37 +400,53 @@ export function TeacherLessonForm({ chapterId, data, courseId }: iAppProps) {
                   Add files for students to download (PDF, DOC, ZIP). Max 50MB each.
                 </p>
                 <ul className="space-y-2">
-                  {data.attachments.map((att) => (
-                    <li
-                      key={att.id}
-                      className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
-                    >
-                      <span className="flex items-center gap-2 truncate">
-                        <FileText className="size-4 shrink-0 text-muted-foreground" />
-                        {att.fileName}
-                        <span className="text-muted-foreground">
-                          ({(att.fileSize / 1024).toFixed(1)} KB)
-                        </span>
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={async () => {
-                          const { data: res } = await tryCatch(deleteLessonAttachment(att.id));
-                          if (res?.status === "success") {
-                            toast.success(res.message);
-                            router.refresh();
-                          } else {
-                            toast.error(res?.message ?? "Failed to remove");
-                          }
-                        }}
+                  {data.attachments.map((att) => {
+                    const isDeleting = deletingAttachmentId === att.id;
+                    return (
+                      <li
+                        key={att.id}
+                        className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm transition-opacity ${isDeleting ? "opacity-60 pointer-events-none" : ""}`}
                       >
-                        <Trash className="size-4" />
-                      </Button>
-                    </li>
-                  ))}
+                        <span className="flex items-center gap-2 truncate">
+                          <FileText className="size-4 shrink-0 text-muted-foreground" />
+                          {att.fileName}
+                          <span className="text-muted-foreground">
+                            ({(att.fileSize / 1024).toFixed(1)} KB)
+                          </span>
+                          {isDeleting && (
+                            <span className="text-muted-foreground text-xs">Removing…</span>
+                          )}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={isDeleting}
+                          className="text-destructive hover:text-destructive shrink-0"
+                          onClick={async () => {
+                            setDeletingAttachmentId(att.id);
+                            try {
+                              const { data: res } = await tryCatch(deleteLessonAttachment(att.id));
+                              if (res?.status === "success") {
+                                toast.success(res.message);
+                                router.refresh();
+                              } else {
+                                toast.error(res?.message ?? "Failed to remove");
+                              }
+                            } finally {
+                              setDeletingAttachmentId(null);
+                            }
+                          }}
+                        >
+                          {isDeleting ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <Trash className="size-4" />
+                          )}
+                        </Button>
+                      </li>
+                    );
+                  })}
                 </ul>
                 <AddAttachmentButton
                   lessonId={data.id}
@@ -457,11 +474,13 @@ export function TeacherLessonForm({ chapterId, data, courseId }: iAppProps) {
             Assignment
           </Button>
         </Link>
-        <Link href={`/teacher/courses/${courseId}/${chapterId}/${data.id}/quiz`}>
-          <Button variant="secondary" className="gap-2">
-            Manage Quiz
-          </Button>
-        </Link>
+        {data.lessonType === "Video" && (
+          <Link href={`/teacher/courses/${courseId}/${chapterId}/${data.id}/quiz`}>
+            <Button variant="secondary" className="gap-2">
+              Manage Quiz
+            </Button>
+          </Link>
+        )}
       </div>
     </div>
   );
