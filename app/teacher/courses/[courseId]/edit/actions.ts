@@ -391,7 +391,8 @@ export async function createTeacherLesson(
       status: "success",
       message: "Lesson created successfully",
     };
-  } catch {
+  } catch (err) {
+    console.error("[deleteTeacherLesson] Error creating lesson:", err);
     return {
       status: "error",
       message: "Failed to create lesson",
@@ -441,6 +442,17 @@ export async function deleteTeacherLesson({
             videoKey: true,
             thumbnailKey: true,
             muxAssetId: true,
+            pdfKey: true,
+            attachments: {
+              select: { fileKey: true }
+            },
+            assignment: {
+              select: {
+                submissions: {
+                  select: { fileKey: true }
+                }
+              }
+            }
           },
         },
       },
@@ -468,6 +480,15 @@ export async function deleteTeacherLesson({
     const keysToDelete: string[] = [];
     if (lessonToDelete.videoKey) keysToDelete.push(lessonToDelete.videoKey);
     if (lessonToDelete.thumbnailKey) keysToDelete.push(lessonToDelete.thumbnailKey);
+    if (lessonToDelete.pdfKey) keysToDelete.push(lessonToDelete.pdfKey);
+
+    lessonToDelete.attachments?.forEach((att) => {
+      if (att.fileKey) keysToDelete.push(att.fileKey);
+    });
+
+    lessonToDelete.assignment?.submissions?.forEach((sub) => {
+      if (sub.fileKey) keysToDelete.push(sub.fileKey);
+    });
 
     const remainingLessons = lessons.filter((lesson) => lesson.id !== lessonId);
 
@@ -503,7 +524,8 @@ export async function deleteTeacherLesson({
       status: "success",
       message: "Lesson deleted and positions reordered successfully",
     };
-  } catch {
+  } catch (err) {
+    console.error("[deleteTeacherLesson] Error deleting lesson:", err);
     return {
       status: "error",
       message: "Failed to delete lesson",
@@ -579,6 +601,17 @@ export async function deleteTeacherChapter({
         videoKey: true,
         thumbnailKey: true,
         muxAssetId: true,
+        pdfKey: true,
+        attachments: {
+          select: { fileKey: true }
+        },
+        assignment: {
+          select: {
+            submissions: {
+              select: { fileKey: true }
+            }
+          }
+        }
       },
     });
 
@@ -586,6 +619,15 @@ export async function deleteTeacherChapter({
     lessonsInChapter.forEach((lesson) => {
       if (lesson.videoKey) keysToDelete.push(lesson.videoKey);
       if (lesson.thumbnailKey) keysToDelete.push(lesson.thumbnailKey);
+      if (lesson.pdfKey) keysToDelete.push(lesson.pdfKey);
+
+      lesson.attachments?.forEach((att) => {
+        if (att.fileKey) keysToDelete.push(att.fileKey);
+      });
+
+      lesson.assignment?.submissions?.forEach((sub) => {
+        if (sub.fileKey) keysToDelete.push(sub.fileKey);
+      });
     });
 
     const remainingChapters = chapters.filter((chap) => chap.id !== chapterId);
@@ -624,7 +666,8 @@ export async function deleteTeacherChapter({
       status: "success",
       message: "Chapter deleted and positions reordered successfully",
     };
-  } catch {
+  } catch (err) {
+    console.error("[deleteTeacherChapter] Error deleting chapter:", err);
     return {
       status: "error",
       message: "Failed to delete chapter",

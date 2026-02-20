@@ -17,9 +17,10 @@ using Buffer instead
 and decode when needed)
 At line:1 char:1
 + pnpm build > 
-build_results.txt 2>&1
+upload_fix_build.txt 
+2>&1
 + ~~~~~~~~~~~~~~~~~~~~~
-~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
     + CategoryInfo     
          : NotSpecifi  
   ed: (<w> [webpack.   
@@ -30,24 +31,8 @@ oteException
    rorId : NativeComm  
   andError
  
- Γ£ô Compiled successfully in 35.0s
+ Γ£ô Compiled successfully in 76s
    Linting and checking validity of types ...
-
-./app/teacher/courses/[courseId]/[chapterId]/[lessonId]/assignment/_components/AssignmentEditor.tsx
-118:31  Warning: Compilation Skipped: Use of incompatible library
-
-This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
-
-C:\Users\faiza\Workspace\edris-lms-fyp\app\teacher\courses\[courseId]\[chapterId]\[lessonId]\assignment\_components\AssignmentEditor.tsx:118:31
-  116 |                   <Switch
-  117 |                     id="always-open"
-> 118 |                     checked={!form.watch("dueDate")}
-      |                               ^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
-  119 |                     onCheckedChange={(checked) => {
-  120 |                       if (checked) {
-  121 |                         form.setValue("dueDate", undefined);  react-hooks/incompatible-library
-
-info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
    Collecting page data ...
    Generating static pages (0/65) ...
    Generating static pages (16/65) 
@@ -65,7 +50,7 @@ Route (app)                                                           Size  Firs
 Γö£ ╞Æ /admin                                                           199 B         106 kB
 Γö£ ╞Æ /admin/analytics                                                110 kB         227 kB
 Γö£ ╞Æ /admin/communities                                               199 B         106 kB
-Γö£ ╞Æ /admin/communities/[slug]                                        170 B         174 kB
+Γö£ ╞Æ /admin/communities/[slug]                                        170 B         175 kB
 Γö£ ╞Æ /admin/communities/[slug]/forum                                2.87 kB         134 kB
 Γö£ ╞Æ /admin/communities/[slug]/forum/[postId]                       5.12 kB         128 kB
 Γö£ ╞Æ /admin/communities/create                                      5.33 kB         153 kB
@@ -129,13 +114,13 @@ Route (app)                                                           Size  Firs
 Γö£ ╞Æ /teacher                                                         192 B         111 kB
 Γö£ ╞Æ /teacher/analytics                                             3.42 kB         117 kB
 Γö£ ╞Æ /teacher/communities                                             199 B         106 kB
-Γö£ ╞Æ /teacher/communities/[slug]                                      171 B         174 kB
+Γö£ ╞Æ /teacher/communities/[slug]                                      171 B         175 kB
 Γö£ ╞Æ /teacher/communities/[slug]/forum                              1.71 kB         161 kB
 Γö£ ╞Æ /teacher/communities/[slug]/forum/[postId]                     2.35 kB         142 kB
 Γö£ ╞Æ /teacher/communities/create                                    4.27 kB         182 kB
 Γö£ ╞Æ /teacher/courses                                                7.7 kB         169 kB
 Γö£ ╞Æ /teacher/courses/[courseId]/[chapterId]/[lessonId]              7.6 kB         408 kB
-Γö£ ╞Æ /teacher/courses/[courseId]/[chapterId]/[lessonId]/assignment   7.9 kB         283 kB
+Γö£ ╞Æ /teacher/courses/[courseId]/[chapterId]/[lessonId]/assignment  7.91 kB         283 kB
 Γö£ ╞Æ /teacher/courses/[courseId]/[chapterId]/[lessonId]/quiz        9.71 kB         166 kB
 Γö£ ╞Æ /teacher/courses/[courseId]/edit                               6.99 kB         340 kB
 Γö£ ╞Æ /teacher/courses/create                                          464 B         318 kB

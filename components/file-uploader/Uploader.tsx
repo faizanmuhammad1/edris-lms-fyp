@@ -73,9 +73,27 @@ export function Uploader({ onChange, value, fileTypeAccepted, className, onUploa
       }));
 
       try {
-        const formData = new FormData();
-        formData.append("file", file);
+        // 1. Get Presigned URL
+        const presignedRes = await fetch("/api/s3/upload", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fileName: file.name,
+            contentType: file.type,
+            size: file.size,
+            isImage: file.type.startsWith("image/"),
+          }),
+        });
 
+        if (!presignedRes.ok) {
+          throw new Error("Failed to get upload URL");
+        }
+
+        const { presignedUrl, key } = await presignedRes.json();
+
+        // 2. Upload directly to S3 via PUT
         const xhr = new XMLHttpRequest();
 
         xhr.upload.onprogress = (event) => {
@@ -89,52 +107,33 @@ export function Uploader({ onChange, value, fileTypeAccepted, className, onUploa
         };
 
         xhr.onload = () => {
+          // S3 responds with 200 OK on successful PUT
           if (xhr.status === 200) {
-            try {
-              const response = JSON.parse(xhr.responseText);
-              const { key } = response;
+            setFileState((prev) => ({
+              ...prev,
+              progress: 100,
+              uploading: false,
+              key: key,
+              error: false,
+            }));
 
-              // Keep the objectUrl from the file (blob URL) for preview
-              setFileState((prev) => ({
-                ...prev,
-                progress: 100,
-                uploading: false,
-                key: key,
-                error: false,
-              }));
-
-              onChange?.(key);
-              onUploadSuccess?.({
-                key,
-                name: file.name,
-                size: file.size,
-                type: file.type,
-              });
-              toast.success("File uploaded successfully");
-            } catch (parseError) {
-              console.error("Failed to parse response:", parseError);
-              setFileState((prev) => ({
-                ...prev,
-                uploading: false,
-                progress: 0,
-                error: true,
-              }));
-              toast.error("Something went wrong");
-            }
+            onChange?.(key);
+            onUploadSuccess?.({
+              key,
+              name: file.name,
+              size: file.size,
+              type: file.type,
+            });
+            toast.success("File uploaded successfully");
           } else {
+            console.error("S3 Upload Failed:", xhr.responseText);
             setFileState((prev) => ({
               ...prev,
               uploading: false,
               progress: 0,
               error: true,
             }));
-
-            try {
-              const errorResponse = JSON.parse(xhr.responseText);
-              toast.error(errorResponse.error || "Upload failed");
-            } catch {
-              toast.error("Upload failed");
-            }
+            toast.error("Upload failed");
           }
         };
 
@@ -158,8 +157,9 @@ export function Uploader({ onChange, value, fileTypeAccepted, className, onUploa
           toast.error("Upload cancelled");
         };
 
-        xhr.open("POST", "/api/s3/upload-direct");
-        xhr.send(formData);
+        xhr.open("PUT", presignedUrl);
+        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.send(file);
       } catch (error) {
         console.error("Upload error:", error);
         setFileState((prev) => ({

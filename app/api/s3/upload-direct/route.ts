@@ -16,6 +16,19 @@ const aj = arcjet.withRule(
   })
 );
 
+export const maxDuration = 60; // Set max duration for large uploads
+
+// Next.js config to allow large file uploads
+// Note: In Next.js 15+ App Router, body size limit is handled differently depending on environment,
+// but adding it here helps with some deployment platforms
+export const config = {
+  api: {
+    bodyParser: false,
+    responseLimit: false,
+    sizeLimit: "5000mb",
+  },
+};
+
 export async function POST(request: Request) {
   const session = await auth.api.getSession({
     headers: await headers(),

@@ -54,14 +54,39 @@ function AddAttachmentButton({
     if (!file) return;
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/s3/upload-direct", { method: "POST", body: formData });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? "Upload failed");
+      // 1. Get Presigned URL
+      const presignedRes = await fetch("/api/s3/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fileName: file.name,
+          contentType: file.type,
+          size: file.size,
+          isImage: file.type.startsWith("image/"),
+        }),
+      });
+
+      if (!presignedRes.ok) {
+        const err = await presignedRes.json().catch(() => ({}));
+        throw new Error(err.error ?? "Failed to get upload URL");
       }
-      const { key } = await res.json();
+
+      const { presignedUrl, key } = await presignedRes.json();
+
+      // 2. Upload directly to S3 via PUT
+      const uploadRes = await fetch(presignedUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type,
+        },
+        body: file,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error("Failed to upload file to storage");
+      }
       const result = await createLessonAttachment(lessonId, {
         fileKey: key,
         fileName: file.name,
