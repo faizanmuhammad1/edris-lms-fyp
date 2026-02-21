@@ -10,7 +10,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Missing signature" }, { status: 401 });
     }
 
-    // Get raw body as buffer/string for signature verification
     const rawBody = await req.text();
 
     if (!verifyTranscriptionSignature(rawBody, signature)) {
@@ -18,30 +17,65 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
+    let data: { lesson_id?: string; status?: string; transcript?: string; segments?: unknown };
     try {
-        const data = JSON.parse(rawBody);
-        const { lesson_id, status, transcript, segments } = data;
+        data = JSON.parse(rawBody);
+    } catch (e) {
+        console.error("Transcription webhook: invalid JSON", e);
+        return NextResponse.json({ received: true });
+    }
+
+    const lessonId = data.lesson_id;
+    const status = (data.status ?? "").toLowerCase();
+
+    if (!lessonId || typeof lessonId !== "string") {
+        console.error("Transcription webhook: missing or invalid lesson_id");
+        return NextResponse.json({ received: true });
+    }
+
+    try {
+        const lessonExists = await prisma.lesson.findUnique({
+            where: { id: lessonId },
+            select: { id: true },
+        });
+        if (!lessonExists) {
+            console.error("Transcription webhook: lesson not found", lessonId);
+            return NextResponse.json({ received: true });
+        }
+
+        if (status === "failed" || status === "error") {
+            await prisma.lesson.update({
+                where: { id: lessonId },
+                data: { transcriptionStatus: "FAILED" },
+            });
+            return NextResponse.json({ received: true });
+        }
 
         if (status === "completed") {
+            const transcript = data.transcript;
+            const segments = data.segments;
+            const hasValidTranscript = typeof transcript === "string" && transcript.trim().length > 0;
             await prisma.lesson.update({
-                where: { id: lesson_id },
+                where: { id: lessonId },
                 data: {
-                    transcript: transcript,
-                    transcriptionSegments: segments,
+                    ...(hasValidTranscript && {
+                        transcript,
+                        transcriptionSegments: segments != null ? segments : undefined,
+                    }),
                     transcriptionStatus: "COMPLETED",
                 },
             });
 
-
-            // Auto-generate video summary in the background (don't block the webhook response)
-            generateLessonSummary(lesson_id).catch((err) =>
-                console.error(`Failed to generate summary for lesson ${lesson_id}:`, err)
-            );
+            if (hasValidTranscript) {
+                generateLessonSummary(lessonId).catch((err) =>
+                    console.error(`Failed to generate summary for lesson ${lessonId}:`, err)
+                );
+            }
         }
 
         return NextResponse.json({ received: true });
     } catch (error) {
-        console.error("Webhook processing error:", error);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+        console.error("Transcription webhook processing error:", error);
+        return NextResponse.json({ received: true });
     }
 }

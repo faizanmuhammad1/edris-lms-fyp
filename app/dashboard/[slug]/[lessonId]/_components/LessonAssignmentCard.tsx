@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RenderDescription } from "@/components/rich-text-editor/RenderDescription";
-import { FileText, Upload, Loader2, Download } from "lucide-react";
+import { FileText, Upload, Loader2, Download, CheckCircle2, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { submitAssignment } from "../actions";
 import { tryCatch } from "@/hooks/try-catch";
@@ -30,6 +30,7 @@ interface AssignmentType {
     score: number | null;
     feedback: string | null;
     gradedAt: Date | null;
+    gradingMethod: string | null;
   }[];
 }
 
@@ -160,12 +161,32 @@ export function LessonAssignmentCard({
               </div>
             )}
             {isGraded && (
-              <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-4 space-y-2">
-                <p className="font-medium text-sm">
-                  Grade: {assignment.maxScore != null ? `${mySubmission.score} / ${assignment.maxScore}` : mySubmission.score}
+              <div className="rounded-xl border-2 border-green-500/30 bg-gradient-to-b from-green-500/10 to-green-500/5 p-5 space-y-3 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="size-5 text-green-600 dark:text-green-400 shrink-0" />
+                  <span className="font-semibold text-foreground">Your result</span>
+                  {mySubmission.gradingMethod === "AI" && (
+                    <Badge variant="secondary" className="text-xs gap-1">
+                      <Sparkles className="size-3" />
+                      Automatically graded
+                    </Badge>
+                  )}
+                  {mySubmission.gradingMethod === "Manual" && (
+                    <Badge variant="outline" className="text-xs">
+                      Graded by instructor
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-lg font-semibold text-foreground">
+                  Score: {assignment.maxScore != null ? `${mySubmission.score} / ${assignment.maxScore}` : mySubmission.score}
+                  {assignment.maxScore != null && typeof mySubmission.score === "number" && (
+                    <span className="text-muted-foreground font-normal ml-1">
+                      ({Math.round((mySubmission.score / assignment.maxScore) * 100)}%)
+                    </span>
+                  )}
                 </p>
                 {mySubmission.feedback && (
-                  <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed pt-1 border-t border-green-500/20">
                     {mySubmission.feedback}
                   </div>
                 )}

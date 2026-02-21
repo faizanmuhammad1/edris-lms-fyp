@@ -130,6 +130,7 @@ export async function getLessonContent(lessonId: string) {
               score: true,
               feedback: true,
               gradedAt: true,
+              gradingMethod: true,
             },
           },
         },

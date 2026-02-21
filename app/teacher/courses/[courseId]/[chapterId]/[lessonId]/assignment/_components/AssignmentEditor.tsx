@@ -52,6 +52,9 @@ export function AssignmentEditor({
       maxScore: assignment?.maxScore ?? undefined,
       allowFile: assignment?.allowFile ?? true,
       allowText: assignment?.allowText ?? false,
+      autoGradeEnabled: assignment?.autoGradeEnabled ?? false,
+      maxFileSizeBytes: assignment?.maxFileSizeBytes ?? undefined,
+      maxTextLength: assignment?.maxTextLength ?? undefined,
     },
   });
 
@@ -210,6 +213,70 @@ export function AssignmentEditor({
                   )}
                 />
               </div>
+              <FormField
+                control={form.control}
+                name="autoGradeEnabled"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-xl border p-4 bg-muted/20">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base font-medium">Auto-grade with AI</FormLabel>
+                      <p className="text-sm text-muted-foreground">
+                        When enabled, text submissions are graded automatically and students receive feedback without your action. File-only submissions still need manual grading.
+                      </p>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="maxFileSizeBytes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Max file size (MB, optional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="Default 20"
+                          {...field}
+                          value={field.value != null ? Math.round(field.value / 1024 / 1024) : ""}
+                          onChange={(e) => {
+                            const v = e.target.value ? Number(e.target.value) : undefined;
+                            field.onChange(v != null ? v * 1024 * 1024 : undefined);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="maxTextLength"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Max text length (chars, optional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="Default 30,000"
+                          {...field}
+                          value={field.value ?? ""}
+                          onChange={(e) =>
+                            field.onChange(e.target.value ? Number(e.target.value) : undefined)
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <Button type="submit" disabled={pending}>
                 {pending ? <Loader2 className="size-4 animate-spin mr-2" /> : null}
                 Save assignment
@@ -223,6 +290,7 @@ export function AssignmentEditor({
         <SubmissionsList
           assignmentId={assignment.id}
           maxScore={assignment.maxScore}
+          autoGradeEnabled={assignment.autoGradeEnabled ?? false}
           submissions={assignment.submissions}
         />
       )}

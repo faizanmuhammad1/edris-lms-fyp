@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { S3 } from "@/lib/S3Client";
 import arcjet, { fixedWindow } from "@/lib/arcjet";
+import { ASSIGNMENT_MAX_FILE_BYTES_DEFAULT } from "@/lib/zodSchemas";
 
 const aj = arcjet.withRule(
   fixedWindow({
@@ -15,6 +16,20 @@ const aj = arcjet.withRule(
     max: 5,
   })
 );
+
+/** MIME types allowed for assignment uploads (no executables, scripts, or archives) */
+const ASSIGNMENT_ALLOWED_MIMES = new Set([
+  "application/pdf",
+  "application/x-pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain",
+  "text/markdown",
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+]);
 
 export const maxDuration = 60; // Set max duration for large uploads
 
@@ -38,12 +53,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // const user = await prisma.user.findUnique({
-  //   where: { email: session.user.email },
-  //   select: { role: true },
-  // });
-
-  // Role check removed to allow students to upload assignments
+  const url = new URL(request.url);
+  const useCaseAssignment = url.searchParams.get("useCase") === "assignment";
 
   const formData = await request.formData();
   const file = formData.get("file") as File;
@@ -64,29 +75,44 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate file size and type for documents
-    const isImage = file.type.startsWith("image/");
-    const isDocument =
-      file.type === "application/pdf" ||
-      file.type === "application/x-pdf" ||
-      file.type === "application/msword" ||
-      file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-      file.type === "application/zip" ||
-      file.type === "application/x-zip-compressed" ||
-      file.type === "application/x-compressed" ||
-      file.type === "multipart/x-zip" ||
-      file.type === "application/x-rar-compressed" ||
-      file.type === "application/octet-stream";
-    const maxSize = isImage
-      ? 5 * 1024 * 1024
-      : isDocument
-        ? 50 * 1024 * 1024 // 50MB for documents
-        : 5000 * 1024 * 1024; // 5GB for videos
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        { error: "File size exceeds limit" },
-        { status: 400 }
-      );
+    if (useCaseAssignment) {
+      if (!ASSIGNMENT_ALLOWED_MIMES.has(file.type)) {
+        return NextResponse.json(
+          { error: "File type not allowed for assignments. Use PDF, DOC, DOCX, TXT, or images." },
+          { status: 400 }
+        );
+      }
+      if (file.size > ASSIGNMENT_MAX_FILE_BYTES_DEFAULT) {
+        return NextResponse.json(
+          { error: `File size exceeds limit (max ${Math.round(ASSIGNMENT_MAX_FILE_BYTES_DEFAULT / 1024 / 1024)}MB)` },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Original validation for non-assignment uploads
+      const isImage = file.type.startsWith("image/");
+      const isDocument =
+        file.type === "application/pdf" ||
+        file.type === "application/x-pdf" ||
+        file.type === "application/msword" ||
+        file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+        file.type === "application/zip" ||
+        file.type === "application/x-zip-compressed" ||
+        file.type === "application/x-compressed" ||
+        file.type === "multipart/x-zip" ||
+        file.type === "application/x-rar-compressed" ||
+        file.type === "application/octet-stream";
+      const maxSize = isImage
+        ? 5 * 1024 * 1024
+        : isDocument
+          ? 50 * 1024 * 1024 // 50MB for documents
+          : 5000 * 1024 * 1024; // 5GB for videos
+      if (file.size > maxSize) {
+        return NextResponse.json(
+          { error: "File size exceeds limit" },
+          { status: 400 }
+        );
+      }
     }
 
     const fileBuffer = await file.arrayBuffer();

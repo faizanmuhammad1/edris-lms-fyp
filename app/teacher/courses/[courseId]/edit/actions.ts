@@ -4,6 +4,7 @@ import { requireTeacher } from "@/app/data/teacher/require-teacher";
 import arcjet, { fixedWindow } from "@/lib/arcjet";
 import { prisma } from "@/lib/db";
 import { triggerMuxAssetCreation } from "@/lib/mux-trigger";
+import { triggerTranscriptionForLesson } from "@/lib/transcription";
 import { ApiResponse } from "@/lib/types";
 import {
   chapterSchema,
@@ -383,6 +384,7 @@ export async function createTeacherLesson(
       triggerMuxAssetCreation(newLesson.id, result.data.videoKey).catch((err) =>
         console.error("[Mux] Background trigger failed:", err)
       );
+      triggerTranscriptionForLesson(newLesson.id).catch(() => {});
     }
 
     revalidatePath(`/teacher/courses/${chapter.Course.id}/edit`);

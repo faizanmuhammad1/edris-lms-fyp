@@ -9,6 +9,7 @@ import {
   type AssignmentSchemaType,
   type GradeSubmissionSchemaType,
 } from "@/lib/zodSchemas";
+import { gradeAssignmentWithAI } from "@/lib/grade-assignment-ai";
 import { revalidatePath } from "next/cache";
 
 export async function createOrUpdateAssignment(
@@ -31,7 +32,7 @@ export async function createOrUpdateAssignment(
     if (!parsed.success) {
       return { status: "error", message: parsed.error.errors[0]?.message ?? "Invalid data" };
     }
-    const { title, description, dueDate, maxScore, allowFile, allowText } = parsed.data;
+    const { title, description, dueDate, maxScore, allowFile, allowText, autoGradeEnabled, maxFileSizeBytes, maxTextLength } = parsed.data;
     await prisma.assignment.upsert({
       where: { lessonId },
       create: {
@@ -42,6 +43,9 @@ export async function createOrUpdateAssignment(
         maxScore: maxScore ?? null,
         allowFile,
         allowText,
+        autoGradeEnabled: autoGradeEnabled ?? false,
+        maxFileSizeBytes: maxFileSizeBytes ?? null,
+        maxTextLength: maxTextLength ?? null,
       },
       update: {
         title,
@@ -50,6 +54,9 @@ export async function createOrUpdateAssignment(
         maxScore: maxScore ?? null,
         allowFile,
         allowText,
+        autoGradeEnabled: autoGradeEnabled ?? false,
+        maxFileSizeBytes: maxFileSizeBytes ?? null,
+        maxTextLength: maxTextLength ?? null,
       },
     });
     revalidatePath(`/teacher/courses/${lesson.Chapter.courseId}/edit`);
@@ -105,6 +112,7 @@ export async function gradeSubmission(
         feedback: parsed.data.feedback ?? null,
         gradedAt: new Date(),
         gradedById: session.user.id,
+        gradingMethod: "Manual",
       },
     });
     const courseId = submission.Assignment.Lesson.Chapter.courseId;
@@ -113,5 +121,88 @@ export async function gradeSubmission(
     return { status: "success", message: "Submission graded" };
   } catch {
     return { status: "error", message: "Failed to grade" };
+  }
+}
+
+export type GradeWithAIResult =
+  | { status: "success"; message: string }
+  | { status: "error"; message: string; code?: "NO_CONTENT" | "MANUAL_REQUIRED" | "GENERATION_FAILED" };
+
+export async function gradeSubmissionWithAI(submissionId: string): Promise<GradeWithAIResult> {
+  const session = await requireTeacher();
+  try {
+    const submission = await prisma.assignmentSubmission.findFirst({
+      where: {
+        id: submissionId,
+        Assignment: {
+          Lesson: { Chapter: { Course: { userId: session.user.id } } },
+        },
+      },
+      include: {
+        Assignment: {
+          select: {
+            id: true,
+            lessonId: true,
+            title: true,
+            description: true,
+            maxScore: true,
+            Lesson: {
+              select: {
+                chapterId: true,
+                Chapter: { select: { courseId: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!submission) {
+      return { status: "error", message: "Submission not found", code: "GENERATION_FAILED" };
+    }
+
+    const textToGrade = submission.textAnswer?.trim() ?? "";
+    if (!textToGrade) {
+      return {
+        status: "error",
+        message: "No text to grade. File-only submissions require manual grading.",
+        code: "MANUAL_REQUIRED",
+      };
+    }
+
+    const { score, feedback } = await gradeAssignmentWithAI({
+      assignmentTitle: submission.Assignment.title,
+      assignmentDescription: submission.Assignment.description,
+      maxScore: submission.Assignment.maxScore,
+      textAnswer: submission.textAnswer,
+    });
+
+    await prisma.assignmentSubmission.update({
+      where: { id: submissionId },
+      data: {
+        status: "Graded",
+        score,
+        feedback,
+        gradedAt: new Date(),
+        gradedById: null,
+        gradingMethod: "AI",
+        gradedByAiAt: new Date(),
+      },
+    });
+
+    const courseId = submission.Assignment.Lesson.Chapter.courseId;
+    const lessonId = submission.Assignment.lessonId;
+    const chapterId = submission.Assignment.Lesson.chapterId;
+    revalidatePath(`/teacher/courses/${courseId}/edit`);
+    revalidatePath(`/teacher/courses/${courseId}/${chapterId}/${lessonId}/assignment`);
+
+    return { status: "success", message: "Submission graded with AI" };
+  } catch (e) {
+    console.error("AI grading error:", e);
+    return {
+      status: "error",
+      message: "Auto-grading failed. Please grade manually.",
+      code: "GENERATION_FAILED",
+    };
   }
 }

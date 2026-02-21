@@ -21,17 +21,28 @@ interface GradeSubmissionDialogProps {
   submissionId: string;
   onClose: () => void;
   maxScore: number | null;
+  initialScore?: number | null;
+  initialFeedback?: string | null;
 }
 
 export function GradeSubmissionDialog({
   submissionId,
   onClose,
   maxScore,
+  initialScore,
+  initialFeedback,
 }: GradeSubmissionDialogProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [score, setScore] = useState<string>("");
   const [feedback, setFeedback] = useState<string>("");
+  const [prevSubmissionId, setPrevSubmissionId] = useState<string | null>(null);
+
+  if (submissionId !== prevSubmissionId) {
+    setPrevSubmissionId(submissionId);
+    setScore(initialScore != null ? String(initialScore) : "");
+    setFeedback(initialFeedback ?? "");
+  }
 
   function handleSubmit() {
     startTransition(async () => {

@@ -88,6 +88,11 @@ export const lessonSchema = z.object({
   pdfFileName: z.string().optional(),
 });
 
+/** Default max file size for assignment uploads (20MB) */
+export const ASSIGNMENT_MAX_FILE_BYTES_DEFAULT = 20 * 1024 * 1024;
+/** Default max text length for assignment answers (30k chars) */
+export const ASSIGNMENT_MAX_TEXT_LENGTH_DEFAULT = 30_000;
+
 export const assignmentSchema = z
   .object({
     title: z.string().min(1, "Title is required"),
@@ -96,19 +101,30 @@ export const assignmentSchema = z
     maxScore: z.coerce.number().int().min(0).max(10000).optional().nullable(),
     allowFile: z.boolean(),
     allowText: z.boolean(),
+    autoGradeEnabled: z.boolean().optional(),
+    maxFileSizeBytes: z.coerce.number().int().min(0).max(100 * 1024 * 1024).optional().nullable(),
+    maxTextLength: z.coerce.number().int().min(0).max(100_000).optional().nullable(),
   })
   .refine((data) => data.allowFile || data.allowText, {
     message: "At least one of file upload or text answer must be allowed",
     path: ["allowFile"],
   });
 
-export const assignmentSubmissionSchema = z.object({
-  fileKey: z.string().optional(),
-  fileName: z.string().optional(),
-  fileSize: z.number().optional(),
-  mimeType: z.string().optional(),
-  textAnswer: z.string().optional(),
-});
+export const assignmentSubmissionSchema = z
+  .object({
+    fileKey: z.string().optional(),
+    fileName: z.string().optional(),
+    fileSize: z.number().optional(),
+    mimeType: z.string().optional(),
+    textAnswer: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      const len = data.textAnswer?.length ?? 0;
+      return len <= ASSIGNMENT_MAX_TEXT_LENGTH_DEFAULT;
+    },
+    { message: `Text answer must be at most ${ASSIGNMENT_MAX_TEXT_LENGTH_DEFAULT.toLocaleString()} characters`, path: ["textAnswer"] }
+  );
 
 export const gradeSubmissionSchema = z.object({
   score: z.coerce.number().int().min(0).max(10000).optional().nullable(),

@@ -3,6 +3,7 @@
 import { requireTeacher } from "@/app/data/teacher/require-teacher";
 import { prisma } from "@/lib/db";
 import { triggerMuxAssetCreation } from "@/lib/mux-trigger";
+import { triggerTranscriptionForLesson } from "@/lib/transcription";
 import { ApiResponse } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 import { lessonSchema, LessonSchemaType } from "@/lib/zodSchemas";
@@ -76,6 +77,7 @@ export async function updateTeacherLesson(
       triggerMuxAssetCreation(lessonId, result.data.videoKey).catch((err) =>
         console.error("[Mux] Background trigger failed:", err)
       );
+      triggerTranscriptionForLesson(lessonId).catch(() => {});
     }
 
     return {

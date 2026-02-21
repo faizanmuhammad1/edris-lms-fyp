@@ -3,7 +3,14 @@
 import { requireUser } from "@/app/data/user/require-user";
 import { prisma } from "@/lib/db";
 import { ApiResponse } from "@/lib/types";
-import { assignmentSubmissionSchema, type AssignmentSubmissionSchemaType } from "@/lib/zodSchemas";
+import {
+  assignmentSubmissionSchema,
+  ASSIGNMENT_MAX_FILE_BYTES_DEFAULT,
+  ASSIGNMENT_MAX_TEXT_LENGTH_DEFAULT,
+  type AssignmentSubmissionSchemaType,
+} from "@/lib/zodSchemas";
+import { sanitizeAssignmentText } from "@/lib/sanitize-text";
+import { runAutoGradeForSubmission } from "@/lib/grade-assignment-ai";
 import { revalidatePath } from "next/cache";
 
 // ── Video Progress Tracking ──────────────────────────────────────────────────
@@ -117,17 +124,34 @@ export async function submitAssignment(
           },
         },
       },
+      select: {
+        id: true,
+        allowFile: true,
+        allowText: true,
+        autoGradeEnabled: true,
+        maxFileSizeBytes: true,
+        maxTextLength: true,
+      },
     });
     if (!assignment) {
       return { status: "error", message: "Assignment not found or you are not enrolled" };
     }
     const parsed = assignmentSubmissionSchema.safeParse(values);
     if (!parsed.success) {
-      return { status: "error", message: "Invalid submission data" };
+      return { status: "error", message: parsed.error.errors[0]?.message ?? "Invalid submission data" };
     }
-    const { fileKey, fileName, fileSize, mimeType, textAnswer } = parsed.data;
+    const { fileKey, fileName, fileSize, mimeType, textAnswer: rawTextAnswer } = parsed.data;
+    const maxFileBytes = assignment.maxFileSizeBytes ?? ASSIGNMENT_MAX_FILE_BYTES_DEFAULT;
+    const maxTextLen = assignment.maxTextLength ?? ASSIGNMENT_MAX_TEXT_LENGTH_DEFAULT;
+    if (fileSize != null && fileSize > maxFileBytes) {
+      return { status: "error", message: `File size exceeds the limit (max ${Math.round(maxFileBytes / 1024 / 1024)}MB)` };
+    }
+    const textAnswer = sanitizeAssignmentText(rawTextAnswer);
+    if (textAnswer.length > maxTextLen) {
+      return { status: "error", message: `Text answer must be at most ${maxTextLen.toLocaleString()} characters` };
+    }
     const hasFile = !!fileKey;
-    const hasText = !!textAnswer?.trim();
+    const hasText = !!textAnswer.trim();
     if (assignment.allowFile && assignment.allowText && !hasFile && !hasText) {
       return { status: "error", message: "Please provide a file and/or text answer" };
     }
@@ -143,7 +167,7 @@ export async function submitAssignment(
     if (existing?.status === "Graded") {
       return { status: "error", message: "Already graded; resubmission not allowed" };
     }
-    await prisma.assignmentSubmission.upsert({
+    const submission = await prisma.assignmentSubmission.upsert({
       where: { assignmentId_userId: { assignmentId, userId: session.id } },
       create: {
         assignmentId,
@@ -152,7 +176,7 @@ export async function submitAssignment(
         fileName: fileName ?? null,
         fileSize: fileSize ?? null,
         mimeType: mimeType ?? null,
-        textAnswer: textAnswer ?? null,
+        textAnswer: textAnswer || null,
         status: "Submitted",
       },
       update: {
@@ -160,10 +184,15 @@ export async function submitAssignment(
         fileName: fileName ?? null,
         fileSize: fileSize ?? null,
         mimeType: mimeType ?? null,
-        textAnswer: textAnswer ?? null,
+        textAnswer: textAnswer || null,
         status: "Submitted",
       },
     });
+
+    if (assignment.autoGradeEnabled && hasText) {
+      runAutoGradeForSubmission(submission.id).catch(() => {});
+    }
+
     revalidatePath(`/dashboard/${slug}/${lessonId}`);
     return { status: "success", message: "Submission saved" };
   } catch {

@@ -25,6 +25,9 @@ export async function getTeacherAssignment(lessonId: string) {
           maxScore: true,
           allowFile: true,
           allowText: true,
+          autoGradeEnabled: true,
+          maxFileSizeBytes: true,
+          maxTextLength: true,
           submissions: {
             orderBy: { submittedAt: "desc" },
             select: {
@@ -40,6 +43,8 @@ export async function getTeacherAssignment(lessonId: string) {
               score: true,
               feedback: true,
               gradedAt: true,
+              gradingMethod: true,
+              gradedByAiAt: true,
               User: { select: { name: true, email: true } },
             },
           },

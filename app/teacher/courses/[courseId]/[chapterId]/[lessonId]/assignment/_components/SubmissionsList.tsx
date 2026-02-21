@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download } from "lucide-react";
+import { Download, Sparkles, Loader2 } from "lucide-react";
 import { GradeSubmissionDialog } from "./GradeSubmissionDialog";
 import { formatDistanceToNow } from "date-fns";
+import { gradeSubmissionWithAI } from "../actions";
+import { toast } from "sonner";
 
 interface Submission {
   id: string;
@@ -21,20 +24,33 @@ interface Submission {
   score: number | null;
   feedback: string | null;
   gradedAt: Date | null;
+  gradingMethod: string | null;
+  gradedByAiAt: Date | null;
   User: { name: string | null; email: string | null };
 }
 
 interface SubmissionsListProps {
   assignmentId: string;
   maxScore: number | null;
+  autoGradeEnabled: boolean;
   submissions: Submission[];
 }
 
 export function SubmissionsList({
   maxScore,
+  autoGradeEnabled,
   submissions,
 }: SubmissionsListProps) {
+  const router = useRouter();
   const [gradingId, setGradingId] = useState<string | null>(null);
+  const [aiGradingId, setAiGradingId] = useState<string | null>(null);
+
+  const selectedSubmission = gradingId ? submissions.find((s) => s.id === gradingId) : null;
+
+  const graded = submissions.filter((s) => s.status === "Graded");
+  const autoGraded = graded.filter((s) => s.gradingMethod === "AI").length;
+  const manualGraded = graded.filter((s) => s.gradingMethod === "Manual").length;
+  const pending = submissions.filter((s) => s.status === "Submitted").length;
 
   async function handleDownload(submissionId: string) {
     try {
@@ -51,13 +67,46 @@ export function SubmissionsList({
     }
   }
 
+  function handleGradeWithAI(subId: string) {
+    setAiGradingId(subId);
+  }
+
+  async function runGradeWithAI(subId: string) {
+    const result = await gradeSubmissionWithAI(subId);
+    setAiGradingId(null);
+    if (result.status === "success") {
+      toast.success(result.message);
+      router.refresh();
+    } else {
+      if (result.code === "MANUAL_REQUIRED") {
+        toast.error(result.message);
+      } else {
+        toast.error(result.message ?? "Auto-grading failed. Please grade manually.");
+      }
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Submissions</CardTitle>
-        <CardDescription>
-          View and grade student submissions. Resubmission is allowed until you grade.
-        </CardDescription>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <CardTitle>Submissions</CardTitle>
+            <CardDescription>
+              View and grade student submissions. Use &quot;Grade with AI&quot; for text answers, or grade manually. Resubmission is allowed until you grade.
+            </CardDescription>
+          </div>
+          {autoGradeEnabled && (
+            <Badge variant="secondary" className="shrink-0">
+              Auto-grading on
+            </Badge>
+          )}
+        </div>
+        {submissions.length > 0 && (
+          <p className="text-sm text-muted-foreground mt-2">
+            {graded.length} graded ({autoGraded} auto, {manualGraded} manual), {pending} pending
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         {submissions.length === 0 ? (
@@ -92,14 +141,42 @@ export function SubmissionsList({
                     </p>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={sub.status === "Graded" ? "default" : "secondary"}>
                     {sub.status}
                   </Badge>
+                  {sub.status === "Graded" && sub.gradingMethod === "AI" && (
+                    <Badge variant="outline" className="text-xs">
+                      AI
+                    </Badge>
+                  )}
+                  {sub.status === "Graded" && sub.gradingMethod === "Manual" && (
+                    <Badge variant="outline" className="text-xs">
+                      Manual
+                    </Badge>
+                  )}
                   {sub.status === "Graded" && sub.score != null && (
                     <span className="text-sm font-medium">
                       {maxScore != null ? `${sub.score} / ${maxScore}` : sub.score}
                     </span>
+                  )}
+                  {sub.status === "Submitted" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!!aiGradingId}
+                      onClick={() => {
+                        handleGradeWithAI(sub.id);
+                        runGradeWithAI(sub.id);
+                      }}
+                    >
+                      {aiGradingId === sub.id ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="size-4 mr-1" />
+                      )}
+                      Grade with AI
+                    </Button>
                   )}
                   <Button
                     variant="outline"
@@ -119,6 +196,8 @@ export function SubmissionsList({
           submissionId={gradingId}
           onClose={() => setGradingId(null)}
           maxScore={maxScore}
+          initialScore={selectedSubmission?.score ?? undefined}
+          initialFeedback={selectedSubmission?.feedback ?? undefined}
         />
       )}
     </Card>

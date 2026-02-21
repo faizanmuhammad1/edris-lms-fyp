@@ -185,39 +185,44 @@ model LessonAttachment {
 }
 
 model Assignment {
-  id          String                 @id @default(uuid())
-  lessonId    String                 @unique
-  title       String
-  description String?
-  dueDate     DateTime?
-  maxScore    Int?
-  allowFile   Boolean                @default(true)
-  allowText   Boolean                @default(false)
-  createdAt   DateTime               @default(now())
-  updatedAt   DateTime               @updatedAt
-  Lesson      Lesson                 @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  submissions AssignmentSubmission[]
+  id                String                 @id @default(uuid())
+  lessonId          String                 @unique
+  title             String
+  description       String?
+  dueDate           DateTime?
+  maxScore          Int?
+  allowFile         Boolean                @default(true)
+  allowText         Boolean                @default(false)
+  autoGradeEnabled  Boolean                @default(false)
+  maxFileSizeBytes  Int?
+  maxTextLength     Int?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  Lesson            Lesson                 @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  submissions       AssignmentSubmission[]
 
   @@index([lessonId])
 }
 
 model AssignmentSubmission {
-  id           String                     @id @default(uuid())
-  assignmentId String
-  userId       String
-  fileKey      String?
-  fileName     String?
-  fileSize     Int?
-  mimeType     String?
-  textAnswer   String?
-  submittedAt  DateTime                   @default(now())
-  status       AssignmentSubmissionStatus @default(Submitted)
-  score        Int?
-  feedback     String?
-  gradedAt     DateTime?
-  gradedById   String?
-  Assignment   Assignment                 @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  User         User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String                     @id @default(uuid())
+  assignmentId  String
+  userId        String
+  fileKey       String?
+  fileName      String?
+  fileSize      Int?
+  mimeType      String?
+  textAnswer    String?
+  submittedAt   DateTime                   @default(now())
+  status        AssignmentSubmissionStatus @default(Submitted)
+  score         Int?
+  feedback      String?
+  gradedAt      DateTime?
+  gradedById    String?
+  gradingMethod String?
+  gradedByAiAt  DateTime?
+  Assignment    Assignment                 @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  User          User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([assignmentId, userId])
   @@index([assignmentId])
