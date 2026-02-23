@@ -93,7 +93,7 @@ async function RenderCourses({ category }: { category?: string }) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
       {courses.map((course) => (
         <PublicCourseCard
           key={course.id}
@@ -107,7 +107,7 @@ async function RenderCourses({ category }: { category?: string }) {
 
 function LoadingSkeletonLayout() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
       {Array.from({ length: 8 }).map((_, index) => (
         <PublicCourseCardSkeleton key={index} />
       ))}

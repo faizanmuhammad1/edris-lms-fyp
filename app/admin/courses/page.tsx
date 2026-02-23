@@ -1,8 +1,7 @@
 import { Suspense } from "react";
 import { prisma } from "@/lib/db";
 import { CourseManagementView } from "./_components/CourseManagementView";
-import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -49,12 +48,6 @@ export default async function CoursesPage() {
             View and manage all courses on the platform. Delete or archive courses as needed.
           </p>
         </div>
-        <Link
-          href="/admin/courses/create"
-          className={buttonVariants({ className: "w-fit shrink-0" })}
-        >
-          Create course
-        </Link>
       </div>
 
       <Suspense fallback={<LoadingSkeleton />}>

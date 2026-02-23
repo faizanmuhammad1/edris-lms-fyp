@@ -54,8 +54,8 @@ export function generateMuxSignedToken(
 /**
  * Generates a full signed Mux stream URL for a playback ID.
  */
-export function getMuxSignedStreamUrl(playbackId: string): string {
-    const token = generateMuxSignedToken(playbackId, "video");
+export function getMuxSignedStreamUrl(playbackId: string, expiresInSeconds: number = 7200): string {
+    const token = generateMuxSignedToken(playbackId, "video", expiresInSeconds);
     return `https://stream.mux.com/${playbackId}.m3u8?token=${token}`;
 }
 
@@ -64,7 +64,8 @@ export function getMuxSignedStreamUrl(playbackId: string): string {
  */
 export function getMuxSignedThumbnailUrl(
     playbackId: string,
-    options?: { width?: number; height?: number; time?: number }
+    options?: { width?: number; height?: number; time?: number },
+    expiresInSeconds: number = 7200
 ): string {
     const privateKey = Buffer.from(env.MUX_SIGNING_PRIVATE_KEY, "base64").toString(
         "ascii"
@@ -73,7 +74,7 @@ export function getMuxSignedThumbnailUrl(
     const claims: Record<string, unknown> = {
         sub: playbackId,
         aud: "t",
-        exp: Math.floor(Date.now() / 1000) + 7200,
+        exp: Math.floor(Date.now() / 1000) + expiresInSeconds,
         kid: env.MUX_SIGNING_KEY_ID,
     };
 

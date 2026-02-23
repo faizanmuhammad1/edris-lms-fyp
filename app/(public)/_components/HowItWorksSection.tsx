@@ -1,9 +1,16 @@
 "use client";
 
 import { Search, PlayCircle, BadgeCheck, ArrowRight } from "lucide-react";
-import { motion } from "framer-motion";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
+import { useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+
+if (typeof window !== "undefined") {
+    gsap.registerPlugin(ScrollTrigger, useGSAP);
+}
 
 const steps = [
     {
@@ -30,20 +37,64 @@ const steps = [
 ];
 
 export function HowItWorksSection() {
+    const sectionRef = useRef<HTMLElement>(null);
+
+    useGSAP(() => {
+        gsap.from(".gsap-how-header", {
+            y: 30,
+            opacity: 0,
+            duration: 0.8,
+            ease: "power3.out",
+            scrollTrigger: {
+                trigger: ".gsap-how-header",
+                start: "top 85%",
+            }
+        });
+
+        gsap.from(".gsap-how-step", {
+            y: 40,
+            opacity: 0,
+            duration: 0.8,
+            stagger: 0.2,
+            ease: "back.out(1.1)",
+            scrollTrigger: {
+                trigger: ".gsap-how-grid",
+                start: "top 80%",
+            }
+        });
+
+        gsap.from(".gsap-how-line", {
+            scaleX: 0,
+            transformOrigin: "left center",
+            duration: 1.5,
+            ease: "power2.inOut",
+            scrollTrigger: {
+                trigger: ".gsap-how-grid",
+                start: "top 80%",
+            }
+        });
+
+        gsap.from(".gsap-how-btn", {
+            y: 20,
+            opacity: 0,
+            duration: 0.6,
+            ease: "power2.out",
+            scrollTrigger: {
+                trigger: ".gsap-how-btn",
+                start: "top 95%",
+            }
+        });
+
+    }, { scope: sectionRef });
+
     return (
-        <section id="how-it-works" className="relative py-20 md:py-28 bg-muted/30 overflow-hidden">
+        <section id="how-it-works" ref={sectionRef} className="relative py-20 md:py-28 bg-muted/30 overflow-hidden">
             {/* Background accent */}
             <div className="absolute inset-0 bg-dot-pattern opacity-[0.15]" />
 
-            <div className="container relative z-10 mx-auto px-4 md:px-6 lg:px-8">
+            <div className="container relative z-10 mx-auto px-6 md:px-12 lg:px-24 xl:px-32 2xl:px-40">
                 {/* Section Header */}
-                <motion.div
-                    className="mx-auto max-w-2xl text-center mb-16"
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5 }}
-                >
+                <div className="gsap-how-header mx-auto max-w-2xl text-center mb-16">
                     <p className="text-sm font-semibold uppercase tracking-wider text-primary mb-3">
                         How It Works
                     </p>
@@ -53,62 +104,45 @@ export function HowItWorksSection() {
                     <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
                         From browsing to certified — here is how your learning journey unfolds.
                     </p>
-                </motion.div>
+                </div>
 
                 {/* Steps */}
-                <div className="relative grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+                <div className="gsap-how-grid relative grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
                     {/* Gradient Connecting Line (desktop only) */}
                     <div className="hidden md:block absolute top-[4.5rem] left-[calc(16.67%+32px)] right-[calc(16.67%+32px)] h-0.5">
-                        <div className="h-full w-full bg-primary/30 rounded-full" />
+                        <div className="gsap-how-line h-full w-full bg-primary/30 rounded-full" />
                     </div>
 
-                    {steps.map((step, index) => (
-                        <motion.div
-                            key={step.number}
-                            className="group relative"
-                            initial={{ opacity: 0, y: 24 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.5, delay: index * 0.15 }}
-                        >
-                            <div className="relative flex flex-col items-center text-center rounded-2xl border border-border bg-card p-8 pt-10 transition-all duration-300 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/[0.05] hover:-translate-y-1 overflow-hidden">
-                                {/* Hover fill */}
-                                <div
-                                    className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-[0.03] transition-opacity duration-300"
-                                />
+                    {steps.map((step) => (
+                        <div key={step.number} className="gsap-how-step group relative">
+                            <div className="relative flex flex-col h-full bg-card/50 backdrop-blur-xl border border-border/50 rounded-[2rem] p-8 md:p-10 transition-all duration-500 hover:bg-card/80 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/[0.08] hover:-translate-y-2 overflow-hidden items-start text-left">
+                                {/* Hover Gradient Orb */}
+                                <div className="absolute -top-32 -right-32 w-64 h-64 bg-primary/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none z-0" />
 
-                                {/* Number Circle */}
-                                <div
-                                    className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-white font-bold text-xl mb-6 shadow-lg shadow-primary/15 transition-transform duration-300 group-hover:scale-110"
-                                >
+                                {/* Giant Faded Number */}
+                                <div className="absolute -bottom-8 -right-4 text-[120px] leading-none font-black text-foreground/[0.03] group-hover:text-primary/[0.05] transition-colors duration-500 select-none z-0 pointer-events-none">
                                     {step.number}
                                 </div>
 
                                 {/* Icon */}
-                                <div className="relative z-10 mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary/15 transition-colors">
-                                    <step.icon className="h-6 w-6" />
+                                <div className="relative z-10 mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-sm group-hover:scale-110">
+                                    <step.icon className="h-7 w-7" />
                                 </div>
 
                                 {/* Content */}
-                                <h3 className="relative z-10 text-xl font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+                                <h3 className="relative z-10 text-2xl font-bold text-foreground mb-4 group-hover:text-primary transition-colors duration-300">
                                     {step.title}
                                 </h3>
-                                <p className="relative z-10 text-muted-foreground leading-relaxed">
+                                <p className="relative z-10 text-muted-foreground leading-relaxed text-[17px]">
                                     {step.description}
                                 </p>
                             </div>
-                        </motion.div>
+                        </div>
                     ))}
                 </div>
 
                 {/* CTA below steps */}
-                <motion.div
-                    className="mt-12 text-center"
-                    initial={{ opacity: 0, y: 16 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.4, delay: 0.3 }}
-                >
+                <div className="gsap-how-btn mt-12 text-center">
                     <Link href="/courses">
                         <Button
                             size="lg"
@@ -118,7 +152,7 @@ export function HowItWorksSection() {
                             <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                         </Button>
                     </Link>
-                </motion.div>
+                </div>
             </div>
         </section>
     );

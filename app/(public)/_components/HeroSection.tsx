@@ -12,9 +12,12 @@ import {
     BookOpen,
     Award,
     ArrowRight,
-    Sparkles,
+    Star,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import Logo from "@/public/bc413ab4-3838-4b3d-ae28-e8f3cd721b33.png";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+import { useRef } from "react";
 
 const stats = [
     { icon: Users, value: "2,000+", label: "Active Students" },
@@ -32,6 +35,114 @@ const popularSearches = [
 export function HeroSection() {
     const [searchQuery, setSearchQuery] = useState("");
     const router = useRouter();
+    const sectionRef = useRef<HTMLElement>(null);
+    const orbRef = useRef<HTMLDivElement>(null);
+
+    useGSAP(() => {
+        const tl = gsap.timeline({ defaults: { ease: "expo.out", duration: 1.2 } });
+
+        // Left side text animations
+        tl.from(".gsap-hero-badge", { y: 30, opacity: 0, scale: 0.9 })
+            .from(".gsap-hero-text", { y: 40, opacity: 0, stagger: 0.1 }, "-=1")
+            .from(".gsap-hero-form", { y: 20, opacity: 0, scale: 0.98 }, "-=0.8")
+            .from(".gsap-hero-stats", { opacity: 0, y: 20, stagger: 0.1 }, "-=0.8");
+
+        // 3D Parallax entry
+        tl.from(".gsap-3d-cluster", {
+            scale: 0.8,
+            opacity: 0,
+            rotationY: 25,
+            rotationX: -15,
+            duration: 1.8,
+            ease: "back.out(1.2)"
+        }, "-=1.5");
+
+        tl.from(".gsap-3d-element", {
+            z: -100,
+            opacity: 0,
+            scale: 0.5,
+            stagger: 0.15,
+            duration: 1.2,
+            ease: "back.out(1.5)"
+        }, "-=1.4");
+
+        // Gentle continuous float for the entire cluster
+        gsap.to(".gsap-3d-cluster", {
+            y: "-=15",
+            duration: 4,
+            repeat: -1,
+            yoyo: true,
+            ease: "sine.inOut"
+        });
+
+        // Continuous float for individual elements to give them microscopic independent life
+        gsap.utils.toArray('.gsap-3d-element').forEach((el, i) => {
+            gsap.to(el as Element, {
+                y: i % 2 === 0 ? "-=10" : "+=10",
+                rotationZ: i % 2 === 0 ? "+=2" : "-=2",
+                duration: 3 + i,
+                repeat: -1,
+                yoyo: true,
+                ease: "sine.inOut",
+                delay: i * 0.5
+            });
+        });
+
+        // Mouse tracking glow orb
+        const xTo = gsap.quickTo(orbRef.current, "x", { duration: 0.6, ease: "power3" });
+        const yTo = gsap.quickTo(orbRef.current, "y", { duration: 0.6, ease: "power3" });
+
+        const moveOrb = (e: MouseEvent) => {
+            xTo(e.clientX - 300);
+            yTo(e.clientY - 300);
+        };
+
+        window.addEventListener("mousemove", moveOrb);
+
+        // Mouse tracking parallax for the 3D cluster
+        const section = sectionRef.current;
+        const cluster = document.querySelector('.gsap-3d-cluster') as HTMLElement;
+
+        let moveCluster: (e: MouseEvent) => void;
+        let resetCluster: () => void;
+
+        if (section && cluster) {
+            gsap.set(cluster, { rotationY: -15, rotationX: 10 });
+
+            moveCluster = (e: MouseEvent) => {
+                const rect = section.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width - 0.5;
+                const y = (e.clientY - rect.top) / rect.height - 0.5;
+
+                gsap.to(cluster, {
+                    rotationY: -15 + (x * 30),
+                    rotationX: 10 - (y * 30),
+                    duration: 1.5,
+                    ease: "power3.out"
+                });
+            };
+
+            resetCluster = () => {
+                gsap.to(cluster, {
+                    rotationY: -15,
+                    rotationX: 10,
+                    duration: 1.5,
+                    ease: "power3.out"
+                });
+            };
+
+            section.addEventListener('mousemove', moveCluster);
+            section.addEventListener('mouseleave', resetCluster);
+        }
+
+        return () => {
+            window.removeEventListener("mousemove", moveOrb);
+            if (section && cluster && moveCluster && resetCluster) {
+                section.removeEventListener('mousemove', moveCluster);
+                section.removeEventListener('mouseleave', resetCluster);
+            }
+        };
+    }, { scope: sectionRef });
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -43,108 +154,100 @@ export function HeroSection() {
     };
 
     return (
-        <section className="relative w-full overflow-hidden pt-16 pb-20 md:pt-24 md:pb-28">
-            {/* ── Background layers ── */}
-            <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-muted/30" />
-            <div className="absolute inset-0 bg-dot-pattern opacity-[0.35]" />
+        <section ref={sectionRef} className="relative w-full overflow-hidden pt-16 pb-20 md:pt-24 md:pb-32 bg-background flex flex-col justify-center min-h-[90vh]">
+            {/* Interactive Mouse Tracker Orb */}
+            <div
+                ref={orbRef}
+                className="pointer-events-none fixed top-0 left-0 h-[600px] w-[600px] rounded-full bg-primary/10 blur-[120px] z-0 hidden lg:block"
+                style={{ willChange: 'transform' }}
+            />
 
-            {/* Soft ambient glow */}
-            <div className="pointer-events-none absolute -top-40 left-1/3 h-[500px] w-[500px] rounded-full bg-primary/[0.07] blur-[100px]" />
-            <div className="pointer-events-none absolute -bottom-20 right-1/4 h-[400px] w-[400px] rounded-full bg-accent/[0.06] blur-[100px]" />
+            {/* Static ambient glow for mobile/base */}
+            <div className="pointer-events-none absolute top-[-10%] right-[-5%] h-[500px] w-[500px] rounded-full bg-primary/[0.05] blur-[100px] z-0" />
+            <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] mix-blend-overlay pointer-events-none z-0" />
 
-            <div className="container relative z-10 mx-auto px-4 md:px-6 lg:px-8">
-                <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
+            <div className="container relative z-10 mx-auto px-6 md:px-12 lg:px-24 xl:px-32 2xl:px-40">
+                <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
                     {/* ── Left: Content ── */}
-                    <motion.div
-                        className="flex flex-col"
-                        initial={{ opacity: 0, y: 28 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.7, ease: "easeOut" }}
-                    >
+                    <div className="flex flex-col z-10">
                         {/* Badge */}
-                        <motion.div
-                            className="mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-primary/25 bg-primary/[0.08] px-4 py-1.5 text-sm font-medium text-primary backdrop-blur-sm"
-                            initial={{ opacity: 0, x: -16 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.25, duration: 0.5 }}
+                        <div
+                            className="gsap-hero-badge mb-8 inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-semibold text-primary backdrop-blur-md shadow-sm"
                         >
-                            <Sparkles className="h-3.5 w-3.5" />
-                            AI-Powered Learning Platform
-                        </motion.div>
+                            <span className="relative flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+                            </span>
+                            Edris Learning 2.0 Just Dropped
+                        </div>
 
                         {/* Headline */}
-                        <h1 className="text-4xl sm:text-5xl xl:text-[3.5rem] font-extrabold tracking-tight leading-[1.1] text-foreground">
-                            Learn smarter with{" "}
-                            <span className="text-primary">
-                                AI&#8209;powered
-                            </span>{" "}
-                            courses
+                        <h1 className="gsap-hero-text text-5xl sm:text-6xl lg:text-[4rem] font-black tracking-tighter leading-[1.05] text-foreground mb-6">
+                            Master the future <br className="hidden md:block" />
+                            of learning with{" "}
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary to-accent relative inline-block">
+                                AI Tutors
+                                {/* Decorative underline */}
+                                <svg className="absolute -bottom-2 w-full left-0 text-primary/30" viewBox="0 0 100 20" preserveAspectRatio="none">
+                                    <path d="M0,10 Q50,20 100,5" stroke="currentColor" fill="none" strokeWidth="4" strokeLinecap="round" />
+                                </svg>
+                            </span>
                         </h1>
 
                         {/* Subtitle */}
-                        <p className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-lg">
-                            Expert-led video courses paired with an AI assistant that answers
-                            your questions in real-time — plus every certificate is verifiable
-                            on the blockchain.
+                        <p className="gsap-hero-text text-xl text-muted-foreground leading-relaxed max-w-xl font-medium mb-8">
+                            Ditch the traditional classroom. Engage with expert-led video courses, get instant answers from our AI assistant, and earn blockchain-verified certificates.
                         </p>
 
                         {/* CTAs */}
-                        <motion.div
-                            className="mt-8 flex flex-wrap items-center gap-4"
-                            initial={{ opacity: 0, y: 16 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.35, duration: 0.5 }}
-                        >
-                            <Link href="/courses">
+                        <div className="gsap-hero-text flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-10">
+                            <Link href="/courses" className="w-full sm:w-auto">
                                 <Button
                                     size="lg"
-                                    className="group h-12 px-8 text-base font-semibold shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/25"
+                                    className="w-full group h-14 px-8 text-base font-bold shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 hover:-translate-y-0.5 transition-all duration-300 rounded-xl"
                                 >
-                                    Browse Courses
-                                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                                    Start Learning Free
+                                    <ArrowRight className="ml-2 h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
                                 </Button>
                             </Link>
-                            <Link href="#how-it-works">
+                            <Link href="#how-it-works" className="w-full sm:w-auto">
                                 <Button
                                     variant="outline"
                                     size="lg"
-                                    className="h-12 px-8 text-base font-semibold"
+                                    className="w-full h-14 px-8 text-base font-bold border-2 border-primary/10 hover:border-primary/30 hover:bg-primary/5 transition-all duration-300 rounded-xl bg-background/50 backdrop-blur-sm"
                                 >
-                                    How It Works
+                                    See How It Works
                                 </Button>
                             </Link>
-                        </motion.div>
+                        </div>
 
-                        {/* Search Bar */}
-                        <motion.form
+                        {/* Search Bar - Sleek redesign */}
+                        <form
                             onSubmit={handleSearch}
-                            className="mt-8 max-w-lg"
-                            initial={{ opacity: 0, y: 16 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.45, duration: 0.5 }}
+                            className="gsap-hero-form max-w-lg mb-10 relative group"
                         >
-                            <div className="relative flex items-center rounded-xl border border-border bg-card shadow-sm transition-all duration-300 focus-within:shadow-lg focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/[0.08]">
-                                <Search className="ml-4 h-5 w-5 text-muted-foreground shrink-0" />
+                            <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-accent/20 rounded-2xl blur opacity-0 group-focus-within:opacity-100 transition duration-500" />
+                            <div className="relative flex items-center rounded-xl border border-border/60 bg-card/60 backdrop-blur-xl shadow-sm transition-all p-1.5 focus-within:bg-card">
+                                <Search className="ml-3 h-5 w-5 text-muted-foreground shrink-0 group-focus-within:text-primary transition-colors" />
                                 <Input
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60 h-12 text-base px-4"
-                                    placeholder="Search for courses..."
+                                    className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/50 h-10 text-base px-3 font-medium"
+                                    placeholder="What do you want to learn today?"
                                 />
                                 <Button
                                     type="submit"
-                                    size="sm"
-                                    className="mr-1.5 rounded-lg h-9 px-5 shrink-0"
+                                    className="rounded-lg h-10 px-6 font-bold bg-primary hover:bg-primary/90 text-primary-foreground transition-colors"
                                 >
-                                    Search
+                                    Explore
                                 </Button>
                             </div>
 
                             {/* Popular tags */}
-                            <div className="mt-3 flex flex-wrap items-center gap-2">
-                                <span className="text-xs font-medium text-muted-foreground">
-                                    Popular:
+                            <div className="mt-4 flex flex-wrap items-center gap-2">
+                                <span className="text-sm font-semibold text-muted-foreground">
+                                    Trending:
                                 </span>
                                 {popularSearches.map((tag) => (
                                     <button
@@ -155,154 +258,163 @@ export function HeroSection() {
                                                 `/courses?category=${encodeURIComponent(tag.category)}`
                                             )
                                         }
-                                        className="text-xs px-2.5 py-1 rounded-md bg-muted/60 text-muted-foreground hover:bg-primary/10 hover:text-primary border border-transparent hover:border-primary/20 transition-all duration-200"
+                                        className="text-sm px-3 py-1 rounded-full bg-muted border border-transparent text-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/20 transition-all font-medium"
                                     >
                                         {tag.label}
                                     </button>
                                 ))}
                             </div>
-                        </motion.form>
+                        </form>
 
                         {/* Trust Metrics */}
-                        <motion.div
-                            className="mt-10 flex flex-wrap items-center gap-6 md:gap-8"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.6, duration: 0.6 }}
-                        >
+                        <div className="gsap-hero-stats flex flex-wrap items-center gap-4 sm:gap-8 pt-6 border-t border-border/50">
                             {stats.map((stat, i) => (
                                 <div
                                     key={stat.label}
-                                    className="flex items-center gap-2.5"
+                                    className="flex items-center gap-3"
                                 >
                                     {i > 0 && (
-                                        <div className="hidden sm:block w-px h-8 bg-border mr-2 -ml-2 md:mr-3 md:-ml-3" />
+                                        <div className="hidden sm:block w-px h-8 bg-border mr-2 md:mr-4" />
                                     )}
-                                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                                        <stat.icon className="h-4 w-4 text-primary" />
-                                    </div>
                                     <div>
-                                        <p className="text-lg font-bold text-foreground leading-none">
-                                            {stat.value}
-                                        </p>
-                                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                                        <div className="flex items-baseline gap-1">
+                                            <p className="text-2xl font-black text-foreground tracking-tight">
+                                                {stat.value}
+                                            </p>
+                                        </div>
+                                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                             {stat.label}
                                         </p>
                                     </div>
                                 </div>
                             ))}
-                        </motion.div>
-                    </motion.div>
-
-                    {/* ── Right: Platform Screenshot Mockup ── */}
-                    <motion.div
-                        className="relative hidden lg:block"
-                        initial={{ opacity: 0, x: 40, rotateY: 4 }}
-                        animate={{ opacity: 1, x: 0, rotateY: 0 }}
-                        transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-                    >
-                        {/* Layered depth glow */}
-                        <div className="absolute -inset-6 rounded-3xl bg-gradient-to-br from-primary/[0.08] via-transparent to-accent/[0.06] blur-2xl" />
-                        <div className="absolute -inset-3 rounded-2xl bg-gradient-to-tr from-primary/[0.04] to-accent/[0.04] blur-xl" />
-
-                        {/* Browser-style frame */}
-                        <div className="relative rounded-2xl border border-border/80 bg-card shadow-2xl overflow-hidden ring-1 ring-black/[0.04] dark:ring-white/[0.04]">
-                            {/* Title bar */}
-                            <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/40">
-                                <span className="h-3 w-3 rounded-full bg-red-400/70" />
-                                <span className="h-3 w-3 rounded-full bg-yellow-400/70" />
-                                <span className="h-3 w-3 rounded-full bg-green-400/70" />
-                                <div className="ml-3 flex-1 flex items-center gap-2 rounded-md bg-background/60 px-3 py-1">
-                                    <div className="h-2.5 w-2.5 rounded-full bg-green-500/60" />
-                                    <span className="text-[11px] text-muted-foreground font-medium truncate">
-                                        edris-lms.com/dashboard
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Screenshot */}
-                            <div className="relative aspect-[4/3]">
-                                <Image
-                                    src="/hero-image.png"
-                                    alt="Edris LMS platform — course dashboard"
-                                    fill
-                                    className="object-cover object-center"
-                                    priority
-                                    sizes="(max-width: 1024px) 0vw, 50vw"
-                                />
-                            </div>
                         </div>
+                    </div>
 
-                        {/* Floating accent cards */}
-                        <motion.div
-                            className="absolute -bottom-4 -left-6 rounded-xl border border-border bg-card/90 backdrop-blur-md p-3 shadow-lg"
-                            animate={{ y: [0, -6, 0] }}
-                            transition={{
-                                duration: 4,
-                                repeat: Infinity,
-                                ease: "easeInOut",
-                            }}
-                        >
-                            <div className="flex items-center gap-2.5">
-                                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-                                    <Award className="h-4 w-4 text-white" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-semibold text-foreground leading-none">
-                                        Certified
-                                    </p>
-                                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                                        Blockchain Verified
-                                    </p>
-                                </div>
-                            </div>
-                        </motion.div>
+                    {/* ── Right: Dynamic Floating 3D Art ── */}
+                    <div className="relative hidden lg:flex h-full w-full items-center justify-center min-h-[550px] xl:min-h-[600px] perspective-[1200px]">
 
-                        <motion.div
-                            className="absolute -top-3 -right-4 rounded-xl border border-border bg-card/90 backdrop-blur-md p-3 shadow-lg"
-                            animate={{ y: [0, 6, 0] }}
-                            transition={{
-                                duration: 5,
-                                repeat: Infinity,
-                                ease: "easeInOut",
-                                delay: 1,
-                            }}
-                        >
-                            <div className="flex items-center gap-2.5">
-                                <div className="flex -space-x-1.5">
-                                    {[1, 2, 3].map((i) => (
-                                        <div
-                                            key={i}
-                                            className="h-7 w-7 rounded-full border-2 border-card bg-muted overflow-hidden"
-                                        >
-                                            <Image
-                                                src={`https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=student-${i}`}
-                                                alt=""
-                                                width={28}
-                                                height={28}
-                                            />
+                        <div className="gsap-3d-cluster relative w-full h-full flex items-center justify-center scale-110 xl:scale-[1.25]" style={{ transformStyle: 'preserve-3d' }}>
+
+                            {/* Theme-Adaptive Glowing Backdrops */}
+                            <div className="absolute w-[350px] h-[350px] rounded-full bg-gradient-to-tr from-primary/10 via-primary/5 to-accent/10 blur-[70px] pointer-events-none z-0" />
+
+                            {/* Floating Geometrical Rings */}
+                            <div className="gsap-3d-element absolute w-[350px] h-[350px] rounded-full border border-primary/20 bg-transparent pointer-events-none" style={{ transform: 'translateZ(-100px) rotateX(60deg) rotateY(-10deg)' }} />
+                            <div className="gsap-3d-element absolute w-[250px] h-[250px] rounded-full border border-accent/20 bg-transparent pointer-events-none" style={{ transform: 'translateZ(-50px) rotateX(-60deg) rotateY(10deg)' }} />
+
+                            {/* Center Primary Card : Elegant Mock AI UI */}
+                            <div className="gsap-3d-element absolute z-20 w-[360px] rounded-[1.75rem] border border-border/50 bg-card/70 backdrop-blur-3xl p-5 shadow-2xl shadow-primary/5 overflow-hidden" style={{ transform: 'translateZ(50px)' }}>
+                                {/* Subtle inner glow line */}
+                                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+
+                                <div className="relative z-10">
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between mb-5 pb-3 border-b border-border/50">
+                                        <div className="flex items-center gap-3">
+                                            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary border border-primary/10">
+                                                <Image src={Logo} alt="Edris AI" className="size-6 relative z-10" />
+                                                <div className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-green-500 border-[2px] border-card animate-pulse z-20" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-foreground leading-tight text-base">Edris AI Tutor</h3>
+                                                <p className="text-[11px] text-muted-foreground font-medium mt-0.5">Assisting with your lesson</p>
+                                            </div>
                                         </div>
-                                    ))}
-                                </div>
-                                <div>
-                                    <div className="flex gap-0.5">
-                                        {[1, 2, 3, 4, 5].map((s) => (
-                                            <svg
-                                                key={s}
-                                                className="h-3 w-3 fill-amber-500 text-amber-500"
-                                                viewBox="0 0 20 20"
-                                            >
-                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                            </svg>
-                                        ))}
                                     </div>
-                                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                                        2K+ happy learners
-                                    </p>
+
+                                    {/* Chat Area */}
+                                    <div className="space-y-4">
+                                        <div className="flex items-start gap-2.5 w-[92%]">
+                                            <div className="h-7 w-7 shrink-0 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/10 overflow-hidden">
+                                                <Image src={Logo} alt="" className="size-4" />
+                                            </div>
+                                            <div className="p-3.5 rounded-[1.125rem] rounded-tl-sm bg-muted/50 border border-border/50 backdrop-blur-md">
+                                                <p className="text-[13px] font-medium text-foreground leading-relaxed">Let&apos;s break down this concept. Imagine a library—the books are your data.</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-end gap-2.5 w-[85%] ml-auto justify-end">
+                                            <div className="p-3.5 rounded-[1.125rem] rounded-tr-sm bg-primary text-primary-foreground shadow-lg shadow-primary/20">
+                                                <p className="text-[13px] font-medium leading-relaxed">That makes sense! Thanks.</p>
+                                            </div>
+                                            <div className="h-7 w-7 shrink-0 rounded-full bg-accent/20 flex items-center justify-center border border-accent/10">
+                                                <Users className="h-3.5 w-3.5 text-accent-foreground" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Stats / Interactive bar */}
+                                    <div className="mt-5 flex flex-col gap-2.5 p-3.5 rounded-[1.125rem] bg-muted/30 border border-border/50">
+                                        <div className="flex justify-between items-center w-full">
+                                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Mastery Level</span>
+                                            <span className="text-[10px] font-black text-primary">85%</span>
+                                        </div>
+                                        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                                            <div className="h-full bg-gradient-to-r from-primary to-accent w-[85%] rounded-full relative">
+                                                <div className="absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-r from-transparent via-white/40 to-transparent translate-x-4 animate-pulse" />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </motion.div>
-                    </motion.div>
+
+                            {/* Floating Side Card 1 : Achievement/Cert */}
+                            <div className="gsap-3d-element absolute z-30 -right-10 top-40 w-56 rounded-[1.25rem] border border-border/50 bg-card/70 backdrop-blur-2xl p-4 shadow-xl shadow-foreground/5" style={{ transform: 'translateZ(100px) rotate(4deg)' }}>
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-[30px] pointer-events-none" />
+                                <div className="relative z-10 flex items-center gap-3">
+                                    <div className="flex-shrink-0 h-11 w-11 bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900/40 dark:to-amber-950/40 rounded-[0.75rem] flex items-center justify-center border border-amber-300/50 dark:border-amber-700/50 shadow-inner">
+                                        <Award className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[13px] font-bold text-foreground leading-tight">Smart Contract</span>
+                                        <span className="text-[9px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest mt-0.5">Verified Skill</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Floating Side Card 2 : Social/Community */}
+                            <div className="gsap-3d-element absolute z-10 -left-10 bottom-24 w-[210px] rounded-[1.25rem] border border-border/50 bg-card/70 backdrop-blur-2xl p-4 shadow-xl shadow-foreground/5" style={{ transform: 'translateZ(80px) rotate(-4deg)' }}>
+                                <div className="flex flex-col gap-3 relative z-10">
+                                    <div className="flex items-center justify-between">
+                                        <div className="text-[11px] font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" /> Live Community
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex -space-x-2.5">
+                                            {[1, 2, 3].map(i => (
+                                                <div key={i} className="w-8 h-8 rounded-full border-2 border-background bg-muted overflow-hidden relative shadow-sm">
+                                                    <Image
+                                                        src={`https://api.dicebear.com/9.x/notionists/svg?seed=learn-${i + 20}`}
+                                                        alt="student"
+                                                        fill
+                                                        className="object-cover"
+                                                    />
+                                                </div>
+                                            ))}
+                                            <div className="w-8 h-8 rounded-full border-2 border-background bg-primary/10 flex items-center justify-center relative shadow-sm z-10 backdrop-blur-sm">
+                                                <span className="text-[9px] font-black text-primary">+3k</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-muted/40 p-2 rounded-xl border border-border/50 flex flex-col items-start gap-0.5">
+                                        <div className="flex items-center justify-between w-full">
+                                            <span className="text-[10px] font-bold text-foreground">Average Rating</span>
+                                            <span className="text-[10px] font-black text-amber-600 dark:text-amber-500">4.9</span>
+                                        </div>
+                                        <div className="flex gap-0.5">
+                                            {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-3 h-3 fill-amber-500 text-amber-500" />)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Decorative Floating Dots */}
+                            <div className="gsap-3d-element absolute top-10 left-10 w-3 h-3 rounded-full bg-primary/60 blur-[1px]" style={{ transform: 'translateZ(150px)' }} />
+                            <div className="gsap-3d-element absolute bottom-0 right-20 w-4 h-4 rounded-full bg-accent/60 blur-[1px]" style={{ transform: 'translateZ(-50px)' }} />
+                            <div className="gsap-3d-element absolute top-1/2 -right-10 w-2 h-2 rounded-full bg-primary/40 blur-[1px]" style={{ transform: 'translateZ(90px)' }} />
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>

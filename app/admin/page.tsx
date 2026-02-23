@@ -177,11 +177,11 @@ export default async function AdminDashboardPage() {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="hover:border-primary/50 transition-colors">
-          <Link href="/admin/users">
+          <Link href="/admin/teachers">
             <CardContent className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
-                <IconUsers className="h-5 w-5 text-primary" />
-                <span className="font-medium">Manage Users</span>
+                <IconSchool className="h-5 w-5 text-primary" />
+                <span className="font-medium">View Pending Teachers</span>
               </div>
               <IconChevronRight className="h-5 w-5 text-muted-foreground" />
             </CardContent>
@@ -189,11 +189,11 @@ export default async function AdminDashboardPage() {
         </Card>
 
         <Card className="hover:border-primary/50 transition-colors">
-          <Link href="/admin/courses">
+          <Link href="/admin/analytics">
             <CardContent className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
-                <IconBook className="h-5 w-5 text-primary" />
-                <span className="font-medium">Manage Courses</span>
+                <IconCurrencyDollar className="h-5 w-5 text-primary" />
+                <span className="font-medium">View Recent Enrollments</span>
               </div>
               <IconChevronRight className="h-5 w-5 text-muted-foreground" />
             </CardContent>
@@ -205,7 +205,7 @@ export default async function AdminDashboardPage() {
             <CardContent className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
                 <IconTrendingUp className="h-5 w-5 text-primary" />
-                <span className="font-medium">View Analytics</span>
+                <span className="font-medium">Open Analytics</span>
               </div>
               <IconChevronRight className="h-5 w-5 text-muted-foreground" />
             </CardContent>

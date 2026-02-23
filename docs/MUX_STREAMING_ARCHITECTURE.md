@@ -63,7 +63,7 @@ So even though the default is `preferNativeHLS: false`, it’s best to **explici
 
 | Area | Status | Suggestion |
 |------|--------|------------|
-| **Quality selector** | Hidden when native HLS or single quality | Set `preferNativeHLS={false}` on `MediaPlayer` so hls.js is used and quality menu can show. |
+| **Quality selector** | Visible (hls.js enforced) | `preferNativeHLS={false}` successfully configured on `MediaPlayer`. |
 | **Error handling** | Basic | Surface Mux `errored` in UI (e.g. “Video is still processing” or “Playback failed”). |
 | **Preview vs dashboard** | Preview uses precomputed signed URLs; dashboard uses API | Already correct; ensure token expiry (e.g. 2h) is acceptable for long previews. |
 | **No HlsProvider wrapper** | Source passed directly to `MediaPlayer` | Not required; Vidstack’s loader picks HLS for `application/x-mpegurl`. Explicit `preferNativeHLS={false}` is the main fix. |

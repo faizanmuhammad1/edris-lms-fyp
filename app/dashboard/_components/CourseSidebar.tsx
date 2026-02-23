@@ -61,7 +61,7 @@ export function CourseSidebar({ course }: iAppProps) {
             <CollapsibleTrigger asChild>
               <Button
                 variant="outline"
-                className="w-full p-3 h-auto flex items-center gap-2"
+                className="w-full p-3 h-auto flex items-center gap-2 bg-card hover:bg-accent/50 transition-colors shadow-sm border-border/60"
               >
                 <div className="shrink-0">
                   <ChevronDown className="size-4 text-primary" />

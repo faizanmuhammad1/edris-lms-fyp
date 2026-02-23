@@ -109,8 +109,8 @@ Dashboard lesson data (e.g. from `get-lesson-content`) includes `muxPlaybackId` 
 | Signing key only on server | Yes |
 | Auth + enrollment before signed URL | Yes |
 | Webhook signature verified (HMAC + timing-safe) | Yes |
-| Webhook replay protection | **Add timestamp check** |
-| Webhook comparison safe (length check) | **Add length check** |
+| Webhook replay protection | Yes |
+| Webhook comparison safe (length check) | Yes |
 | S3 ingest presigned, short-lived | Yes |
 | Asset cleanup on delete/change | Yes |
 | Webhook path excluded from auth | Yes |

@@ -115,10 +115,10 @@ export async function getIndividualCourse(slug: string) {
       const { getMuxSignedStreamUrl, getMuxSignedThumbnailUrl } = await import(
         "@/lib/mux"
       );
-      muxStreamUrl = getMuxSignedStreamUrl(previewLesson.muxPlaybackId);
+      muxStreamUrl = getMuxSignedStreamUrl(previewLesson.muxPlaybackId, 1800);
       muxThumbnailUrl = getMuxSignedThumbnailUrl(previewLesson.muxPlaybackId, {
         width: 1920,
-      });
+      }, 1800);
     } catch (err) {
       console.error("[get-course] Mux signed URL failed:", err);
       // Leave mux URLs null; page will fall back to S3 or no preview

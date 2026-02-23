@@ -44,7 +44,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 transition-all duration-300">
-      <div className="container flex h-16 items-center mx-auto px-4 md:px-6 lg:px-8 gap-4">
+      <div className="container flex h-16 items-center mx-auto px-6 md:px-12 lg:px-24 xl:px-32 2xl:px-40 gap-4">
         {/* Mobile Menu */}
         <Sheet>
           <SheetTrigger asChild className="md:hidden">
