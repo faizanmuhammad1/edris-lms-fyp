@@ -167,9 +167,9 @@ export function HeroSection() {
             <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] mix-blend-overlay pointer-events-none z-0" />
 
             <div className="container relative z-10 mx-auto px-6 md:px-12 lg:px-24 xl:px-32 2xl:px-40">
-                <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+                <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20 xl:gap-32">
                     {/* ── Left: Content ── */}
-                    <div className="flex flex-col z-10">
+                    <div className="flex flex-col z-10 w-full xl:max-w-2xl">
                         {/* Badge */}
                         <div
                             className="gsap-hero-badge mb-8 inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-semibold text-primary backdrop-blur-md shadow-sm"
@@ -182,7 +182,7 @@ export function HeroSection() {
                         </div>
 
                         {/* Headline */}
-                        <h1 className="gsap-hero-text text-5xl sm:text-6xl lg:text-[4rem] font-black tracking-tighter leading-[1.05] text-foreground mb-6">
+                        <h1 className="gsap-hero-text text-5xl sm:text-6xl lg:text-[4rem] xl:text-[4.5rem] font-black tracking-tighter leading-[1.05] text-foreground mb-6">
                             Master the future <br className="hidden md:block" />
                             of learning with{" "}
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary to-accent relative inline-block">
@@ -195,7 +195,7 @@ export function HeroSection() {
                         </h1>
 
                         {/* Subtitle */}
-                        <p className="gsap-hero-text text-xl text-muted-foreground leading-relaxed max-w-xl font-medium mb-8">
+                        <p className="gsap-hero-text text-lg sm:text-xl text-muted-foreground leading-relaxed max-w-xl font-medium mb-8">
                             Ditch the traditional classroom. Engage with expert-led video courses, get instant answers from our AI assistant, and earn blockchain-verified certificates.
                         </p>
 
@@ -204,7 +204,7 @@ export function HeroSection() {
                             <Link href="/courses" className="w-full sm:w-auto">
                                 <Button
                                     size="lg"
-                                    className="w-full group h-14 px-8 text-base font-bold shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 hover:-translate-y-0.5 transition-all duration-300 rounded-xl"
+                                    className="w-full group h-14 px-8 text-base font-bold shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 hover:-translate-y-0.5 transition-all duration-300 rounded-xl bg-primary text-primary-foreground"
                                 >
                                     Start Learning Free
                                     <ArrowRight className="ml-2 h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
@@ -292,10 +292,9 @@ export function HeroSection() {
                     </div>
 
                     {/* ── Right: Dynamic Floating 3D Art ── */}
-                    <div className="relative hidden lg:flex h-full w-full items-center justify-center min-h-[550px] xl:min-h-[600px] perspective-[1200px]">
+                    <div className="relative hidden lg:flex h-full w-full items-center justify-end min-h-[550px] xl:min-h-[600px] perspective-[1200px]">
 
-                        <div className="gsap-3d-cluster relative w-full h-full flex items-center justify-center scale-110 xl:scale-[1.25]" style={{ transformStyle: 'preserve-3d' }}>
-
+                        <div className="gsap-3d-cluster relative w-full h-full flex items-center justify-center scale-[0.85] lg:scale-[0.80] xl:scale-[0.95] 2xl:scale-[1.05]" style={{ transformStyle: 'preserve-3d' }}>
                             {/* Theme-Adaptive Glowing Backdrops */}
                             <div className="absolute w-[350px] h-[350px] rounded-full bg-gradient-to-tr from-primary/10 via-primary/5 to-accent/10 blur-[70px] pointer-events-none z-0" />
 
@@ -359,7 +358,7 @@ export function HeroSection() {
                             </div>
 
                             {/* Floating Side Card 1 : Achievement/Cert */}
-                            <div className="gsap-3d-element absolute z-30 -right-10 top-40 w-56 rounded-[1.25rem] border border-border/50 bg-card/70 backdrop-blur-2xl p-4 shadow-xl shadow-foreground/5" style={{ transform: 'translateZ(100px) rotate(4deg)' }}>
+                            <div className="gsap-3d-element absolute z-30 -right-4 lg:-right-2 xl:-right-10 top-32 lg:top-50 w-56 rounded-[1.25rem] border border-border/50 bg-card/70 backdrop-blur-2xl p-4 shadow-xl shadow-foreground/5" style={{ transform: 'translateZ(100px) rotate(4deg)' }}>
                                 <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-[30px] pointer-events-none" />
                                 <div className="relative z-10 flex items-center gap-3">
                                     <div className="flex-shrink-0 h-11 w-11 bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900/40 dark:to-amber-950/40 rounded-[0.75rem] flex items-center justify-center border border-amber-300/50 dark:border-amber-700/50 shadow-inner">
@@ -373,7 +372,7 @@ export function HeroSection() {
                             </div>
 
                             {/* Floating Side Card 2 : Social/Community */}
-                            <div className="gsap-3d-element absolute z-10 -left-10 bottom-24 w-[210px] rounded-[1.25rem] border border-border/50 bg-card/70 backdrop-blur-2xl p-4 shadow-xl shadow-foreground/5" style={{ transform: 'translateZ(80px) rotate(-4deg)' }}>
+                            <div className="gsap-3d-element absolute z-10 -left-6 lg:left-4 xl:-left-10 bottom-16 lg:bottom-30 w-[210px] rounded-[1.25rem] border border-border/50 bg-card/70 backdrop-blur-2xl p-4 shadow-xl shadow-foreground/5" style={{ transform: 'translateZ(80px) rotate(-4deg)' }}>
                                 <div className="flex flex-col gap-3 relative z-10">
                                     <div className="flex items-center justify-between">
                                         <div className="text-[11px] font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
