@@ -163,7 +163,7 @@ export function CategoriesSection() {
                             Browse by Topic
                         </p>
                         <h2 className="gsap-cat-header-item text-4xl md:text-5xl font-black tracking-tight text-foreground leading-tight">
-                            Explore Top <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent relative inline-block">Categories<svg className="absolute -bottom-1 w-full left-0 text-primary/30" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0,10 Q50,20 100,5" stroke="currentColor" fill="none" strokeWidth="6" strokeLinecap="round" /></svg></span>
+                            Explore Top <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent relative inline-block">Categories</span>
                         </h2>
                         <p className="gsap-cat-header-item mt-4 text-muted-foreground text-lg font-medium leading-relaxed">
                             Find the perfect course in any subject. Learn from industry experts and elevate your career to the next level.

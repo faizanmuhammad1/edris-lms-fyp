@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import Logo from "@/public/bc413ab4-3838-4b3d-ae28-e8f3cd721b33.png";
+import WhiteLogo from "@/public/edriswhitelogo.png";
 import { ThemeToggle } from "@/components/ui/themeToggle";
 import { authClient } from "@/lib/auth-client";
 import { buttonVariants } from "@/components/ui/button";
@@ -80,11 +81,12 @@ export function Navbar() {
 
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2 mr-4 shrink-0 group">
-          <div className="relative">
+          <div className="relative flex items-center justify-center">
             <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <Image src={Logo} alt="Logo" className="size-9 relative z-10" />
+            <Image src={Logo} alt="Edris LMS Logo" className="h-12 w-auto relative z-10 dark:hidden" />
+            <Image src={WhiteLogo} alt="Edris LMS Logo" className="h-12 w-auto relative z-10 hidden dark:block" />
           </div>
-          <span className="font-bold text-xl tracking-tight hidden sm:inline-block">Edris LMS</span>
+          <span className="font-bold text-2xl tracking-tight hidden sm:inline-block">Edris LMS</span>
         </Link>
 
         {/* Categories Dropdown */}

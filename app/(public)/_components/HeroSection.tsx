@@ -187,10 +187,6 @@ export function HeroSection() {
                             of learning with{" "}
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary to-accent relative inline-block">
                                 AI Tutors
-                                {/* Decorative underline */}
-                                <svg className="absolute -bottom-2 w-full left-0 text-primary/30" viewBox="0 0 100 20" preserveAspectRatio="none">
-                                    <path d="M0,10 Q50,20 100,5" stroke="currentColor" fill="none" strokeWidth="4" strokeLinecap="round" />
-                                </svg>
                             </span>
                         </h1>
 

@@ -89,7 +89,7 @@ export function PlatformMockupSection() {
                     </div>
 
                     {/* Realistic HTML Dashboard Mockup */}
-                    <div className="relative w-full aspect-[16/10] bg-[#fdfdfd] dark:bg-[#0a0a0a] flex overflow-hidden">
+                    <div className="relative w-full aspect-[16/10] bg-[#fdfdfd] dark:bg-background flex overflow-hidden">
 
                         {/* Sidebar */}
                         <div className="hidden sm:flex w-64 bg-white dark:bg-card border-r border-border/60 flex-col p-4">

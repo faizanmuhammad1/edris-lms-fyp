@@ -244,15 +244,15 @@ export function WhyEdrisSection() {
                         </div>
 
                         {/* Abstract floating shapes for blockchain - refined to prevent overlap */}
-                        <div className="relative h-32 w-full my-6 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity duration-500">
-                            <div className="absolute w-28 h-28 rounded-xl border border-accent/20 rotate-12 gsap-spin-slow" />
-                            <div className="absolute w-24 h-24 rounded-full border border-primary/20 -rotate-12 gsap-spin-reverse" />
-                            <div className="absolute w-16 h-16 rounded-lg bg-gradient-to-tr from-accent/20 to-primary/20 backdrop-blur-md border border-white/10 flex items-center justify-center">
-                                <LinkIcon className="h-6 w-6 text-accent/80" />
+                        <div className="relative h-32 w-full my-6 flex items-center justify-center opacity-100 group-hover:scale-105 transition-all duration-500">
+                            <div className="absolute w-28 h-28 rounded-xl border-2 border-primary/40 rotate-12 gsap-spin-slow" />
+                            <div className="absolute w-24 h-24 rounded-full border-2 border-accent/40 -rotate-12 gsap-spin-reverse" />
+                            <div className="absolute w-16 h-16 rounded-lg bg-gradient-to-tr from-accent/30 to-primary/30 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg shadow-black/50">
+                                <LinkIcon className="h-7 w-7 text-primary drop-shadow-md" />
                             </div>
                         </div>
 
-                        <Link href="/verification" className="relative z-10 w-full rounded-xl bg-accent/10 hover:bg-accent/20 border border-accent/20 text-accent text-center py-3 font-semibold transition-colors mt-auto shrink-0">
+                        <Link href="/verification" className="relative z-10 w-full rounded-xl bg-primary hover:bg-primary-hover border border-transparent text-primary-foreground shadow-lg shadow-primary/20 text-center py-3 font-semibold transition-all hover:-translate-y-0.5 mt-auto shrink-0">
                             Verify Certificates
                         </Link>
                     </div>

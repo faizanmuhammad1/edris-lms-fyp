@@ -88,7 +88,7 @@ export function FeaturedCourses({ courses }: FeaturedCoursesProps) {
                             Featured
                         </p>
                         <h2 className="gsap-featured-header-text text-4xl md:text-5xl font-black tracking-tight text-foreground leading-tight">
-                            Popular <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent relative inline-block">Courses<svg className="absolute -bottom-1 w-full left-0 text-primary/30" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0,10 Q50,20 100,5" stroke="currentColor" fill="none" strokeWidth="6" strokeLinecap="round" /></svg></span>
+                            Popular <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent relative inline-block">Courses</span>
                         </h2>
                         <p className="gsap-featured-header-text mt-4 text-muted-foreground text-lg font-medium leading-relaxed">
                             Start learning today with courses carefully hand-picked by our curated team of experts.

@@ -270,11 +270,8 @@ export function InstructorsSection() {
                     </div>
                     <h2 className="gsap-instructor-title text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-6">
                         Learn from the {" "}
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent relative">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent relative inline-block">
                             best in the industry
-                            <svg className="absolute -bottom-2 left-0 w-full h-3 text-primary/30" viewBox="0 0 100 10" preserveAspectRatio="none">
-                                <path d="M0 5 Q 50 10 100 5" fill="none" stroke="currentColor" strokeWidth="2" />
-                            </svg>
                         </span>
                     </h2>
                     <p className="gsap-instructor-desc text-lg md:text-xl text-muted-foreground leading-relaxed">
@@ -309,6 +306,6 @@ export function InstructorsSection() {
                     </div>
                 </div>
             </div>
-        </section>
+        </section >
     );
 }
