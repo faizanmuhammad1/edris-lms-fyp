@@ -15,39 +15,30 @@ if (typeof window !== "undefined") {
 const instructors = [
     {
         id: 1,
-        name: "Dr. Ali Rehman",
-        role: "Lead Data Scientist",
+        name: "Faizan Muhammad",
+        role: "Lead Developer",
         image: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=800&auto=format&fit=crop", // Professional South Asian man
-        bio: "Former Head of Data at TechCorp. passionate about making complex ML algorithms accessible to everyone.",
+        bio: "Software engineering expert passionate about building scalable, high-performance web applications and systems.",
         students: "45K+",
         courses: 8,
     },
     {
         id: 2,
-        name: "Zoya Ahmed",
-        role: "Senior UI/UX Designer",
-        image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=800&auto=format&fit=crop", // Professional South Asian woman
-        bio: "Award-winning designer with 10+ years experience building interfaces for Fortune 500 companies.",
+        name: "Jahanzaib Shaikh",
+        role: "Full-Stack Engineer",
+        image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=800&auto=format&fit=crop", // Professional South Asian man
+        bio: "Dedicated full-stack developer bridging the gap between elegant user interfaces and robust backend architectures.",
         students: "32K+",
         courses: 5,
     },
     {
         id: 3,
-        name: "Bilal Hussain",
-        role: "Full-Stack Developer",
-        image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=800&auto=format&fit=crop", // Professional South Asian man
-        bio: "Open-source contributor and cloud architecture expert. Teaching modern web dev from zero to mastery.",
+        name: "Aleena Imran",
+        role: "Lead UI/UX Designer",
+        image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=800&auto=format&fit=crop", // Professional South Asian woman
+        bio: "Award-winning designer with a keen eye for detail, crafting intuitive and beautiful digital experiences.",
         students: "89K+",
         courses: 12,
-    },
-    {
-        id: 4,
-        name: "Fatima Noor",
-        role: "Financial Analyst",
-        image: "https://images.unsplash.com/photo-1589156280159-27698a70f29e?q=80&w=800&auto=format&fit=crop", // Professional South Asian woman
-        bio: "CFA charterholder breaking down Wall Street valuation models for everyday investors and founders.",
-        students: "21K+",
-        courses: 4,
     },
 ];
 
@@ -280,7 +271,7 @@ export function InstructorsSection() {
                 </div>
 
                 {/* Grid */}
-                <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+                <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
                     {instructors.map((instructor) => (
                         <InstructorCard key={instructor.id} instructor={instructor} />
                     ))}

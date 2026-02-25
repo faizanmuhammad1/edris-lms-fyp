@@ -75,19 +75,59 @@ export async function POST(req: NextRequest) {
         id: true,
         title: true,
         transcript: true,
+        videoSummary: true,
         transcriptionSegments: true,
+        attachments: {
+          select: {
+            fileName: true,
+          },
+        },
+        lessonProgress: {
+          where: { userId },
+          select: {
+            completed: true,
+            watchPercentage: true,
+            watchedDuration: true,
+            videoDuration: true,
+            updatedAt: true,
+          },
+          take: 1,
+        },
+        quiz: {
+          select: {
+            passingScore: true,
+            attempts: {
+              where: { userId },
+              orderBy: { createdAt: "desc" as const },
+              take: 3,
+              select: {
+                score: true,
+                isCompleted: true,
+                submittedAt: true,
+              },
+            },
+          },
+        },
         Chapter: {
           select: {
             title: true,
+            lessons: {
+              select: {
+                id: true,
+                title: true,
+                position: true,
+              },
+              orderBy: { position: "asc" as const },
+            },
             Course: {
               select: {
                 id: true,
                 title: true,
-              enrollment: {
-                where: { userId, status: "Active" },
-                select: { id: true, studentIntro: true },
-                take: 1,
-              },
+                enrollment: {
+                  where: { userId, status: "Active" },
+                  select: { id: true, studentIntro: true },
+                  take: 1,
+                },
               },
             },
           },
@@ -160,6 +200,102 @@ export async function POST(req: NextRequest) {
     tutorChat.studentIntro = message.trim();
   }
 
+  // ── Build enriched context for the system prompt ─────────────────────────
+  const lessonSummary = lesson.videoSummary ?? null;
+
+  let courseOutlineSnippet: string | null = null;
+  const chapterLessons = lesson.Chapter.lessons;
+  if (chapterLessons && chapterLessons.length > 0) {
+    const sorted = [...chapterLessons].sort(
+      (a, b) => a.position - b.position
+    );
+    const currentIndex = sorted.findIndex((l) => l.id === lesson.id);
+    const previousLesson =
+      currentIndex > 0 ? sorted[currentIndex - 1] : null;
+    const nextLesson =
+      currentIndex >= 0 && currentIndex < sorted.length - 1
+        ? sorted[currentIndex + 1]
+        : null;
+
+    const outlineLines = sorted
+      .map((l) => `- ${l.position}. ${l.title}`)
+      .join("\n");
+
+    courseOutlineSnippet = `This lesson sits inside the chapter "${lesson.Chapter.title}".\n\nChapter outline:\n${outlineLines}`;
+
+    if (previousLesson) {
+      courseOutlineSnippet += `\n\nPrevious lesson in this chapter: "${previousLesson.title}" (position ${previousLesson.position}).`;
+    }
+    if (nextLesson) {
+      courseOutlineSnippet += `\nNext lesson in this chapter: "${nextLesson.title}" (position ${nextLesson.position}).`;
+    }
+  }
+
+  const attachments = lesson.attachments ?? [];
+  const attachmentsSummary =
+    attachments.length > 0
+      ? `This lesson has ${attachments.length} attachment(s): ${attachments
+          .map((a) => a.fileName)
+          .join(
+            ", "
+          )}. You can refer to them generically (e.g. "check the PDF notes attachment") but do not invent content that is not supported by the transcript.`
+      : null;
+
+  const lp = lesson.lessonProgress?.[0];
+  let progressSummary: string | null = null;
+  if (lp) {
+    const lines: string[] = [];
+    lines.push(
+      `Lesson completion: ${lp.completed ? "completed" : "not completed"}; approximate watch progress: ${Math.round(
+        lp.watchPercentage
+      )}%.`
+    );
+    if (lp.videoDuration > 0) {
+      lines.push(
+        `Watched duration: ~${Math.round(
+          lp.watchedDuration
+        )} seconds out of ~${Math.round(lp.videoDuration)} seconds.`
+      );
+    }
+    if (lp.updatedAt) {
+      lines.push(
+        `Last watched at: ${lp.updatedAt.toISOString()}.`
+      );
+    }
+
+    const quiz = lesson.quiz;
+    if (quiz) {
+      const attempts = quiz.attempts ?? [];
+      if (attempts.length === 0) {
+        lines.push(
+          `There is a quiz for this lesson, but the student has not attempted it yet. Passing score: ${quiz.passingScore}%.`
+        );
+      } else {
+        const latest = attempts[0];
+        const completedAttempts = attempts.filter(
+          (a) => a.isCompleted && a.score !== null
+        );
+        const failedAttempts = completedAttempts.filter(
+          (a) => (a.score ?? 0) < quiz.passingScore
+        );
+
+        if (latest.isCompleted && latest.score != null) {
+          lines.push(
+            `Latest quiz attempt score: ${latest.score}%. Passing score is ${quiz.passingScore}%.`
+          );
+        }
+
+        if (failedAttempts.length > 0) {
+          lines.push(
+            `The student has ${failedAttempts.length} completed attempt(s) below the passing score.`
+          );
+        }
+      }
+    }
+
+    progressSummary = lines.join("\n");
+  }
+
   // ── Build system prompt ───────────────────────────────────────────────────
   const systemPrompt = buildTutorSystemPrompt(
     {
@@ -175,6 +311,12 @@ export async function POST(req: NextRequest) {
       introCompleted: isIntroResponse ? true : effectiveIntroCompleted,
       studentIntro: isIntroResponse ? message.trim() : effectiveIntro,
       studentName: userName,
+    },
+    {
+      lessonSummary,
+      courseOutlineSnippet,
+      attachmentsSummary,
+      progressSummary,
     }
   );
 

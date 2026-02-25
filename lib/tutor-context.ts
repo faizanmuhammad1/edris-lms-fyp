@@ -63,6 +63,13 @@ export interface TutorState {
   studentName: string; // From auth — user's display name
 }
 
+export interface TutorExtraContext {
+  lessonSummary?: string | null;
+  courseOutlineSnippet?: string | null;
+  attachmentsSummary?: string | null;
+  progressSummary?: string | null;
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Convert seconds to a human-readable MM:SS or HH:MM:SS string. */
@@ -212,7 +219,8 @@ export function buildTutorSystemPrompt(
   context: LessonContext & { lessonId: string },
   segments: TranscriptionSegment[],
   currentTimestamp: number,
-  tutorState: TutorState
+  tutorState: TutorState,
+  extraContext?: TutorExtraContext
 ): string {
   const currentSegment = findCurrentSegment(segments, currentTimestamp);
   const currentSegmentText = currentSegment?.text.trim() ?? "N/A";
@@ -249,6 +257,50 @@ export function buildTutorSystemPrompt(
     studentSection = `The student has previously introduced themselves:\n"${tutorState.studentIntro}"\nUse their name naturally in conversation (not every message — just like a real teacher would).`;
   } else {
     studentSection = `The student's account name is "${tutorState.studentName}".`;
+  }
+
+  // ── Optional enrichment sections ──────────────────────────────────────────
+  const lessonSummarySection =
+    extraContext?.lessonSummary && extraContext.lessonSummary.trim().length > 0
+      ? `\n## Lesson Summary\n${extraContext.lessonSummary.trim()}\n`
+      : "";
+
+  const courseOutlineSection =
+    extraContext?.courseOutlineSnippet &&
+    extraContext.courseOutlineSnippet.trim().length > 0
+      ? `\n## Course Outline Context\n${extraContext.courseOutlineSnippet.trim()}\n`
+      : "";
+
+  const attachmentsSection =
+    extraContext?.attachmentsSummary &&
+    extraContext.attachmentsSummary.trim().length > 0
+      ? `\n## Attachments & Resources\n${extraContext.attachmentsSummary.trim()}\n`
+      : "";
+
+  const progressSection =
+    extraContext?.progressSummary &&
+    extraContext.progressSummary.trim().length > 0
+      ? `\n## Student Progress Snapshot\n${extraContext.progressSummary
+          .trim()
+          .replace(/\n{2,}/g, "\n")}\n`
+      : "";
+
+  if (
+    lessonSummarySection ||
+    courseOutlineSection ||
+    attachmentsSection ||
+    progressSection
+  ) {
+    studentSection +=
+      "\n\n" +
+      [
+        progressSection,
+        lessonSummarySection,
+        courseOutlineSection,
+        attachmentsSection,
+      ]
+        .filter((section) => section.length > 0)
+        .join("");
   }
 
   // ── Intro flow ──────────────────────────────────────────────────────────

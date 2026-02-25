@@ -10,23 +10,49 @@ import { TestimonialsSection } from "./_components/TestimonialsSection";
 import { FAQSection } from "./_components/FAQSection";
 import { CTASection } from "./_components/CTASection";
 import { getAllCourses } from "@/app/data/course/get-all-courses";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { prisma } from "@/lib/db";
+import { redirect } from "next/navigation";
 
 export default async function Home() {
-    const courses = await getAllCourses();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-    return (
-        <>
-            <HeroSection />
-            <PlatformMockupSection />
-            <WhyEdrisSection />
-            <CategoriesSection />
-            <FeaturedCourses courses={courses} />
-            <HowItWorksSection />
-            <InteractiveFeaturesSection />
-            <InstructorsSection />
-            <TestimonialsSection />
-            <FAQSection />
-            <CTASection />
-        </>
-    );
+  if (session) {
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { role: true, teacherStatus: true },
+    });
+
+    if (user?.role === "admin") {
+      redirect("/admin");
+    }
+
+    if (user?.role === "teacher" || user?.teacherStatus === "Approved") {
+      redirect("/teacher");
+    }
+
+    // Default logged-in experience: take learners straight to their dashboard
+    redirect("/dashboard");
+  }
+
+  const courses = await getAllCourses();
+
+  return (
+    <>
+      <HeroSection />
+      <PlatformMockupSection />
+      <WhyEdrisSection />
+      <CategoriesSection />
+      <FeaturedCourses courses={courses} />
+      <HowItWorksSection />
+      <InteractiveFeaturesSection />
+      <InstructorsSection />
+      <TestimonialsSection />
+      <FAQSection />
+      <CTASection />
+    </>
+  );
 }

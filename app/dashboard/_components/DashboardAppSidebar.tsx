@@ -36,6 +36,11 @@ const data = {
       icon: IconDashboard,
     },
     {
+      title: "My Courses",
+      url: "/dashboard/courses",
+      icon: IconFileDescription,
+    },
+    {
       title: "Certificates",
       url: "/dashboard/certificates",
       icon: IconCertificate,
