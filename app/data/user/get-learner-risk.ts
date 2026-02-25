@@ -14,7 +14,6 @@ export interface CourseRiskResult {
 }
 
 interface CalculateRiskParams {
-  enrollmentId: string;
   courseId: string;
   courseTitle: string;
   userId: string;
@@ -28,7 +27,6 @@ function toRiskLevel(score: number): RiskLevel {
 }
 
 async function calculateRiskForEnrollment({
-  enrollmentId,
   courseId,
   courseTitle,
   userId,
@@ -189,7 +187,6 @@ export async function getLearnerRiskForCourse(
   }
 
   return calculateRiskForEnrollment({
-    enrollmentId: enrollment.id,
     courseId: enrollment.Course.id,
     courseTitle: enrollment.Course.title,
     userId: user.id,
@@ -226,7 +223,6 @@ export async function getLearnerRiskAcrossEnrollments(): Promise<
   const results = await Promise.all(
     enrollments.map((e) =>
       calculateRiskForEnrollment({
-        enrollmentId: e.id,
         courseId: e.Course.id,
         courseTitle: e.Course.title,
         userId: user.id,

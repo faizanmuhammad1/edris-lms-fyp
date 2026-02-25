@@ -7,7 +7,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -16,6 +15,7 @@ import {
   YAxis,
   Cell,
 } from "recharts";
+import { ChartBar, PieChartIcon, Target, TrendingUp, Award, BookOpen } from "lucide-react";
 
 interface StudentStatsOverviewProps {
   enrolledCourses: EnrolledCourseType[];
@@ -25,6 +25,7 @@ interface StudentStatsOverviewProps {
 interface ProgressDatum {
   name: string;
   progress: number;
+  fill?: string;
 }
 
 interface CategoryDatum {
@@ -58,13 +59,13 @@ function computeCourseProgress(course: EnrolledCourseType["Course"]): ProgressDa
 }
 
 const CATEGORY_COLORS = [
-  "#6366F1",
-  "#22C55E",
-  "#F97316",
-  "#EC4899",
-  "#06B6D4",
-  "#A855F7",
-  "#EAB308",
+  "#6366F1", // Indigo
+  "#14B8A6", // Teal
+  "#F59E0B", // Amber
+  "#EC4899", // Pink
+  "#8B5CF6", // Violet
+  "#10B981", // Emerald
+  "#F43F5E", // Rose
 ];
 
 export function StudentStatsOverview({
@@ -79,209 +80,281 @@ export function StudentStatsOverview({
     progressData,
     categoryData,
   } = useMemo(() => {
-      const progressData: ProgressDatum[] = enrolledCourses.map((e) =>
-        computeCourseProgress(e.Course)
-      );
+    const rawProgressData: ProgressDatum[] = enrolledCourses.map((e) =>
+      computeCourseProgress(e.Course)
+    );
 
-      const totalCourses = enrolledCourses.length;
-      const completedCourses = progressData.filter((d) => d.progress >= 100).length;
-      const inProgressCourses = progressData.filter(
-        (d) => d.progress > 0 && d.progress < 100
-      ).length;
-      const averageProgress =
-        totalCourses > 0
-          ? Math.round(
-              progressData.reduce((sum, d) => sum + d.progress, 0) / totalCourses
-            )
-          : 0;
+    // Apply color to each bar
+    const progressData = rawProgressData.map((data, index) => ({
+      ...data,
+      fill: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
+    }));
 
-      const categoryMap = new Map<string, number>();
-      enrolledCourses.forEach((e) => {
-        const category = e.Course.category || "Uncategorized";
-        categoryMap.set(category, (categoryMap.get(category) ?? 0) + 1);
-      });
-      const categoryData: CategoryDatum[] = Array.from(
-        categoryMap.entries()
-      ).map(([category, count]) => ({ category, count }));
+    const totalCourses = enrolledCourses.length;
+    const completedCourses = progressData.filter((d) => d.progress >= 100).length;
+    const inProgressCourses = progressData.filter(
+      (d) => d.progress > 0 && d.progress < 100
+    ).length;
+    const averageProgress =
+      totalCourses > 0
+        ? Math.round(
+          progressData.reduce((sum, d) => sum + d.progress, 0) / totalCourses
+        )
+        : 0;
 
-      return {
-        totalCourses,
-        inProgressCourses,
-        completedCourses,
-        averageProgress,
-        progressData,
-        categoryData,
-      };
-    }, [enrolledCourses]);
+    const categoryMap = new Map<string, number>();
+    enrolledCourses.forEach((e) => {
+      const category = e.Course.category || "Uncategorized";
+      categoryMap.set(category, (categoryMap.get(category) ?? 0) + 1);
+    });
+    const categoryData: CategoryDatum[] = Array.from(
+      categoryMap.entries()
+    ).map(([category, count]) => ({ category, count }));
+
+    return {
+      totalCourses,
+      inProgressCourses,
+      completedCourses,
+      averageProgress,
+      progressData,
+      categoryData,
+    };
+  }, [enrolledCourses]);
 
   return (
     <section className="mt-4 space-y-6">
       {/* Compact KPI strip */}
-      <Card className="border-border/60 bg-card/60 shadow-sm">
-        <CardContent className="py-4 grid gap-4 sm:grid-cols-4">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Active courses
-            </p>
-            <p className="mt-1 text-2xl font-semibold">{totalCourses}</p>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              In progress
-            </p>
-            <p className="mt-1 text-2xl font-semibold">{inProgressCourses}</p>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Avg. progress
-            </p>
-            <p className="mt-1 text-2xl font-semibold">{averageProgress}%</p>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Certificates
-            </p>
-            <p className="mt-1 text-2xl font-semibold">{certificatesCount}</p>
-            {completedCourses > 0 && (
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                {completedCourses} course
-                {completedCourses === 1 ? "" : "s"} completed
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+        <Card className="border-border/60 bg-card/60 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-5 flex items-center gap-4">
+            <div className="p-3 bg-primary/10 rounded-full text-primary">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Active Courses
               </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              <p className="text-2xl font-bold">{totalCourses}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/60 bg-card/60 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-5 flex items-center gap-4">
+            <div className="p-3 bg-amber-500/10 rounded-full text-amber-500">
+              <Target className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                In Progress
+              </p>
+              <p className="text-2xl font-bold">{inProgressCourses}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/60 bg-card/60 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-5 flex items-center gap-4">
+            <div className="p-3 bg-emerald-500/10 rounded-full text-emerald-500">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Avg. Progress
+              </p>
+              <p className="text-2xl font-bold">{averageProgress}%</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/60 bg-card/60 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-5 flex items-center gap-4">
+            <div className="p-3 bg-violet-500/10 rounded-full text-violet-500">
+              <Award className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Certificates
+              </p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-2xl font-bold">{certificatesCount}</p>
+                {completedCourses > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    ({completedCourses} done)
+                  </p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {enrolledCourses.length > 0 && (
-        <Card className="overflow-hidden">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Learning insights</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-2">
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)] items-stretch">
-              {/* Course progress chart */}
-              <div className="h-[260px] w-full min-w-0">
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
+          {/* Course progress chart */}
+          <Card className="lg:col-span-2 border-border/60 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <ChartBar className="w-4 h-4 text-primary" />
+                Course Progress
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px] w-full mt-2">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={progressData}
-                    margin={{ top: 8, right: 8, left: 0, bottom: 24 }}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 20 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                     <XAxis
                       dataKey="name"
-                      tick={{ fontSize: 11 }}
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
                       tickLine={false}
                       axisLine={false}
                       interval={0}
-                      angle={-20}
-                      textAnchor="end"
+                      tickFormatter={(value) =>
+                        value.length > 15 ? `${value.substring(0, 15)}...` : value
+                      }
                     />
                     <YAxis
-                      tick={{ fontSize: 11 }}
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
                       tickLine={false}
                       axisLine={false}
                       domain={[0, 100]}
                       tickFormatter={(v) => `${v}%`}
                     />
                     <Tooltip
-                      formatter={(value: number) => [`${value}%`, "Progress"]}
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                        boxShadow:
-                          "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                      cursor={false}
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div className="bg-popover border border-border/50 p-3 rounded-lg shadow-lg">
+                              <p className="text-sm font-medium mb-1 text-popover-foreground">
+                                {payload[0].payload.name}
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: payload[0].payload.fill }}
+                                />
+                                <span className="text-sm text-muted-foreground font-semibold">
+                                  {payload[0].value}% Completed
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
                       }}
                     />
                     <Bar
                       dataKey="progress"
-                      fill="hsl(var(--primary))"
-                      radius={[4, 4, 0, 0]}
-                    />
+                      radius={[6, 6, 0, 0]}
+                      maxBarSize={50}
+                    >
+                      {progressData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Category distribution pie + legend */}
-              <div className="h-[260px] w-full min-w-0 flex flex-col md:flex-row md:items-center">
-                {categoryData.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    Enroll in courses to see your category breakdown.
+          {/* Category distribution pie + legend */}
+          <Card className="lg:col-span-1 border-border/60 shadow-sm flex flex-col">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <PieChartIcon className="w-4 h-4 text-primary" />
+                Categories
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col justify-center">
+              {categoryData.length === 0 ? (
+                <div className="flex h-full items-center justify-center">
+                  <p className="text-sm text-muted-foreground text-center">
+                    Enroll in courses to see a category breakdown.
                   </p>
-                ) : (
-                  <>
-                    <div className="h-52 w-full md:w-1/2">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={categoryData}
-                            dataKey="count"
-                            nameKey="category"
-                            innerRadius={40}
-                            outerRadius={70}
-                            paddingAngle={3}
-                            strokeWidth={1}
-                          >
-                            {categoryData.map((entry, index) => (
-                              <Cell
-                                key={entry.category}
-                                fill={
-                                  CATEGORY_COLORS[
-                                    index % CATEGORY_COLORS.length
-                                  ]
-                                }
-                              />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            formatter={(value: number, name) => [
-                              `${value} course${value === 1 ? "" : "s"}`,
-                              name,
-                            ]}
-                            contentStyle={{
-                              backgroundColor: "hsl(var(--card))",
-                              border: "1px solid hsl(var(--border))",
-                              borderRadius: "8px",
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center w-full h-full gap-6">
+                  <div className="h-[180px] w-full relative">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={categoryData}
+                          dataKey="count"
+                          nameKey="category"
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          strokeWidth={0}
+                        >
+                          {categoryData.map((entry, index) => (
+                            <Cell
+                              key={entry.category}
+                              fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              return (
+                                <div className="bg-popover border border-border/50 p-2.5 rounded-lg shadow-lg flex items-center gap-2">
+                                  <span
+                                    className="w-3 h-3 rounded-full"
+                                    style={{
+                                      backgroundColor: payload[0].payload.fill || payload[0].color,
+                                    }}
+                                  />
+                                  <span className="text-sm font-medium text-popover-foreground">
+                                    {payload[0].name}: {payload[0].value}
+                                  </span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    {/* Add a center label if desired, but empty space is fine too */}
+                  </div>
+
+                  <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 content-start">
+                    {categoryData.map((entry, index) => (
+                      <div
+                        key={entry.category}
+                        className="flex items-center justify-between gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <span
+                            className="h-3 w-3 rounded-full flex-shrink-0"
+                            style={{
+                              backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
                             }}
                           />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className="mt-4 md:mt-0 md:ml-4 flex-1 space-y-1 text-sm">
-                      {categoryData.map((entry, index) => (
-                        <div
-                          key={entry.category}
-                          className="flex items-center justify-between gap-2"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="h-2.5 w-2.5 rounded-sm"
-                              style={{
-                                backgroundColor:
-                                  CATEGORY_COLORS[
-                                    index % CATEGORY_COLORS.length
-                                  ],
-                              }}
-                            />
-                            <span className="text-muted-foreground">
-                              {entry.category}
-                            </span>
-                          </div>
-                          <span className="font-medium text-xs">
-                            {entry.count} course
-                            {entry.count === 1 ? "" : "s"}
+                          <span className="text-sm text-muted-foreground truncate">
+                            {entry.category}
                           </span>
                         </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                        <span className="font-semibold text-sm">
+                          {entry.count}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
     </section>
   );
 }
+
 

@@ -19,6 +19,7 @@ export async function getEnrolledCourses() {
           level: true,
           slug: true,
           duration: true,
+          category: true,
           chapter: {
             orderBy: { position: "asc" },
             select: {

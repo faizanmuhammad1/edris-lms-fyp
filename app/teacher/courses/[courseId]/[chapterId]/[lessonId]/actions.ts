@@ -79,7 +79,7 @@ export async function updateTeacherLesson(
       triggerMuxAssetCreation(lessonId, result.data.videoKey).catch((err) =>
         console.error("[Mux] Background trigger failed:", err)
       );
-      triggerTranscriptionForLesson(lessonId).catch(() => {});
+      triggerTranscriptionForLesson(lessonId).catch(() => { });
     }
 
     return {
@@ -188,7 +188,7 @@ const quizResponseSchema = z.array(quizItemSchema).min(1);
 export async function generateQuizFromTranscript(
   lessonId: string,
   opts?: { numQuestions?: number }
-): Promise<ApiResponse> {
+): Promise<ApiResponse<{ quizId: string }>> {
   const session = await requireTeacher();
 
   try {
@@ -207,6 +207,7 @@ export async function generateQuizFromTranscript(
         transcript: true,
         Chapter: {
           select: {
+            title: true,
             Course: {
               select: {
                 id: true,
@@ -250,9 +251,9 @@ export async function generateQuizFromTranscript(
     const transcript =
       lesson.transcript.length > 40_000
         ? `${lesson.transcript.slice(
-            0,
-            40_000
-          )}\n[Transcript truncated for quiz generation]`
+          0,
+          40_000
+        )}\n[Transcript truncated for quiz generation]`
         : lesson.transcript;
 
     const desiredCount = opts?.numQuestions ?? 8;
@@ -406,9 +407,9 @@ export async function generateLessonFlashcardsPreview(
     const transcript =
       lesson.transcript.length > 40_000
         ? `${lesson.transcript.slice(
-            0,
-            40_000
-          )}\n[Transcript truncated for flashcard generation]`
+          0,
+          40_000
+        )}\n[Transcript truncated for flashcard generation]`
         : lesson.transcript;
 
     const response = await openai.responses.create({

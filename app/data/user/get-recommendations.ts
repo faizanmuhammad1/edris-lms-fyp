@@ -2,7 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/db";
 import { requireUser } from "./require-user";
-import type { Course } from "@prisma/client";
+import type { Course } from "@/lib/generated/prisma";
 
 export interface NextLessonRecommendation {
   lessonId: string;

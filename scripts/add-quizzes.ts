@@ -42,7 +42,7 @@ async function addQuizzes() {
       for (const chapter of course.chapter) {
         if (chapter.lessons.length > 0) {
           const firstLesson = chapter.lessons[0];
-          
+
           // Check if quiz already exists
           const existingQuiz = await prisma.quiz.findUnique({
             where: {
@@ -56,7 +56,7 @@ async function addQuizzes() {
           }
 
           // Create a quiz for this lesson
-          const quiz = await prisma.quiz.create({
+          await prisma.quiz.create({
             data: {
               title: `${firstLesson.title} - Quiz`,
               description: `Test your knowledge of ${firstLesson.title}`,
@@ -120,7 +120,7 @@ async function addQuizzes() {
     console.log("  1. Go to /dashboard/complete-nextjs-15-masterclass");
     console.log("  2. Click on the first lesson of any chapter");
     console.log("  3. Scroll down to see the quiz with timer!");
-    
+
   } catch (error) {
     console.error("❌ Error adding quizzes:", error);
     throw error;
