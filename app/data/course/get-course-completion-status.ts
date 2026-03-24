@@ -6,11 +6,15 @@ export type CourseCompletionStatus = {
   completedLessons: number;
   remainingLessons: number;
   remainingLessonTitles: string[];
+  remainingQuizTitles: string[];
+  remainingAssignmentTitles: string[];
 };
 
 /**
  * Completion rules for certificate eligibility:
- * every lesson in the course must have lessonProgress.completed === true.
+ * - lesson is marked complete
+ * - if lesson has a published quiz, learner must pass it
+ * - if lesson has an assignment, learner must submit it
  */
 export async function getCourseCompletionStatus(
   courseId: string,
@@ -29,16 +33,66 @@ export async function getCourseCompletionStatus(
             where: { userId, completed: true },
             select: { id: true },
           },
+          quiz: {
+            select: {
+              id: true,
+              isPublished: true,
+              passingScore: true,
+              attempts: {
+                where: { userId, isCompleted: true },
+                select: { score: true },
+              },
+            },
+          },
+          assignment: {
+            select: {
+              id: true,
+              submissions: {
+                where: { userId },
+                select: { id: true },
+              },
+            },
+          },
         },
       },
     },
   });
 
   const allLessons = chapters.flatMap((chapter) => chapter.lessons);
-  const completedLessons = allLessons.filter(
-    (lesson) => lesson.lessonProgress.length > 0
-  );
-  const remaining = allLessons.filter((lesson) => lesson.lessonProgress.length === 0);
+  const remainingLessonTitles: string[] = [];
+  const remainingQuizTitles: string[] = [];
+  const remainingAssignmentTitles: string[] = [];
+
+  const completedLessons = allLessons.filter((lesson) => {
+    const lessonMarkedComplete = lesson.lessonProgress.length > 0;
+
+    const requiresQuiz = !!lesson.quiz && lesson.quiz.isPublished;
+    const quizPassed =
+      !requiresQuiz ||
+      lesson.quiz!.attempts.some(
+        (attempt) =>
+          typeof attempt.score === "number" &&
+          attempt.score >= lesson.quiz!.passingScore
+      );
+
+    const requiresAssignment = !!lesson.assignment;
+    const assignmentSubmitted =
+      !requiresAssignment || lesson.assignment!.submissions.length > 0;
+
+    if (!lessonMarkedComplete) {
+      remainingLessonTitles.push(lesson.title);
+    }
+
+    if (requiresQuiz && !quizPassed) {
+      remainingQuizTitles.push(lesson.title);
+    }
+
+    if (requiresAssignment && !assignmentSubmitted) {
+      remainingAssignmentTitles.push(lesson.title);
+    }
+
+    return lessonMarkedComplete && quizPassed && assignmentSubmitted;
+  });
 
   const totalLessons = allLessons.length;
   const completedCount = completedLessons.length;
@@ -49,7 +103,9 @@ export async function getCourseCompletionStatus(
     totalLessons,
     completedLessons: completedCount,
     remainingLessons,
-    remainingLessonTitles: remaining.map((lesson) => lesson.title),
+    remainingLessonTitles,
+    remainingQuizTitles,
+    remainingAssignmentTitles,
   };
 }
 

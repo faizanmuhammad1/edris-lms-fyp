@@ -12,7 +12,7 @@ import { Award, ChevronDown, Play } from "lucide-react";
 import { LessonItem } from "./LessonItem";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { useCourseProgress } from "@/hooks/use-course-progress";
+import { useCourseProgress, isLessonFullyComplete } from "@/hooks/use-course-progress";
 
 interface iAppProps {
   course: CourseSidebarDataType["course"];
@@ -98,19 +98,22 @@ export function CourseSidebar({ course }: iAppProps) {
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-3 pl-6 border-l-2 space-y-3">
-              {chapter.lessons.map((lesson) => (
-                <LessonItem
-                  key={lesson.id}
-                  lesson={lesson}
-                  slug={course.slug}
-                  isActive={currentLessonId === lesson.id}
-                  completed={
-                    lesson.lessonProgress.find(
-                      (progress) => progress.lessonId === lesson.id
-                    )?.completed || false
-                  }
-                />
-              ))}
+              {chapter.lessons.map((lesson) => {
+                const fullyDone = isLessonFullyComplete(lesson);
+                const markedComplete = lesson.lessonProgress.some(
+                  (p) => p.lessonId === lesson.id && p.completed
+                );
+                return (
+                  <LessonItem
+                    key={lesson.id}
+                    lesson={lesson}
+                    slug={course.slug}
+                    isActive={currentLessonId === lesson.id}
+                    completed={fullyDone}
+                    partiallyComplete={markedComplete && !fullyDone}
+                  />
+                );
+              })}
             </CollapsibleContent>
           </Collapsible>
         ))}

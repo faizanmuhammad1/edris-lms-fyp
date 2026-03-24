@@ -77,6 +77,7 @@ export async function issueCertificate(certificateDbId: string, data: {
     } catch (updateErr) {
       console.error("Failed to mark certificate as FAILED:", updateErr);
     }
+    throw err;
   }
 }
 

@@ -38,6 +38,33 @@ export async function getEnrolledCourses() {
                       lessonId: true,
                     },
                   },
+                  quiz: {
+                    select: {
+                      passingScore: true,
+                      isPublished: true,
+                      attempts: {
+                        where: {
+                          userId: user.id,
+                          isCompleted: true,
+                        },
+                        select: {
+                          score: true,
+                        },
+                      },
+                    },
+                  },
+                  assignment: {
+                    select: {
+                      submissions: {
+                        where: {
+                          userId: user.id,
+                        },
+                        select: {
+                          id: true,
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },

@@ -5,15 +5,11 @@ import {
   CertificatePrintButton,
   BackToCourseButton,
 } from "./CertificatePrintButton";
-import { CertificateQRCode } from "./CertificateQRCode";
-import { issueCertificate } from "@/app/actions/issue-certificate";
+import { CertificateClaimView } from "./CertificateClaimView";
 import { getCourseCompletionStatus } from "@/app/data/course/get-course-completion-status";
 import { Great_Vibes, Cinzel, EB_Garamond, Montserrat } from "next/font/google";
 import { CertificateTemplate } from "./CertificateTemplate";
 import { getServerBaseUrl } from "@/lib/base-url";
-
-const GREEN = "#1B4332";
-const GOLD = "#C5A048";
 
 const cinzel = Cinzel({
   subsets: ["latin"],
@@ -61,7 +57,7 @@ async function getCertificateData(slug: string) {
     return null;
   }
 
-  let certificate = await prisma.certificate.findUnique({
+  const certificate = await prisma.certificate.findUnique({
     where: {
       userId_courseId: {
         userId: user.id,
@@ -72,6 +68,7 @@ async function getCertificateData(slug: string) {
       id: true,
       uniqueId: true,
       issuedAt: true,
+      recipientName: true,
       blockchainStatus: true,
       txHash: true,
       blockNumber: true,
@@ -82,7 +79,10 @@ async function getCertificateData(slug: string) {
 
   const completionStatus = await getCourseCompletionStatus(course.id, user.id);
 
-  if (!completionStatus.isEligible && !certificate) {
+  const isIssuedOnChain =
+    certificate?.blockchainStatus === "ISSUED";
+
+  if (!completionStatus.isEligible && !isIssuedOnChain) {
     return {
       kind: "locked" as const,
       platform: "EDRIS LMS",
@@ -94,32 +94,20 @@ async function getCertificateData(slug: string) {
     };
   }
 
-  if (!certificate && completionStatus.isEligible) {
-    certificate = await prisma.certificate.create({
-      data: {
-        userId: user.id,
-        courseId: course.id,
+  if (!isIssuedOnChain && completionStatus.isEligible) {
+    return {
+      kind: "eligible" as const,
+      platform: "EDRIS LMS",
+      user: {
+        name: user.name,
       },
-      select: {
-        id: true,
-        uniqueId: true,
-        issuedAt: true,
-        blockchainStatus: true,
-        txHash: true,
-        blockNumber: true,
-        network: true,
-        contractAddress: true,
+      course: {
+        slug,
+        title: course.title,
+        hours: course.duration,
+        instructorName: course.user.name,
       },
-    });
-  }
-
-  if (certificate && completionStatus.isEligible) {
-    await issueCertificate(certificate.id, {
-      uniqueId: certificate.uniqueId,
-      studentName: user.name ?? "",
-      courseName: course.title,
-      issuedAt: certificate.issuedAt,
-    });
+    };
   }
 
   return {
@@ -136,6 +124,7 @@ async function getCertificateData(slug: string) {
     certificate: {
       id: certificate!.uniqueId,
       issuedOn: certificate!.issuedAt.toISOString(),
+      recipientName: certificate!.recipientName,
       blockchainStatus: certificate!.blockchainStatus,
       txHash: certificate!.txHash,
       blockNumber: certificate!.blockNumber,
@@ -175,11 +164,10 @@ export default async function CertificatePage({
   }
 
   if (data.kind === "locked") {
-    const previewMissing = data.completion.remainingLessonTitles.slice(0, 5);
-    const extraCount = Math.max(
-      data.completion.remainingLessonTitles.length - previewMissing.length,
-      0
-    );
+    const previewLessonMissing = data.completion.remainingLessonTitles.slice(0, 5);
+    const previewQuizMissing = data.completion.remainingQuizTitles.slice(0, 5);
+    const previewAssignmentMissing =
+      data.completion.remainingAssignmentTitles.slice(0, 5);
 
     return (
       <div className="min-h-dvh w-full bg-gray-100 p-4 md:p-8">
@@ -204,14 +192,41 @@ export default async function CertificatePage({
             {data.completion.remainingLessons === 1 ? "" : "s"}
           </p>
 
-          {previewMissing.length > 0 && (
+          {previewLessonMissing.length > 0 && (
             <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-5">
-              <p className="text-sm font-semibold text-gray-700">Still missing:</p>
+              <p className="text-sm font-semibold text-gray-700">
+                Incomplete lessons:
+              </p>
               <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
-                {previewMissing.map((title) => (
+                {previewLessonMissing.map((title) => (
                   <li key={title}>{title}</li>
                 ))}
-                {extraCount > 0 && <li>...and {extraCount} more lessons</li>}
+              </ul>
+            </div>
+          )}
+
+          {previewQuizMissing.length > 0 && (
+            <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-5">
+              <p className="text-sm font-semibold text-gray-700">
+                Quizzes not passed yet:
+              </p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
+                {previewQuizMissing.map((title) => (
+                  <li key={title}>{title}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {previewAssignmentMissing.length > 0 && (
+            <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-5">
+              <p className="text-sm font-semibold text-gray-700">
+                Assignments not submitted yet:
+              </p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
+                {previewAssignmentMissing.map((title) => (
+                  <li key={title}>{title}</li>
+                ))}
               </ul>
             </div>
           )}
@@ -220,6 +235,35 @@ export default async function CertificatePage({
             <BackToCourseButton slug={slug} />
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (data.kind === "eligible") {
+    const now = new Date();
+    const previewDay = now.getDate().toString().padStart(2, "0");
+    const previewMonth = (now.getMonth() + 1).toString().padStart(2, "0");
+    const previewYear = now.getFullYear();
+
+    return (
+      <div
+        className={`min-h-dvh w-full bg-[#c8c5b0] p-4 md:p-8 ${cinzel.variable} ${greatVibes.variable} ${garamond.variable} ${montserrat.variable}`}
+      >
+        <div className="mx-auto mb-6 flex max-w-[900px] items-center justify-start print:hidden">
+          <BackToCourseButton slug={slug} />
+        </div>
+
+        <CertificateClaimView
+          slug={slug}
+          defaultName={data.user.name ?? ""}
+          courseTitle={data.course.title}
+          courseHours={data.course.hours}
+          instructorName={data.course.instructorName}
+          day={previewDay}
+          month={previewMonth}
+          year={previewYear}
+          networkLabel="Polygon Amoy Network"
+        />
       </div>
     );
   }
@@ -243,25 +287,19 @@ export default async function CertificatePage({
     : null;
 
   const networkLabel = networkDisplayName(data.certificate.network);
-  const verifiedLabel =
-    blockchainStatus === "ISSUED"
-      ? "Blockchain Verified"
-      : blockchainStatus === "FAILED"
-        ? "Verification Pending"
-        : "Blockchain Pending";
 
   return (
     <div
       className={`min-h-dvh w-full bg-[#c8c5b0] p-4 md:p-8 ${cinzel.variable} ${greatVibes.variable} ${garamond.variable} ${montserrat.variable}`}
     >
       {/* Screen-only chrome (hidden when printing) */}
-      <div className="mx-auto mb-6 flex max-w-[1100px] items-center justify-between print:hidden">
+      <div className="mx-auto mb-6 flex max-w-[900px] items-center justify-between print:hidden">
         <BackToCourseButton slug={slug} />
         <CertificatePrintButton />
       </div>
 
       <CertificateTemplate
-        userName={data.user.name ?? "Learner"}
+        userName={data.certificate.recipientName || data.user.name || "Learner"}
         courseTitle={data.course.title}
         courseHours={data.course.hours}
         instructorName={data.course.instructorName}
