@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { verifyCertificate, VerificationResult } from "@/app/actions/verify-certificate";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,18 @@ import { CheckCircle2, XCircle, Search, Loader2, ShieldCheck } from "lucide-reac
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function VerificationPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        }>
+            <VerificationContent />
+        </Suspense>
+    );
+}
+
+function VerificationContent() {
     const [hash, setHash] = useState("");
     const [result, setResult] = useState<VerificationResult | null>(null);
     const [isLoading, setIsLoading] = useState(false);
