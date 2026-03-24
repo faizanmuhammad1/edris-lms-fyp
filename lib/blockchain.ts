@@ -1,8 +1,8 @@
 import "server-only";
 
 import { ethers, type InterfaceAbi } from "ethers";
-import fs from "fs";
-import path from "path";
+import lmsCertificateArtifact from "@/deployments/LMSCertificate.json";
+import contractAddressArtifact from "@/deployments/contract-address.json";
 
 function getEnvOrThrow(name: string): string {
   const v = process.env[name];
@@ -25,27 +25,21 @@ function stableStringify(value: unknown): string {
 }
 
 function loadAbi(): InterfaceAbi {
-  const abiPath = path.join(process.cwd(), "deployments", "LMSCertificate.json");
-  const raw = fs.readFileSync(abiPath, "utf8");
-
-  const parsed = JSON.parse(raw) as { abi?: InterfaceAbi } & Record<string, unknown>;
+  const parsed = lmsCertificateArtifact as
+    | { abi?: InterfaceAbi }
+    | InterfaceAbi;
   // deployments/LMSCertificate.json is typically a Hardhat artifact JSON.
   // In that case, the actual ABI is under `abi`.
-  return (parsed.abi ?? parsed) as InterfaceAbi;
+  return (parsed as { abi?: InterfaceAbi }).abi ?? (parsed as InterfaceAbi);
 }
 
 function loadContractAddress(): string {
   const fromEnv = process.env.CONTRACT_ADDRESS;
   if (fromEnv) return fromEnv;
-
-  const addressPath = path.join(
-    process.cwd(),
-    "deployments",
-    "contract-address.json"
-  );
-  const raw = fs.readFileSync(addressPath, "utf8");
-  const parsed = JSON.parse(raw) as { address?: string };
-  if (!parsed.address) throw new Error("contract-address.json missing `address`");
+  const parsed = contractAddressArtifact as { address?: string };
+  if (!parsed.address) {
+    throw new Error("contract-address.json missing `address`");
+  }
   return parsed.address;
 }
 
