@@ -95,24 +95,23 @@ export function CertificateClaimView({
       </div>
 
       <style>{`
-        .recipient-editable{width:100%;text-align:center}
-        .recipient-input{
-          font-family:var(--font-great-vibes),cursive;
-          font-size:clamp(54px,7vw,72px);
-          color:#1b4332;
-          line-height:1.05;
-          text-align:center;
-          background:transparent;
-          border:none;
-          border-bottom:2px dashed #b5995a;
-          outline:none;
-          width:100%;
-          max-width:620px;
-          padding:0 8px 4px;
-          caret-color:#2d6a4f;
+        .recipient-editable { width: 100%; text-align: center; padding: 0.8cqw 0; }
+        .recipient-input {
+          font-family: var(--font-great-vibes), cursive;
+          font-size: 6.2cqw;
+          color: #0a140f;
+          line-height: 1.3;
+          text-align: center;
+          background: transparent;
+          border: none;
+          outline: none;
+          width: 100%;
+          max-width: 64cqw;
+          padding: 0;
+          caret-color: var(--brand);
         }
-        .recipient-input::placeholder{color:#1b4332;opacity:0.3}
-        .recipient-input:focus{border-bottom-color:#2d6a4f;border-bottom-style:solid}
+        .recipient-input::placeholder { color: #0a140f; opacity: 0.3; }
+        .recipient-input:focus { outline: none; }
       `}</style>
     </>
   );

@@ -247,7 +247,7 @@ export default async function CertificatePage({
 
     return (
       <div
-        className={`min-h-dvh w-full bg-[#c8c5b0] p-4 md:p-8 ${cinzel.variable} ${greatVibes.variable} ${garamond.variable} ${montserrat.variable}`}
+        className={`min-h-dvh w-full bg-background p-4 md:p-8 ${cinzel.variable} ${greatVibes.variable} ${garamond.variable} ${montserrat.variable}`}
       >
         <div className="mx-auto mb-6 flex max-w-[900px] items-center justify-start print:hidden">
           <BackToCourseButton slug={slug} />
@@ -290,7 +290,7 @@ export default async function CertificatePage({
 
   return (
     <div
-      className={`min-h-dvh w-full bg-[#c8c5b0] p-4 md:p-8 ${cinzel.variable} ${greatVibes.variable} ${garamond.variable} ${montserrat.variable}`}
+      className={`min-h-dvh w-full bg-background p-4 md:p-8 ${cinzel.variable} ${greatVibes.variable} ${garamond.variable} ${montserrat.variable}`}
     >
       {/* Screen-only chrome (hidden when printing) */}
       <div className="mx-auto mb-6 flex max-w-[900px] items-center justify-between print:hidden">
