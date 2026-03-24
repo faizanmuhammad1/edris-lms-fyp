@@ -1,8 +1,155 @@
 import "server-only";
 
 import { ethers, type InterfaceAbi } from "ethers";
-import fs from "fs";
-import path from "path";
+import contractAddressArtifact from "@/deployments/contract-address.json";
+
+/** Inlined from deployments/LMSCertificate.json — avoids ENOENT on Vercel serverless. */
+const CONTRACT_ABI = [
+  {
+    inputs: [],
+    stateMutability: "nonpayable",
+    type: "constructor",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "string",
+        name: "certificateId",
+        type: "string",
+      },
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "certIdHash",
+        type: "bytes32",
+      },
+      {
+        indexed: false,
+        internalType: "bytes32",
+        name: "payloadHash",
+        type: "bytes32",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "issuer",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "uint64",
+        name: "issuedAt",
+        type: "uint64",
+      },
+    ],
+    name: "CertificateIssued",
+    type: "event",
+  },
+  {
+    inputs: [
+      {
+        internalType: "string",
+        name: "certificateId",
+        type: "string",
+      },
+    ],
+    name: "isIssued",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "string",
+        name: "certificateId",
+        type: "string",
+      },
+      {
+        internalType: "bytes32",
+        name: "payloadHash",
+        type: "bytes32",
+      },
+    ],
+    name: "issueCertificate",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "owner",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "newOwner",
+        type: "address",
+      },
+    ],
+    name: "transferOwnership",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "string",
+        name: "certificateId",
+        type: "string",
+      },
+      {
+        internalType: "bytes32",
+        name: "payloadHash",
+        type: "bytes32",
+      },
+    ],
+    name: "verifyCertificate",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "isValid",
+        type: "bool",
+      },
+      {
+        internalType: "bytes32",
+        name: "storedHash",
+        type: "bytes32",
+      },
+      {
+        internalType: "uint64",
+        name: "issuedAt",
+        type: "uint64",
+      },
+      {
+        internalType: "address",
+        name: "issuer",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
 
 function getEnvOrThrow(name: string): string {
   const v = process.env[name];
@@ -25,27 +172,16 @@ function stableStringify(value: unknown): string {
 }
 
 function loadAbi(): InterfaceAbi {
-  const abiPath = path.join(process.cwd(), "deployments", "LMSCertificate.json");
-  const raw = fs.readFileSync(abiPath, "utf8");
-
-  const parsed = JSON.parse(raw) as { abi?: InterfaceAbi } & Record<string, unknown>;
-  // deployments/LMSCertificate.json is typically a Hardhat artifact JSON.
-  // In that case, the actual ABI is under `abi`.
-  return (parsed.abi ?? parsed) as InterfaceAbi;
+  return CONTRACT_ABI as unknown as InterfaceAbi;
 }
 
 function loadContractAddress(): string {
   const fromEnv = process.env.CONTRACT_ADDRESS;
   if (fromEnv) return fromEnv;
-
-  const addressPath = path.join(
-    process.cwd(),
-    "deployments",
-    "contract-address.json"
-  );
-  const raw = fs.readFileSync(addressPath, "utf8");
-  const parsed = JSON.parse(raw) as { address?: string };
-  if (!parsed.address) throw new Error("contract-address.json missing `address`");
+  const parsed = contractAddressArtifact as { address?: string };
+  if (!parsed.address) {
+    throw new Error("contract-address.json missing `address`");
+  }
   return parsed.address;
 }
 
