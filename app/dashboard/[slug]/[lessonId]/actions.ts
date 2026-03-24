@@ -12,6 +12,27 @@ import {
 import { sanitizeAssignmentText } from "@/lib/sanitize-text";
 import { runAutoGradeForSubmission } from "@/lib/grade-assignment-ai";
 import { revalidatePath } from "next/cache";
+import { getCourseCompletionStatus } from "@/app/data/course/get-course-completion-status";
+import { sendCourseCompletionEmailIfNeeded } from "@/lib/certificate-emails";
+
+async function maybeSendCourseCompletionEmail(
+  userId: string,
+  courseSlug: string
+): Promise<void> {
+  const course = await prisma.course.findUnique({
+    where: { slug: courseSlug },
+    select: { id: true },
+  });
+  if (!course) return;
+
+  const status = await getCourseCompletionStatus(course.id, userId);
+  if (!status.isEligible) return;
+
+  await sendCourseCompletionEmailIfNeeded({
+    userId,
+    courseId: course.id,
+  });
+}
 
 // ── Video Progress Tracking ──────────────────────────────────────────────────
 
@@ -82,6 +103,12 @@ export async function markLessonComplete(
         completed: true,
       },
     });
+
+    try {
+      await maybeSendCourseCompletionEmail(session.id, slug);
+    } catch (emailError) {
+      console.error("Failed sending completion email:", emailError);
+    }
 
     revalidatePath("/dashboard");
     revalidatePath(`/dashboard/${slug}`);
@@ -204,6 +231,12 @@ export async function submitAssignment(
         completed: true,
       },
     });
+
+    try {
+      await maybeSendCourseCompletionEmail(session.id, slug);
+    } catch (emailError) {
+      console.error("Failed sending completion email:", emailError);
+    }
 
     if (assignment.autoGradeEnabled && hasText) {
       runAutoGradeForSubmission(submission.id).catch(() => {});
@@ -355,6 +388,12 @@ export async function submitQuizAttempt({
           completed: true,
         },
       });
+
+      try {
+        await maybeSendCourseCompletionEmail(session.id, courseSlug);
+      } catch (emailError) {
+        console.error("Failed sending completion email:", emailError);
+      }
     }
 
     revalidatePath("/dashboard");

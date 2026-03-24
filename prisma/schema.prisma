@@ -472,6 +472,8 @@ model Certificate {
   revokedAt        DateTime?
   pdfUrl           String?
   verificationUrl  String?
+  completionEmailSentAt DateTime?
+  issuedEmailSentAt     DateTime?
 
   @@unique([userId, courseId])
   @@index([userId])

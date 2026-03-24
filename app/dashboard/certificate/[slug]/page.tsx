@@ -7,7 +7,7 @@ import {
 } from "./CertificatePrintButton";
 import { CertificateQRCode } from "./CertificateQRCode";
 import { issueCertificate } from "@/app/actions/issue-certificate";
-import { isCourseFullyComplete } from "@/app/data/course/is-course-fully-complete";
+import { getCourseCompletionStatus } from "@/app/data/course/get-course-completion-status";
 import {
   Playfair_Display,
   Great_Vibes,
@@ -75,13 +75,21 @@ async function getCertificateData(slug: string) {
     },
   });
 
-  const isFullyCompleted = await isCourseFullyComplete(course.id, user.id);
+  const completionStatus = await getCourseCompletionStatus(course.id, user.id);
 
-  if (!isFullyCompleted && !certificate) {
-    return null;
+  if (!completionStatus.isEligible && !certificate) {
+    return {
+      kind: "locked" as const,
+      platform: "EDRIS LMS",
+      course: {
+        slug,
+        title: course.title,
+      },
+      completion: completionStatus,
+    };
   }
 
-  if (!certificate && isFullyCompleted) {
+  if (!certificate && completionStatus.isEligible) {
     certificate = await prisma.certificate.create({
       data: {
         userId: user.id,
@@ -100,7 +108,7 @@ async function getCertificateData(slug: string) {
     });
   }
 
-  if (certificate && isFullyCompleted) {
+  if (certificate && completionStatus.isEligible) {
     await issueCertificate(certificate.id, {
       uniqueId: certificate.uniqueId,
       studentName: user.name ?? "",
@@ -110,6 +118,7 @@ async function getCertificateData(slug: string) {
   }
 
   return {
+    kind: "ready" as const,
     platform: "EDRIS LMS",
     user: {
       name: user.name,
@@ -158,6 +167,56 @@ export default async function CertificatePage({
 
   if (!data) {
     return notFound();
+  }
+
+  if (data.kind === "locked") {
+    const previewMissing = data.completion.remainingLessonTitles.slice(0, 5);
+    const extraCount = Math.max(
+      data.completion.remainingLessonTitles.length - previewMissing.length,
+      0
+    );
+
+    return (
+      <div className="min-h-dvh w-full bg-gray-100 p-4 md:p-8">
+        <div className="mx-auto mb-6 flex max-w-4xl items-center justify-start">
+          <BackToCourseButton slug={slug} />
+        </div>
+
+        <div className="mx-auto max-w-4xl rounded-2xl border border-[#1B4332]/20 bg-white p-8 shadow-sm md:p-10">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#1B4332]/70">
+            Certificate Locked
+          </p>
+          <h1 className="mt-3 text-3xl font-bold text-[#1B4332] md:text-4xl">
+            Complete all course requirements to unlock your certificate
+          </h1>
+
+          <p className="mt-3 text-base text-gray-600">
+            Progress: {data.completion.completedLessons}/{data.completion.totalLessons} lessons
+            completed.
+          </p>
+          <p className="mt-1 text-base font-medium text-[#1B4332]">
+            Remaining: {data.completion.remainingLessons} lesson
+            {data.completion.remainingLessons === 1 ? "" : "s"}
+          </p>
+
+          {previewMissing.length > 0 && (
+            <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-5">
+              <p className="text-sm font-semibold text-gray-700">Still missing:</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
+                {previewMissing.map((title) => (
+                  <li key={title}>{title}</li>
+                ))}
+                {extraCount > 0 && <li>...and {extraCount} more lessons</li>}
+              </ul>
+            </div>
+          )}
+
+          <div className="mt-8">
+            <BackToCourseButton slug={slug} />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const issuedDate = new Date(data.certificate.issuedOn);

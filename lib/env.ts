@@ -23,6 +23,7 @@ export const env = createEnv({
     MUX_SIGNING_KEY_ID: z.string().min(1),
     MUX_SIGNING_PRIVATE_KEY: z.string().min(1),
     OPENAI_API_KEY: z.string().min(1),
+    INTERNAL_WEBHOOK_URL: z.string().url().optional(),
 
     // Polygon blockchain (Certificate issuance + verification)
     POLYGON_RPC_URL: z.string().min(1),

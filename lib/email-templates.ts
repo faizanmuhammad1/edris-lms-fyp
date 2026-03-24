@@ -1,3 +1,5 @@
+import { getServerBaseUrl } from "./base-url";
+
 /**
  * Branded email templates for Edris LMS. Resend only; inline styles; responsive.
  * Logo: public/bc413ab4-3838-4b3d-ae28-e8f3cd721b33.png
@@ -17,11 +19,7 @@ const LOGO_PATH = "/bc413ab4-3838-4b3d-ae28-e8f3cd721b33.png";
 
 /** Base URL for absolute links in emails (logo, confirm, unsubscribe). */
 export function getEmailBaseUrl(): string {
-  const url =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.BETTER_AUTH_URL ||
-    "http://localhost:3000";
-  return url.replace(/\/$/, "");
+  return getServerBaseUrl();
 }
 
 export function getLogoUrl(): string {
@@ -136,5 +134,123 @@ export function unsubscribeConfirmationEmail(): string {
   return emailWrapper({
     bodyHtml: body,
     title: "Unsubscribed — Edris LMS",
+  });
+}
+
+export function courseCompletionCongratsEmail(params: {
+  studentName: string;
+  courseName: string;
+  certificateUrl: string;
+}): string {
+  const { studentName, courseName, certificateUrl } = params;
+  const safeStudent = escapeHtml(studentName || "Learner");
+  const safeCourse = escapeHtml(courseName);
+  const safeCertUrl = escapeHtml(certificateUrl);
+
+  const body = `
+    <p style="margin:0 0 10px 0;font-size:14px;color:${BRAND.accent};text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">
+      Course completed
+    </p>
+    <h1 style="margin:0 0 14px 0;font-size:28px;line-height:1.2;color:${BRAND.dark};">
+      Congratulations, ${safeStudent}!
+    </h1>
+    <p style="margin:0 0 18px 0;color:${BRAND.muted};">
+      You have successfully completed <strong>${safeCourse}</strong>. Your certificate is now being prepared.
+    </p>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 18px 0;border:1px solid #e5e7eb;border-radius:10px;background:#f9fafb;">
+      <tr>
+        <td style="padding:14px 16px;">
+          <p style="margin:0 0 6px 0;font-size:12px;color:${BRAND.muted};text-transform:uppercase;letter-spacing:0.08em;">Course</p>
+          <p style="margin:0;font-size:16px;color:${BRAND.dark};font-weight:600;">${safeCourse}</p>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0 0 24px 0;">
+      <a href="${safeCertUrl}" target="_blank" rel="noopener" style="display:inline-block;padding:12px 22px;background:${BRAND.primary};color:${BRAND.white};text-decoration:none;font-weight:700;border-radius:8px;">
+        View Certificate
+      </a>
+    </p>
+
+    <p style="margin:0;font-size:13px;color:${BRAND.muted};">
+      We are also anchoring your certificate on the blockchain. You will receive another email when it is fully verified.
+    </p>
+  `;
+
+  return emailWrapper({
+    bodyHtml: body,
+    title: "Course completed — Edris LMS",
+  });
+}
+
+export function certificateIssuedEmail(params: {
+  studentName: string;
+  courseName: string;
+  certificateId: string;
+  verificationUrl: string;
+  txUrl?: string | null;
+  network?: string | null;
+}): string {
+  const {
+    studentName,
+    courseName,
+    certificateId,
+    verificationUrl,
+    txUrl,
+    network,
+  } = params;
+
+  const safeStudent = escapeHtml(studentName || "Learner");
+  const safeCourse = escapeHtml(courseName);
+  const safeCertificateId = escapeHtml(certificateId);
+  const safeVerificationUrl = escapeHtml(verificationUrl);
+  const safeNetwork = escapeHtml(network || "Polygon Amoy");
+  const safeTxUrl = txUrl ? escapeHtml(txUrl) : null;
+
+  const txBlock = safeTxUrl
+    ? `<p style="margin:0;">
+         <a href="${safeTxUrl}" target="_blank" rel="noopener" style="color:${BRAND.primary};text-decoration:underline;">
+           View blockchain transaction
+         </a>
+       </p>`
+    : `<p style="margin:0;">Transaction link unavailable at the moment.</p>`;
+
+  const body = `
+    <p style="margin:0 0 10px 0;font-size:14px;color:${BRAND.accent};text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">
+      Certificate issued
+    </p>
+    <h1 style="margin:0 0 14px 0;font-size:28px;line-height:1.2;color:${BRAND.dark};">
+      Your certificate is blockchain verified
+    </h1>
+    <p style="margin:0 0 18px 0;color:${BRAND.muted};">
+      Great work, <strong>${safeStudent}</strong>. Your certificate for <strong>${safeCourse}</strong> has been successfully issued.
+    </p>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 18px 0;border:1px solid #e5e7eb;border-radius:10px;background:#f9fafb;">
+      <tr>
+        <td style="padding:14px 16px;">
+          <p style="margin:0 0 6px 0;font-size:12px;color:${BRAND.muted};text-transform:uppercase;letter-spacing:0.08em;">Certificate ID</p>
+          <p style="margin:0 0 12px 0;font-size:15px;color:${BRAND.dark};font-weight:600;">${safeCertificateId}</p>
+          <p style="margin:0 0 6px 0;font-size:12px;color:${BRAND.muted};text-transform:uppercase;letter-spacing:0.08em;">Network</p>
+          <p style="margin:0;font-size:15px;color:${BRAND.dark};font-weight:600;">${safeNetwork}</p>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0 0 12px 0;">
+      <a href="${safeVerificationUrl}" target="_blank" rel="noopener" style="display:inline-block;padding:12px 22px;background:${BRAND.primary};color:${BRAND.white};text-decoration:none;font-weight:700;border-radius:8px;">
+        Verify Certificate
+      </a>
+    </p>
+
+    <div style="font-size:13px;color:${BRAND.muted};line-height:1.6;">
+      ${txBlock}
+    </div>
+  `;
+
+  return emailWrapper({
+    bodyHtml: body,
+    title: "Certificate issued — Edris LMS",
   });
 }

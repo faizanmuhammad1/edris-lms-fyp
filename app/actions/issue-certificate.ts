@@ -6,6 +6,8 @@ import {
   buildCertificatePayload,
   issueCertificateOnChain,
 } from "@/lib/blockchain";
+import { sendCertificateIssuedEmailIfNeeded } from "@/lib/certificate-emails";
+import { getServerBaseUrl } from "@/lib/base-url";
 
 export async function issueCertificate(certificateDbId: string, data: {
   uniqueId: string;
@@ -45,7 +47,7 @@ export async function issueCertificate(certificateDbId: string, data: {
     const issuerAddress = new ethers.Wallet(process.env.BLOCKCHAIN_PRIVATE_KEY as string).address;
 
     const contractAddress = process.env.CONTRACT_ADDRESS ?? null;
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+    const appUrl = getServerBaseUrl();
 
     await prisma.certificate.update({
       where: { id: certificate.id },
@@ -60,6 +62,10 @@ export async function issueCertificate(certificateDbId: string, data: {
         blockchainStatus: "ISSUED",
         verificationUrl: `${appUrl}/verification?cid=${certificate.uniqueId}`,
       },
+    });
+
+    await sendCertificateIssuedEmailIfNeeded({
+      certificateId: certificate.id,
     });
   } catch (err) {
     console.error("Certificate on-chain issuance failed:", err);
