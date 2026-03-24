@@ -33,6 +33,29 @@ interface CategoryDatum {
   count: number;
 }
 
+function isLessonFullyComplete(
+  lesson: EnrolledCourseType["Course"]["chapter"][number]["lessons"][number]
+) {
+  const lessonMarkedComplete = lesson.lessonProgress.some(
+    (progress) => progress.lessonId === lesson.id && progress.completed
+  );
+
+  const requiresQuiz = !!lesson.quiz && lesson.quiz.isPublished;
+  const quizPassed =
+    !requiresQuiz ||
+    lesson.quiz!.attempts.some(
+      (attempt) =>
+        typeof attempt.score === "number" &&
+        attempt.score >= lesson.quiz!.passingScore
+    );
+
+  const requiresAssignment = !!lesson.assignment;
+  const assignmentSubmitted =
+    !requiresAssignment || lesson.assignment!.submissions.length > 0;
+
+  return lessonMarkedComplete && quizPassed && assignmentSubmitted;
+}
+
 function computeCourseProgress(course: EnrolledCourseType["Course"]): ProgressDatum {
   let totalLessons = 0;
   let completedLessons = 0;
@@ -40,10 +63,7 @@ function computeCourseProgress(course: EnrolledCourseType["Course"]): ProgressDa
   course.chapter.forEach((chapter) => {
     chapter.lessons.forEach((lesson) => {
       totalLessons += 1;
-      const isCompleted = lesson.lessonProgress.some(
-        (progress) => progress.lessonId === lesson.id && progress.completed
-      );
-      if (isCompleted) {
+      if (isLessonFullyComplete(lesson)) {
         completedLessons += 1;
       }
     });

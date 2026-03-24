@@ -121,7 +121,7 @@ export default async function DashboardPage() {
                     Issued {new Date(cert.issuedOn).toLocaleDateString()}
                   </p>
                   <a
-                    href={`/dashboard/${cert.courseSlug}/certificate`}
+                    href={`/dashboard/certificate/${cert.courseSlug}`}
                     className="inline-flex mt-3 text-sm font-medium text-primary hover:underline"
                   >
                     View certificate

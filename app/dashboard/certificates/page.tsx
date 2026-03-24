@@ -19,7 +19,7 @@ export default async function CertificatesPage() {
       {certificates.length === 0 ? (
         <EmptyState
           title="No certificates yet"
-          description="Complete your courses to earn certificates."
+          description="Open a course from your dashboard, complete every lesson (including quizzes and assignments), then use View certificate on the course page or sidebar."
           buttonText="Browse Courses"
           href="/courses"
         />
@@ -60,7 +60,7 @@ export default async function CertificatesPage() {
                       ID: {cert.certificateId}
                     </p>
                     <Link
-                      href={`/dashboard/${cert.courseSlug}/certificate`}
+                      href={`/dashboard/certificate/${cert.courseSlug}`}
                       className="inline-flex mt-3 text-sm font-medium text-primary hover:underline"
                     >
                       View certificate

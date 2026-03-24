@@ -4,7 +4,7 @@ import { LessonContentType } from "@/app/data/course/get-lesson-content";
 import { RenderDescription } from "@/components/rich-text-editor/RenderDescription";
 import { Button } from "@/components/ui/button";
 import { tryCatch } from "@/hooks/try-catch";
-import { CheckCircle, Lock, Loader2 } from "lucide-react";
+import { CheckCircle, Lock, Loader2, AlertTriangle } from "lucide-react";
 import { useCallback, useRef, useTransition } from "react";
 import { markLessonComplete } from "../actions";
 import { toast } from "sonner";
@@ -74,6 +74,31 @@ export function CourseContent({ data, comments }: iAppProps) {
     (data.videoKey ?? data.muxPlaybackId);
   const isReading = lessonType === "Reading";
 
+  const lessonMarkedComplete =
+    data.lessonProgress.length > 0 && data.lessonProgress[0]?.completed;
+
+  const hasQuiz = !!data.quiz;
+  const quizPassed =
+    !hasQuiz ||
+    data.quiz!.attempts.some(
+      (a) =>
+        a.isCompleted &&
+        typeof a.score === "number" &&
+        a.score >= data.quiz!.passingScore
+    );
+
+  const hasAssignment = !!data.assignment;
+  const assignmentSubmitted =
+    !hasAssignment || (data.assignment!.submissions?.length ?? 0) > 0;
+
+  const fullyComplete = lessonMarkedComplete && quizPassed && assignmentSubmitted;
+
+  const pendingItems: string[] = [];
+  if (lessonMarkedComplete && hasQuiz && !quizPassed)
+    pendingItems.push("Pass the quiz");
+  if (lessonMarkedComplete && hasAssignment && !assignmentSubmitted)
+    pendingItems.push("Submit the assignment");
+
   return (
     <div className="flex flex-col h-full bg-background/50 min-h-screen">
       <div className="max-w-5xl mx-auto w-full px-4 md:px-6 py-6 md:py-8 space-y-8">
@@ -84,15 +109,20 @@ export function CourseContent({ data, comments }: iAppProps) {
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
               {data.title}
             </h1>
-            {isReading && (
+            {isReading && !lessonMarkedComplete && (
               <p className="text-sm text-muted-foreground">Reading lesson — when you&apos;ve finished, mark as complete.</p>
             )}
           </div>
           <div className="flex-shrink-0">
-            {data.lessonProgress.length > 0 ? (
+            {fullyComplete ? (
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 text-green-600 border border-green-500/20 font-medium text-sm">
                 <CheckCircle className="size-4" />
                 <span>Lesson Completed</span>
+              </div>
+            ) : lessonMarkedComplete && pendingItems.length > 0 ? (
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20 font-medium text-sm">
+                <AlertTriangle className="size-4" />
+                <span>{pendingItems.join(" & ")}</span>
               </div>
             ) : (
               <Button onClick={onSubmit} disabled={pending} size="lg" className="w-full sm:w-auto shadow-sm">
