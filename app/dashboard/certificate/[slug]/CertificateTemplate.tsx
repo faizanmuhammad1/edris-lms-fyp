@@ -19,26 +19,6 @@ type Props = {
   nameSlot?: ReactNode;
 };
 
-const CORNER_SVG = (
-  <svg viewBox="0 0 140 140" fill="none" aria-hidden>
-    <line x1="12" y1="12" x2="90" y2="12" stroke="#2d6a4f" strokeWidth="1.8" />
-    <line x1="12" y1="12" x2="12" y2="90" stroke="#2d6a4f" strokeWidth="1.8" />
-    <line x1="12" y1="12" x2="75" y2="75" stroke="#b5995a" strokeWidth="0.9" />
-    <line x1="12" y1="12" x2="85" y2="46" stroke="#b5995a" strokeWidth="0.6" />
-    <line x1="12" y1="12" x2="46" y2="85" stroke="#b5995a" strokeWidth="0.6" />
-    <line x1="12" y1="12" x2="100" y2="30" stroke="#b5995a" strokeWidth="0.4" opacity="0.6" />
-    <line x1="12" y1="12" x2="30" y2="100" stroke="#b5995a" strokeWidth="0.4" opacity="0.6" />
-    <path d="M12 48 Q12 12 48 12" stroke="#2d6a4f" strokeWidth="1.1" fill="none" />
-    <path d="M12 64 Q12 12 64 12" stroke="#2d6a4f" strokeWidth="0.7" fill="none" opacity="0.6" />
-    <path d="M12 80 Q12 12 80 12" stroke="#b5995a" strokeWidth="0.6" fill="none" opacity="0.5" />
-    <polyline points="12,42 12,12 42,12" stroke="#2d6a4f" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-    <polyline points="20,34 20,20 34,20" stroke="#b5995a" strokeWidth="1" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-    <circle cx="12" cy="12" r="3" fill="#b5995a" />
-    <circle cx="42" cy="12" r="1.3" fill="#2d6a4f" opacity="0.6" />
-    <circle cx="12" cy="42" r="1.3" fill="#2d6a4f" opacity="0.6" />
-  </svg>
-);
-
 export function CertificateTemplate({
   userName,
   courseTitle,
@@ -59,73 +39,58 @@ export function CertificateTemplate({
     <>
       <div className="certificate-print-root">
         <div className="cert">
+          {/* Clean double border */}
           <div className="border-outer" />
           <div className="border-inner" />
 
-          {/* Corner ornaments */}
-          <div className="corner-ornament tl">{CORNER_SVG}</div>
-          <div className="corner-ornament tr">{CORNER_SVG}</div>
-          <div className="corner-ornament bl">{CORNER_SVG}</div>
-          <div className="corner-ornament br">{CORNER_SVG}</div>
+          {/* Corner accents — simple geometric L-shapes */}
+          <div className="corner tl" />
+          <div className="corner tr" />
+          <div className="corner bl" />
+          <div className="corner br" />
 
-          {/* Side dots */}
-          <svg className="dot-pattern left" viewBox="0 0 30 300" preserveAspectRatio="none" aria-hidden>
-            <defs>
-              <pattern id="dl" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
-                <circle cx="5" cy="5" r="1.3" fill="#2d6a4f" />
-              </pattern>
-            </defs>
-            <rect width="30" height="300" fill="url(#dl)" />
-          </svg>
-          <svg className="dot-pattern right" viewBox="0 0 30 300" preserveAspectRatio="none" aria-hidden>
-            <defs>
-              <pattern id="dr" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
-                <circle cx="5" cy="5" r="1.3" fill="#2d6a4f" />
-              </pattern>
-            </defs>
-            <rect width="30" height="300" fill="url(#dr)" />
-          </svg>
-
-          {/* Watermark */}
-          <svg className="watermark" viewBox="0 0 200 230" fill="none" aria-hidden>
-            <path d="M100 5 L192 42 L192 125 Q192 182 100 225 Q8 182 8 125 L8 42 Z" stroke="#2d6a4f" strokeWidth="5" fill="none" />
-            <path d="M100 20 L178 54 L178 122 Q178 170 100 208 Q22 170 22 122 L22 54 Z" stroke="#2d6a4f" strokeWidth="2" fill="none" />
-            <rect x="68" y="72" width="64" height="64" rx="4" stroke="#2d6a4f" strokeWidth="5" fill="none" transform="rotate(45 100 104)" />
-            <circle cx="100" cy="72" r="9" fill="#2d6a4f" />
-            <circle cx="72" cy="104" r="9" fill="#2d6a4f" />
-            <circle cx="128" cy="104" r="9" fill="#2d6a4f" />
-            <circle cx="100" cy="150" r="9" fill="#2d6a4f" />
-            <line x1="100" y1="72" x2="72" y2="104" stroke="#2d6a4f" strokeWidth="4" />
-            <line x1="100" y1="72" x2="128" y2="104" stroke="#2d6a4f" strokeWidth="4" />
-            <line x1="72" y1="104" x2="100" y2="150" stroke="#2d6a4f" strokeWidth="4" />
-            <line x1="128" y1="104" x2="100" y2="150" stroke="#2d6a4f" strokeWidth="4" />
-            <line x1="72" y1="104" x2="128" y2="104" stroke="#2d6a4f" strokeWidth="4" />
-            <path d="M76 162 Q100 178 124 162" stroke="#2d6a4f" strokeWidth="4" fill="none" strokeLinecap="round" />
-          </svg>
+          {/* Center Watermark — actual Edris logo */}
+          <div className="watermark-logo">
+            <Image
+              src="/bc413ab4-3838-4b3d-ae28-e8f3cd721b33.png"
+              alt=""
+              width={640}
+              height={640}
+              className="watermark-img"
+              aria-hidden="true"
+            />
+          </div>
 
           {/* Content */}
           <div className="content">
             {/* Header */}
-            <div className="top-header">
-              <Image
-                className="logo-image"
-                src="/bc413ab4-3838-4b3d-ae28-e8f3cd721b33.png"
-                alt="Edris LMS logo"
-                width={42}
-                height={42}
-              />
-              <div className="org-name">Edris LMS – Academy of Excellence</div>
+            <div className="header-group">
+              <div className="top-header">
+                <Image
+                  className="logo-image"
+                  src="/bc413ab4-3838-4b3d-ae28-e8f3cd721b33.png"
+                  alt="Edris LMS logo"
+                  width={36}
+                  height={36}
+                />
+                <div className="org-name">Edris LMS — Academy of Excellence</div>
+              </div>
+
+              <div className="cert-title">Certificate</div>
+
+              <div className="badge">
+                <span>of Achievement</span>
+              </div>
             </div>
 
-            <div className="cert-title">Certificate</div>
-            <div className="gold-badge"><span>of Achievement</span></div>
-
+            {/* Divider */}
             <div className="divider">
               <div className="divider-line" />
               <div className="divider-diamond" />
               <div className="divider-line" />
             </div>
 
+            {/* Body */}
             <div className="body-section">
               <div className="presented-to">This certificate is proudly presented to</div>
               {nameSlot ?? <div className="recipient">{userName}</div>}
@@ -139,33 +104,30 @@ export function CertificateTemplate({
               </div>
             </div>
 
+            {/* Footer — 3 columns */}
             <div className="footer">
               <div className="date-col">
                 <div className="f-rule" />
                 <div className="date-val">{day} / {month} / {year}</div>
                 <div className="date-lbl">Date of Issue</div>
-                {/* <div className="blockchain-lbl">
-                  {blockchainStatus === "ISSUED" ? "Blockchain Verified" : "Blockchain Pending"} – {networkLabel}
-                </div> */}
               </div>
 
               <div className="qr-col">
                 <div className="qr-frame">
-                  <CertificateQRCode url={verificationUrl} size={56} />
+                  <CertificateQRCode url={verificationUrl} size={52} />
                 </div>
                 <div className="qr-title">Scan to Verify</div>
-                {/* <div className="qr-sub">Blockchain Verified - Polygon Amoy<br />Network</div> */}
                 <div className="qr-id">ID: {certDisplayId}</div>
               </div>
 
               <div className="sig-col">
-                <div className="sig-script">{instructorName}</div>
                 <div className="sig-rule" />
                 <div className="sig-name">{instructorName}</div>
                 <div className="sig-role">Course Instructor</div>
               </div>
             </div>
 
+            {/* Bottom bar */}
             <div className="bottom-bar">
               <div className="info-txt">www.edrislms.com</div>
               <span className="info-sep">&bull;</span>
@@ -173,8 +135,8 @@ export function CertificateTemplate({
                 src="/bc413ab4-3838-4b3d-ae28-e8f3cd721b33.png"
                 alt="Edris LMS logo"
                 className="bottom-logo"
-                width={14}
-                height={16}
+                width={13}
+                height={13}
               />
               <span className="info-sep">&bull;</span>
               <div className="info-txt">{networkLabel}</div>
@@ -192,72 +154,232 @@ export function CertificateTemplate({
       </div>
 
       <style>{`
-        .cert{width:96vw;max-width:900px;height:96vh;max-height:640px;background:#f5f2e8;position:relative;display:flex;flex-direction:column;align-items:center;box-shadow:0 20px 70px rgba(0,0,0,.4);overflow:hidden;flex-shrink:0;margin:0 auto}
+        /* ── Brand tokens ── */
+        .cert {
+          --brand: #4a6d56;
+          --brand-light: #5d866c;
+          --brand-dark: #0a140f;
+          --brand-muted: #15291e;
+          --text-subtle: #3a4d42;
+          --rule: #4a6d56;
+        }
 
-        .border-outer{position:absolute;inset:12px;border:2px solid #2d6a4f;pointer-events:none;z-index:3}
-        .border-inner{position:absolute;inset:18px;border:.5px solid #b5995a;pointer-events:none;z-index:3}
+        /* ── Base ── */
+        .cert {
+          container-type: inline-size; /* CRITICAL: Enables mathematical scaling */
+          width: 100%;
+          /* Protects the aspect ratio from being cropped on short screens by dynamically shrinking width */
+          max-width: min(1000px, calc((100vh - 100px) * 1.414));
+          aspect-ratio: 1.414 / 1; /* ISO A4 Landscape proportion */
+          background: #ffffff;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          box-shadow: 0 25px 80px rgba(0,0,0,.25);
+          overflow: hidden;
+          flex-shrink: 0;
+          margin: 0 auto;
+        }
 
-        .corner-ornament{position:absolute;width:140px;height:140px;z-index:4;pointer-events:none}
-        .corner-ornament svg{width:100%;height:100%}
-        .corner-ornament.tl{top:0;left:0}
-        .corner-ornament.tr{top:0;right:0;transform:scaleX(-1)}
-        .corner-ornament.bl{bottom:0;left:0;transform:scaleY(-1)}
-        .corner-ornament.br{bottom:0;right:0;transform:scale(-1,-1)}
+        /* ── Borders ── */
+        .border-outer { position: absolute; inset: 2cqw; border: 0.2cqw solid var(--brand); pointer-events: none; z-index: 3; }
+        .border-inner { position: absolute; inset: 2.8cqw; border: 0.1cqw solid var(--brand-light); pointer-events: none; z-index: 3; }
 
-        .dot-pattern{position:absolute;z-index:1;pointer-events:none;opacity:.22;width:30px;top:160px;bottom:160px}
-        .dot-pattern.left{left:28px}
-        .dot-pattern.right{right:28px}
+        /* ── Corner accents ── */
+        .corner { position: absolute; width: 2.8cqw; height: 2.8cqw; z-index: 4; pointer-events: none; }
+        .corner::before, .corner::after { content: ''; position: absolute; background: var(--brand); }
+        .corner::before { width: 100%; height: 0.2cqw; top: 0; left: 0; }
+        .corner::after { width: 0.2cqw; height: 100%; top: 0; left: 0; }
+        .corner.tl { top: 2cqw; left: 2cqw; }
+        .corner.tr { top: 2cqw; right: 2cqw; transform: scaleX(-1); }
+        .corner.bl { bottom: 2cqw; left: 2cqw; transform: scaleY(-1); }
+        .corner.br { bottom: 2cqw; right: 2cqw; transform: scale(-1,-1); }
 
-        .watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-46%);width:310px;height:310px;opacity:.05;pointer-events:none;z-index:0}
+        /* ── Logo Watermark ── */
+        .watermark-logo {
+          position: absolute;
+          top: 50%; left: 50%;
+          transform: translate(-50%, -50%);
+          width: 65cqw; height: 65cqw;
+          opacity: 0.035;
+          pointer-events: none; z-index: 0;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .watermark-img {
+          width: 100% !important; height: 100% !important;
+          object-fit: contain;
+        }
 
-        .content{position:relative;z-index:2;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:22px 72px 16px}
+        /* ── Content layout ── */
+        .content {
+          position: relative; z-index: 2;
+          width: 100%; height: 100%;
+          display: flex; flex-direction: column;
+          align-items: center; justify-content: space-between;
+          padding: 4.5cqw 10cqw 3cqw;
+        }
 
-        .top-header{display:flex;align-items:center;gap:10px}
-        .logo-image{width:42px;height:42px;object-fit:contain;flex-shrink:0}
-        .org-name{font-family:var(--font-montserrat),sans-serif;font-size:9.5px;font-weight:700;letter-spacing:.3em;color:#2d6a4f;text-transform:uppercase}
+        /* ── Header group ── */
+        .header-group {
+          display: flex; flex-direction: column;
+          align-items: center; justify-content: center;
+          gap: 0.8cqw;
+        }
 
-        .cert-title{font-family:var(--font-cinzel),serif;font-size:clamp(42px,6vw,62px);font-weight:700;color:#1b4332;letter-spacing:.08em;line-height:1;text-align:center}
+        .top-header { display: flex; align-items: center; gap: 0.8cqw; }
+        .logo-image { width: 3.6cqw; height: 3.6cqw; object-fit: contain; flex-shrink: 0; }
+        .org-name {
+          font-family: var(--font-montserrat), system-ui, sans-serif;
+          font-size: 1.1cqw; font-weight: 700;
+          letter-spacing: .35em; color: var(--brand);
+          text-transform: uppercase;
+        }
 
-        .gold-badge{background:linear-gradient(135deg,#c9a84c,#b5995a,#d4b86a,#b5995a);padding:5px 34px;display:inline-block}
-        .gold-badge span{font-family:var(--font-montserrat),sans-serif;font-size:9px;font-weight:700;letter-spacing:.42em;color:#fff;text-transform:uppercase}
+        .cert-title {
+          font-family: var(--font-cinzel), serif;
+          font-size: 5.2cqw; font-weight: 700;
+          color: var(--brand-dark); letter-spacing: .08em;
+          line-height: 1.1; text-align: center;
+          margin: 0.2cqw 0;
+        }
 
-        .divider{width:100%;display:flex;align-items:center;gap:10px}
-        .divider-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,#2d6a4f 30%,#2d6a4f 70%,transparent)}
-        .divider-diamond{width:7px;height:7px;background:#b5995a;transform:rotate(45deg);flex-shrink:0}
+        .badge {
+          background: var(--brand);
+          padding: 0.4cqw 3cqw; display: inline-block;
+          border-radius: 0.2cqw;
+        }
+        .badge span {
+          font-family: var(--font-montserrat), system-ui, sans-serif;
+          font-size: 0.9cqw; font-weight: 700;
+          letter-spacing: .4em; color: #ffffff;
+          text-transform: uppercase;
+        }
 
-        .body-section{display:flex;flex-direction:column;align-items:center;gap:3px;width:100%}
-        .presented-to{font-family:var(--font-garamond),serif;font-size:13px;font-style:italic;color:#b5995a;letter-spacing:.05em}
-        .recipient{font-family:var(--font-great-vibes),cursive;font-size:clamp(54px,7vw,72px);color:#1b4332;line-height:1.05;text-align:center}
-        .name-rule{width:520px;max-width:100%;height:1px;background:linear-gradient(90deg,transparent,#2d6a4f,transparent);margin-top:2px}
-        .completing{font-family:var(--font-garamond),serif;font-size:13px;font-style:italic;color:#4a5e52;letter-spacing:.04em;text-align:center}
-        .course-name{font-family:var(--font-cinzel),serif;font-size:15px;font-weight:700;color:#1b4332;letter-spacing:.18em;text-align:center;text-transform:uppercase}
-        .duration{font-family:var(--font-montserrat),sans-serif;font-size:10px;color:#4a5e52;letter-spacing:.05em;text-align:center}
-        .duration b{font-weight:700;color:#2d6a4f}
-        .description{font-family:var(--font-montserrat),sans-serif;font-size:9px;color:#3a4e44;line-height:1.7;text-align:center;max-width:600px}
+        /* ── Divider ── */
+        .divider { width: 100%; display: flex; align-items: center; gap: 1.2cqw; margin: 0.5cqw 0; }
+        .divider-line { flex: 1; height: 0.1cqw; background: linear-gradient(90deg, transparent, var(--brand-light) 30%, var(--brand-light) 70%, transparent); }
+        .divider-diamond { width: 0.6cqw; height: 0.6cqw; background: var(--brand); transform: rotate(45deg); flex-shrink: 0; }
 
-        .footer{width:100%;display:flex;align-items:flex-start;justify-content:space-between}
-        .date-col{display:flex;flex-direction:column;align-items:flex-start;width:180px}
-        .f-rule{width:150px;height:1px;background:#2d6a4f;margin-bottom:5px}
-        .date-val{font-family:var(--font-cinzel),serif;font-size:13px;font-weight:600;letter-spacing:.1em;color:#1b4332}
-        .date-lbl{font-family:var(--font-montserrat),sans-serif;font-size:8px;letter-spacing:.15em;color:#4a5e52;margin-top:3px}
-        .blockchain-lbl{font-family:var(--font-montserrat),sans-serif;font-size:7px;color:#7a9a85;letter-spacing:.08em;font-style:italic;margin-top:10px}
+        /* ── Body ── */
+        .body-section { display: flex; flex-direction: column; align-items: center; width: 100%; }
+        
+        .presented-to {
+          font-family: var(--font-garamond), Georgia, serif;
+          font-size: 1.6cqw; font-style: italic; color: var(--brand-dark); letter-spacing: .05em;
+          margin-bottom: 0.5cqw;
+        }
+        
+        .recipient {
+          font-family: var(--font-great-vibes), cursive;
+          font-size: 6.2cqw;
+          color: var(--brand-dark);
+          line-height: 1.3;
+          text-align: center;
+          padding: 0.4cqw 0;
+        }
+        
+        .name-rule {
+          width: 40cqw; max-width: 90%; height: 0.1cqw;
+          background: linear-gradient(90deg, transparent, var(--brand), transparent);
+          margin-top: 0.3cqw;
+          margin-bottom: 1.4cqw;
+        }
+        
+        .completing {
+          font-family: var(--font-garamond), Georgia, serif;
+          font-size: 1.4cqw; font-style: italic;
+          color: var(--text-subtle); letter-spacing: .04em; text-align: center;
+          margin-bottom: 0.5cqw;
+        }
+        
+        .course-name {
+          font-family: var(--font-cinzel), serif;
+          font-size: 2cqw; font-weight: 700; color: var(--brand-dark);
+          letter-spacing: .18em; text-align: center; text-transform: uppercase;
+          margin-bottom: 0.6cqw;
+        }
+        
+        .duration {
+          font-family: var(--font-montserrat), system-ui, sans-serif;
+          font-size: 1.1cqw; color: var(--brand-dark);
+          letter-spacing: .05em; text-align: center;
+          margin-bottom: 0.8cqw;
+        }
+        .duration b { font-weight: 700; color: var(--brand); }
+        
+        .description {
+          font-family: var(--font-montserrat), system-ui, sans-serif;
+          font-size: 1cqw; color: var(--brand-muted);
+          line-height: 1.5; text-align: center; max-width: 65cqw;
+        }
 
-        .qr-col{display:flex;flex-direction:column;align-items:center;gap:4px}
-        .qr-frame{width:68px;height:68px;border:2px solid #1b4332;padding:4px;background:white;display:flex;align-items:center;justify-content:center}
-        .qr-title{font-family:var(--font-montserrat),sans-serif;font-size:10px;font-weight:700;letter-spacing:.08em;color:#1b4332}
-        .qr-sub{font-family:var(--font-montserrat),sans-serif;font-size:7px;color:#4a5e52;text-align:center;line-height:1.5}
-        .qr-id{font-family:var(--font-montserrat),sans-serif;font-size:7px;font-weight:600;color:#2d6a4f;letter-spacing:.06em}
+        /* ── Footer 3-col (CSS Grid) ── */
+        .footer {
+          width: calc(100% + 4cqw);
+          margin-left: -2cqw; margin-right: -2cqw;
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
+          align-items: end; /* Align items to bottom */
+          gap: 1.5cqw;
+        }
 
-        .sig-col{display:flex;flex-direction:column;align-items:center;width:180px}
-        .sig-script{font-family:var(--font-great-vibes),cursive;font-size:36px;color:#1b4332;line-height:1.1;text-align:center}
-        .sig-rule{width:150px;height:1px;background:#2d6a4f;margin:3px 0 4px}
-        .sig-name{font-family:var(--font-montserrat),sans-serif;font-size:10px;font-weight:700;letter-spacing:.1em;color:#1b4332;text-transform:uppercase;text-align:center}
-        .sig-role{font-family:var(--font-montserrat),sans-serif;font-size:8px;letter-spacing:.08em;color:#4a5e52;text-align:center}
+        .date-col { display: flex; flex-direction: column; align-items: flex-start; justify-self: start; padding-bottom: 0.8cqw; }
+        .f-rule { width: 12cqw; height: 0.1cqw; background: var(--brand); margin-bottom: 0.5cqw; }
+        .date-val {
+          font-family: var(--font-cinzel), serif;
+          font-size: 1.2cqw; font-weight: 700; letter-spacing: .1em; color: var(--brand-dark);
+        }
+        .date-lbl {
+          font-family: var(--font-montserrat), system-ui, sans-serif;
+          font-size: 0.9cqw; letter-spacing: 0.12em; color: var(--text-subtle); margin-top: 0.3cqw; text-transform: uppercase; font-weight: 500;
+        }
 
-        .bottom-bar{width:100%;display:flex;align-items:center;justify-content:center;gap:14px;padding-top:10px;padding-bottom:8px;border-top:.5px solid #b5995a}
-        .bottom-logo{width:14px;height:16px;object-fit:contain;flex-shrink:0}
-        .info-txt{font-family:var(--font-montserrat),sans-serif;font-size:8px;font-weight:600;letter-spacing:.22em;color:#2d6a4f;text-transform:uppercase;text-decoration:none}
-        .info-sep{color:#b5995a;font-size:9px}
+        .qr-col { display: flex; flex-direction: column; align-items: center; gap: 0.3cqw; justify-self: center; }
+        .qr-frame {
+          width: 5.6cqw; height: 5.6cqw;
+          border: 0.1cqw solid var(--brand);
+          padding: 0.3cqw; background: white;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .qr-title {
+          font-family: var(--font-montserrat), system-ui, sans-serif;
+          font-size: 0.8cqw; font-weight: 800; letter-spacing: .08em; color: var(--brand-dark); text-transform: uppercase;
+        }
+        .qr-id {
+          font-family: var(--font-montserrat), system-ui, sans-serif;
+          font-size: 0.7cqw; font-weight: 700; color: var(--brand); letter-spacing: .06em;
+        }
+
+        .sig-col { display: flex; flex-direction: column; align-items: flex-end; justify-self: end; padding-bottom: 0.8cqw; }
+        .sig-script {
+          font-family: var(--font-great-vibes), cursive;
+          font-size: 4cqw; color: var(--brand-dark); line-height: 1; text-align: right; margin-bottom: 0.3cqw;
+        }
+        .sig-rule { width: 15cqw; height: 0.1cqw; background: var(--brand); margin-bottom: 0.5cqw; }
+        .sig-name {
+          font-family: var(--font-montserrat), system-ui, sans-serif;
+          font-size: 1cqw; font-weight: 700; letter-spacing: .1em;
+          color: var(--brand-dark); text-transform: uppercase; text-align: right;
+        }
+        .sig-role {
+          font-family: var(--font-montserrat), system-ui, sans-serif;
+          font-size: 0.9cqw; letter-spacing: .08em; color: var(--text-subtle); text-align: right; margin-top: 0.3cqw; text-transform: uppercase; font-weight: 500;
+        }
+
+        /* ── Bottom bar ── */
+        .bottom-bar {
+          width: 100%; display: flex; align-items: center; justify-content: center;
+          gap: 1.2cqw; padding-top: 1cqw; padding-bottom: 0.4cqw;
+          border-top: 0.1cqw solid var(--brand-light);
+        }
+        .bottom-logo { width: 1cqw; height: 1cqw; object-fit: contain; flex-shrink: 0; }
+        .info-txt {
+          font-family: var(--font-montserrat), system-ui, sans-serif;
+          font-size: 0.9cqw; font-weight: 700; letter-spacing: .2em;
+          color: var(--brand); text-transform: uppercase; text-decoration: none;
+        }
+        .info-sep { color: var(--brand-light); font-size: 0.8cqw; }
       `}</style>
     </>
   );
