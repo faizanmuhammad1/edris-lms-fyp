@@ -1,62 +1,116 @@
 "use server";
 
-import { CertificateItem } from "@/app/data/user/get-certificates";
-
-// Mock database of valid certificates
-// In a real app, this would query your database or blockchain
-const MOCK_CERTIFICATES: CertificateItem[] = [
-    {
-        certificateId: "CERT-2025-ABC123",
-        courseTitle: "Introduction to Next.js",
-        courseSlug: "introduction-to-nextjs",
-        issuedOn: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-        certificateId: "CERT-2025-DEF456",
-        courseTitle: "TypeScript Basics",
-        courseSlug: "typescript-basics",
-        issuedOn: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-        certificateId: "CERT-2025-GHI789",
-        courseTitle: "React State Management",
-        courseSlug: "react-state-management",
-        issuedOn: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-];
+import { prisma } from "@/lib/db";
+import {
+  buildCertificatePayload,
+  verifyCertificateOnChain,
+} from "@/lib/blockchain";
 
 export type VerificationResult =
-    | { success: true; certificate: CertificateItem }
-    | { success: false; error: string };
+  | {
+      isValid: true;
+      certificate: {
+        studentName: string;
+        courseName: string;
+        issuedAt: Date;
+        uniqueId: string;
+        txHash: string;
+        blockNumber: string | null;
+        network: string | null;
+        contractAddress: string | null;
+        explorerUrl: string;
+      };
+      onChain: {
+        storedHash: string;
+        issuedAt: number;
+        issuer: string;
+      };
+    }
+  | {
+      isValid: false;
+      error: string;
+      certificate?: {
+        studentName: string;
+        courseName: string;
+        issuedAt: Date;
+        uniqueId: string;
+        status: string | null;
+      };
+    };
 
-export async function verifyCertificate(hash: string): Promise<VerificationResult> {
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+export async function verifyCertificate(
+  uniqueId: string
+): Promise<VerificationResult> {
+  try {
+    // 1. Find certificate in DB
+    const cert = await prisma.certificate.findUnique({
+      where: { uniqueId },
+      include: {
+        User: { select: { name: true } },
+        Course: { select: { title: true } },
+      },
+    });
 
-    if (!hash) {
-        return { success: false, error: "Please enter a certificate hash." };
+    if (!cert) {
+      return { isValid: false as const, error: "Certificate not found" };
     }
 
-    const normalizedHash = hash.trim().toUpperCase();
-
-    // Check if it matches our specific mock data
-    const found = MOCK_CERTIFICATES.find((c) => c.certificateId === normalizedHash);
-
-    if (found) {
-        return { success: true, certificate: found };
+    if (cert.blockchainStatus !== "ISSUED" || !cert.txHash) {
+      return {
+        isValid: false as const,
+        error: "Certificate not yet recorded on blockchain",
+        certificate: {
+          studentName: cert.User.name,
+          courseName: cert.Course.title,
+          issuedAt: cert.issuedAt,
+          uniqueId: cert.uniqueId,
+          status: cert.blockchainStatus,
+        },
+      } as const;
     }
 
-    if (normalizedHash.startsWith("CERT-TEST-")) {
-        return {
-            success: true,
-            certificate: {
-                certificateId: normalizedHash,
-                courseTitle: "Demo Verified Course",
-                courseSlug: "demo-verified-course",
-                issuedOn: new Date().toISOString()
-            }
-        }
-    }
+    // 2. Rebuild payload hash from DB data
+    const { payloadHash } = await buildCertificatePayload({
+      uniqueId: cert.uniqueId,
+      studentName: cert.User.name ?? "",
+      courseName: cert.Course.title,
+      issuedAt: cert.issuedAt,
+    });
 
-    return { success: false, error: "Certificate not found or invalid hash." };
+    // 3. Verify on-chain
+    const onChainResult = await verifyCertificateOnChain(
+      cert.uniqueId,
+      payloadHash
+    );
+
+    const explorerBase =
+      process.env.NEXT_PUBLIC_BLOCK_EXPLORER ?? "https://amoy.polygonscan.com";
+    const explorerUrl = `${explorerBase}/tx/${cert.txHash}`;
+
+    return {
+      isValid: onChainResult.isValid as VerificationResult["isValid"],
+      certificate: {
+        studentName: cert.User.name,
+        courseName: cert.Course.title,
+        issuedAt: cert.issuedAt,
+        uniqueId: cert.uniqueId,
+        txHash: cert.txHash,
+        blockNumber: cert.blockNumber?.toString() ?? null,
+        network: cert.network,
+        contractAddress: cert.contractAddress,
+        explorerUrl,
+      },
+      onChain: {
+        storedHash: onChainResult.storedHash,
+        issuedAt: onChainResult.issuedAt,
+        issuer: onChainResult.issuer,
+      },
+    } as VerificationResult;
+  } catch (err) {
+    console.error("Verification error:", err);
+    return {
+      isValid: false as const,
+      error: "Verification failed. Please try again.",
+    } as VerificationResult;
+  }
 }

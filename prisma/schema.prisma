@@ -460,6 +460,19 @@ model Certificate {
   Course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   User     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // Blockchain fields
+  payloadHash      String?
+  txHash           String?
+  blockNumber      BigInt?
+  chainId          Int?
+  network          String?
+  contractAddress  String?
+  issuerAddress    String?
+  blockchainStatus String?  @default("PENDING")
+  revokedAt        DateTime?
+  pdfUrl           String?
+  verificationUrl  String?
+
   @@unique([userId, courseId])
   @@index([userId])
   @@index([courseId])

@@ -23,12 +23,22 @@ export const env = createEnv({
     MUX_SIGNING_KEY_ID: z.string().min(1),
     MUX_SIGNING_PRIVATE_KEY: z.string().min(1),
     OPENAI_API_KEY: z.string().min(1),
+
+    // Polygon blockchain (Certificate issuance + verification)
+    POLYGON_RPC_URL: z.string().min(1),
+    BLOCKCHAIN_PRIVATE_KEY: z.string().min(1),
+    CONTRACT_ADDRESS: z.string().min(1),
   },
 
   client: {
     NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES: z.string().min(1),
     NEXT_PUBLIC_AWS_REGION: z.string().min(1).optional().default("eu-west-2"),
     NEXT_PUBLIC_APP_URL: z.string().url().optional(),
+
+    NEXT_PUBLIC_BLOCK_EXPLORER: z
+      .string()
+      .optional()
+      .default("https://amoy.polygonscan.com"),
   },
 
   // For Next.js >= 13.4.4, you only need to destructure client variables:
@@ -36,5 +46,6 @@ export const env = createEnv({
     NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES: process.env.NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES,
     NEXT_PUBLIC_AWS_REGION: process.env.NEXT_PUBLIC_AWS_REGION,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    NEXT_PUBLIC_BLOCK_EXPLORER: process.env.NEXT_PUBLIC_BLOCK_EXPLORER,
   },
 });

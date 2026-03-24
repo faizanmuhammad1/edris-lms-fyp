@@ -189,11 +189,31 @@ export async function submitAssignment(
       },
     });
 
+    // Assignment submission counts as lesson completion for certificate eligibility
+    await prisma.lessonProgress.upsert({
+      where: {
+        userId_lessonId: {
+          userId: session.id,
+          lessonId,
+        },
+      },
+      update: { completed: true },
+      create: {
+        lessonId,
+        userId: session.id,
+        completed: true,
+      },
+    });
+
     if (assignment.autoGradeEnabled && hasText) {
       runAutoGradeForSubmission(submission.id).catch(() => {});
     }
 
+    revalidatePath("/dashboard");
+    revalidatePath(`/dashboard/${slug}`);
+    revalidatePath(`/dashboard/${slug}`, "layout");
     revalidatePath(`/dashboard/${slug}/${lessonId}`);
+    revalidatePath(`/dashboard/certificate/${slug}`);
     return { status: "success", message: "Submission saved" };
   } catch {
     return { status: "error", message: "Failed to submit" };

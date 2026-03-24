@@ -8,9 +8,10 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
-import { ChevronDown, Play } from "lucide-react";
+import { Award, ChevronDown, Play } from "lucide-react";
 import { LessonItem } from "./LessonItem";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { useCourseProgress } from "@/hooks/use-course-progress";
 
 interface iAppProps {
@@ -52,6 +53,25 @@ export function CourseSidebar({ course }: iAppProps) {
           <p className="text-xs text-muted-foreground">
             {progressPercentage}% complete
           </p>
+          {totalLessons > 0 &&
+            completedLessons === totalLessons &&
+            progressPercentage === 100 && (
+              <Button
+                asChild
+                className="w-full mt-2"
+                variant="default"
+              >
+                <Link href={`/dashboard/certificate/${course.slug}`}>
+                  <Award className="size-4 mr-2 shrink-0" />
+                  View certificate
+                </Link>
+              </Button>
+            )}
+          {totalLessons > 0 && completedLessons < totalLessons && (
+            <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+              Complete all lessons to unlock your certificate.
+            </p>
+          )}
         </div>
       </div>
 

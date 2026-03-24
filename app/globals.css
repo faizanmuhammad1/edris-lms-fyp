@@ -263,3 +263,50 @@ body {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
+/* ── Certificate Print Styles ──
+   Isolate printable area so dashboard sidebar/header/course outline are not printed. */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .certificate-print-root,
+  .certificate-print-root * {
+    visibility: visible;
+  }
+
+  .certificate-print-root {
+    position: fixed !important;
+    inset: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    width: 100vw !important;
+    min-height: 100vh !important;
+    background: white !important;
+    z-index: 2147483647 !important;
+    box-shadow: none !important;
+  }
+
+  .certificate-card {
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 100vh !important;
+    height: auto !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+}
