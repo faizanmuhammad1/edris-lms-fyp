@@ -24,6 +24,7 @@ graph TD
         Arcjet[Arcjet (Security/Bot Protection)]
         S3[AWS S3 / Tigris (Object Storage)]
         Transcriber[Python Transcription Microservice]
+        Blockchain[Polygon Blockchain]
     end
 
     User -->|HTTPS| UI
@@ -44,6 +45,7 @@ graph TD
     API -->|Submit Job| Transcriber
     Transcriber -->|Webhook| API
     Transcriber -->|Fetch Video| S3
+    API -->|Issue Certificates| Blockchain
 ```
 
 ## 2. Database Schema (ERD)
@@ -203,4 +205,29 @@ flowchart LR
     Aggregation -->|Raw Data| Grouping
     Grouping -->|Revenue Growth %| StatsCards
     Grouping -->|Daily Breakdown Map| Chart
+```
+
+## 7. Blockchain Certificate Issuance
+
+This diagram illustrates the smart contract interaction for issuing immutable Web3 certificates upon course completion.
+
+```mermaid
+sequenceDiagram
+    participant Student
+    participant API as Server Action (LMS)
+    participant Ethers as Ethers.js
+    participant Polygon as Polygon Smart Contract
+    participant DB as Postgres
+
+    Student->>API: Triggers 100% Course Completion
+    API->>DB: Verify 100% progress & eligibility
+    API->>API: Generate unique Certificate ID & Hash
+    API->>Ethers: Call issueCertificate(uuid, payloadHash)
+    Ethers->>Polygon: Submit signed transaction
+    Polygon-->>Ethers: Transaction Hash (Pending)
+    Ethers-->>API: Returns TxHash
+    API->>DB: Store Certificate (Pending + TxHash)
+    API->>Ethers: wait() for Block Confirmation
+    Ethers-->>API: Confirmed (Block Number)
+    API->>DB: Update Certificate to Active
 ```

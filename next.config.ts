@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 import path from "path";
 
-const nextConfig: NextConfig = {
+const nextConfig = {
   async redirects() {
     return [
       {
@@ -16,9 +16,9 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "5000mb",
     },
-    outputFileTracingIncludes: {
-      '/**/*': ['./lib/generated/prisma/libquery_engine-*'],
-    },
+  },
+  outputFileTracingIncludes: {
+    '/**/*': ['./lib/generated/prisma/libquery_engine-*'],
   },
   turbopack: {
     resolveAlias: {
@@ -73,19 +73,16 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  webpack: (config, { isServer }) => {
+  webpack: (config: any, { isServer }: { isServer: boolean }) => {
     // Restrict webpack context to the project root
     const projectRoot = path.resolve(__dirname);
     config.context = projectRoot;
 
     // Add alias to fix broken deep import from htmlparser2 -> entities/decode
-    // The entities package structure changed, so we need to resolve to the package root
     config.resolve = {
       ...config.resolve,
       alias: {
         ...(config.resolve?.alias || {}),
-        // Map old deep-import paths to the entities package itself
-        // This works because entities exports decode from its main entry
         "entities/decode": "entities",
         "entities/lib/decode": "entities",
       },
@@ -95,12 +92,12 @@ const nextConfig: NextConfig = {
     if (config.cache && !isServer) {
       config.cache = {
         ...config.cache,
-        compression: "brotli", // Use brotli compression for smaller cache files
+        compression: "brotli",
       };
     }
 
     return config;
   },
-};
+} satisfies NextConfig;
 
 export default nextConfig;
