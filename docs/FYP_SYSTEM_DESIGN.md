@@ -2,7 +2,7 @@
 
 Edris LMS is a modern, full‑stack Learning Management System built with Next.js, React, TypeScript, Prisma, and PostgreSQL. It targets three primary user groups: **students**, **teachers**, and **administrators**, and provides an end‑to‑end e‑learning experience including course catalog, enrollment and payments, content delivery, assessments, communities, and progress tracking.
 
-As part of this final‑year project (FYP), the LMS is extended with an **AI‑powered transcription and summarisation pipeline**. Teachers can upload lecture videos; a dedicated transcription microservice (based on Python, FastAPI, Redis, Whisper, and Docker) asynchronously generates accurate transcripts and sends them back to the LMS, which persists them, generates AI summaries using OpenAI, and exposes them to students.
+As part of this final‑year project (FYP), the LMS is extended with two major technical innovations: an **AI‑powered transcription and summarisation pipeline** and an **on-chain Web3 Certificate Issuance system**. The AI pipeline uses a dedicated Python microservice to generate transcripts and summaries. The Web3 system leverages a smart contract on the Polygon blockchain to anchor course completion certificates immutably using Ethers.js.
 
 The main objectives of the system are:
 - **Accessibility**: Provide text transcripts and summaries for video content, improving accessibility for students with hearing impairments and for learners who prefer reading or searching content.
@@ -27,7 +27,7 @@ At a high level, the system consists of:
     - Admin portal (`app/admin`).
   - Backend APIs implemented as Next.js API routes under `app/api/*`, plus server actions co‑located with UI.
   - Data layer using Prisma and PostgreSQL.
-  - Integrations with Stripe (payments), AWS S3/Tigris (storage), Mux (video streaming), OpenAI (AI summaries and tutor), and the transcription microservice.
+  - Integrations with Stripe (payments), AWS S3/Tigris (storage), Mux (video streaming), fine-tuned model (AI summaries and tutor), and the transcription microservice.
 
 - **Transcription Microservice** (`MICROSERVICE`):
   - Python‑based FastAPI HTTP service for receiving transcription jobs.
@@ -40,8 +40,9 @@ At a high level, the system consists of:
   - **Stripe**: payment processor for course purchases.
   - **S3Storage** (Tigris‑compatible): object storage for videos and lesson files.
   - **Mux**: video streaming platform that ingests S3‑stored videos and serves HLS playback to students.
-  - **OpenAI**: used to generate lesson summaries and power an AI tutor feature.
+  - **fine-tuned model**: used to generate lesson summaries and power an AI tutor feature.
   - **Redis**: in‑memory data store for the transcription queue, used only by the microservice.
+  - **Polygon Blockchain**: EVM-compatible network used to store immutable completion certificates via smart contracts.
 
 ### 2.1 System Context Diagram
 
@@ -55,7 +56,8 @@ flowchart LR
   LMSApp -->|stores files| S3Storage
   LMSApp -->|payments| Stripe
   LMSApp -->|create assets| Mux
-  LMSApp -->|AI summaries & tutor| OpenAI
+  LMSApp -->|AI summaries & tutor| fine-tuned model
+  LMSApp -->|issues certificates| PolygonBlockchain
   LMSApp -->|submit jobs (Bearer token)| TranscriberService
 
   TranscriberService -->|queue & status| Redis
@@ -64,7 +66,7 @@ flowchart LR
 ```
 
 In words:
-- Users interact with the **LMSApp**, which in turn manages **PostgresDB** data, communicates with **Stripe** for payments, stores large files in **S3Storage**, manages streaming via **Mux**, and uses **OpenAI** for summarisation and tutoring.
+- Users interact with the **LMSApp**, which in turn manages **PostgresDB** data, communicates with **Stripe** for payments, stores large files in **S3Storage**, manages streaming via **Mux**, uses **fine-tuned model** for summarisation and tutoring, and interacts with the **Polygon Blockchain** to issue immutable Web3 certificates.
 - For transcription, LMSApp sends a **signed job request** to **TranscriberService**, which queues work in **Redis**, downloads the video from S3, runs Whisper, and calls back a **signed webhook** to LMSApp with the transcript.
 
 ## 3. Functional Requirements (Summary)
@@ -82,6 +84,7 @@ In words:
 - **Assessments & engagement**:
   - Take quizzes and submit assignments.
   - Participate in communities and forums (posts, comments).
+  - Earn verifiable, immutable Web3 certificates anchored on the Polygon blockchain upon 100% course completion.
   - Request support or open tickets where implemented.
 
 ### 3.2 Teacher‑facing features
@@ -172,7 +175,7 @@ Key LMS components:
   - `lib/S3Client.ts`: AWS S3/Tigris client wrapper.
   - `lib/mux.ts`: Mux client and signed playback URL helpers.
   - `lib/transcription.ts`: orchestration of transcription job submission and HMAC verification for webhooks.
-  - `lib/generate-summary.ts`: OpenAI integration to summarise lesson transcripts.
+  - `lib/generate-summary.ts`: fine-tuned model integration to summarise lesson transcripts.
 
 #### 5.1.1 Component Diagram
 
@@ -208,8 +211,9 @@ flowchart LR
   Integrations --> Stripe
   Integrations --> S3Storage
   Integrations --> Mux
-  Integrations --> OpenAI
+  Integrations --> fine-tuned model
   Integrations --> TranscriberService
+  Integrations --> PolygonBlockchain
 ```
 
 ### 5.2 Deployment View
@@ -234,7 +238,7 @@ flowchart LR
   LmsNode -->|"https://api.stripe.com"| Stripe
   LmsNode -->|"S3 SDK"| S3Storage
   LmsNode -->|"Mux SDK/API"| Mux
-  LmsNode -->|"OpenAI SDK"| OpenAI
+  LmsNode -->|"fine-tuned model SDK"| fine-tuned model
 
   LmsNode -->|"HTTPS jobs requests"| NginxNode
   NginxNode --> ApiNode
@@ -250,7 +254,7 @@ High‑level flows:
 - **Signup/Login**: Browser → LMS auth routes (Better‑Auth + Arcjet) → Postgres.
 - **Enrollment/Payment**: Browser → LMS server action → Stripe Checkout → Stripe webhook → Postgres.
 - **Video Upload & Playback**: Teacher UI → S3 (via signed URLs) → Mux asset creation → Student playback via Mux.
-- **Transcription**: Teacher UI → LMS server action → microservice `/jobs` → Redis queue → worker → LMS webhook → Postgres → OpenAI summary.
+- **Transcription**: Teacher UI → LMS server action → microservice `/jobs` → Redis queue → worker → LMS webhook → Postgres → fine-tuned model summary.
 
 #### 5.3.1 Sequence: Enrollment & Payment
 
@@ -286,7 +290,7 @@ sequenceDiagram
   participant Redis
   participant Worker
   participant PostgresDB
-  participant OpenAI
+  participant fine-tuned model
 
   Teacher->>Browser: Save lesson with uploaded video
   Browser->>LMSApp: updateTeacherLesson(...) server action
@@ -299,8 +303,8 @@ sequenceDiagram
   Worker->>Worker: Convert to audio + run Whisper
   Worker->>LMSApp: POST /api/webhooks/transcription (HMAC‑signed payload)
   LMSApp->>PostgresDB: Store transcript, segments, status COMPLETED
-  LMSApp->>OpenAI: Generate lesson summary
-  OpenAI-->>LMSApp: Summary text
+  LMSApp->>fine-tuned model: Generate lesson summary
+  fine-tuned model-->>LMSApp: Summary text
   LMSApp->>PostgresDB: Store videoSummary on Lesson
   Browser->>LMSApp: Student views lesson
   LMSApp-->>Browser: Video + transcript + summary
@@ -374,8 +378,17 @@ sequenceDiagram
 - The LMS stores **tutor chat sessions** and **messages** (e.g. `TutorChat`, `TutorMessage` models).
 - When a student asks a question, the LMS:
   - Collects context from the current lesson (title, transcript, summary) and possibly other course metadata.
-  - Sends a prompt to OpenAI describing the user’s question and the lesson context.
+  - Sends a prompt to fine-tuned model describing the user’s question and the lesson context.
   - Stores both the question and the AI’s answer in the tutor chat tables for later review.
+
+### 6.7 Web3 Certificate Issuance
+
+- Upon a student reaching 100% completion in a course (all lessons watched or skipped via automated completion), the LMS generates a unique Certificate ID.
+- The LMS backend creates a `keccak256` payload hash of the certificate data (student name, course name, date).
+- Using `ethers.js`, the server creates a secure wallet instance from `BLOCKCHAIN_PRIVATE_KEY` and connects to the Polygon network via `POLYGON_RPC_URL`.
+- The LMS calls the `issueCertificate` function on the deployed `LMSCertificate` smart contract, passing the Certificate ID and the payload hash.
+- The transaction hash is immediately returned and the frontend is updated while the transaction confirms on-chain asynchronously.
+- The certificate is stored in PostgreSQL alongside its blockchain TxHash, allowing public cryptographic verification of its authenticity.
 
 ## 7. Data Model Overview
 
@@ -481,11 +494,13 @@ erDiagram
 - **Whisper‑based microservice with Redis**:
   - Running Whisper in a dedicated service avoids burdening the LMS with heavy CPU tasks.
   - Redis queue allows for decoupling, retries, and scaling workers horizontally.
-- **OpenAI for summaries and tutor**:
+- **fine-tuned model for summaries and tutor**:
   - Leverages state‑of‑the‑art language models to generate high‑quality summaries and answers for learner questions.
+- **Polygon Blockchain & Ethers.js**:
+  - Provides a permanent, cryptographically secure verification method for student certificates, protecting against forgery and enhancing credential value.
 
 Trade‑offs include:
-- Increased complexity due to multiple external dependencies (Stripe, S3, Mux, OpenAI).
+- Increased complexity due to multiple external dependencies (Stripe, S3, Mux, fine-tuned model).
 - Infrastructure and cost overhead of running an additional microservice and Redis.
 - Vendor lock‑in concerns, mitigated by clear interfaces and modular integration code.
 

@@ -90,6 +90,11 @@
 - **What:** Dashboard shows stats and recent courses but no shortcuts.
 - **Suggestion:** Add quick action buttons/cards: “View pending teachers”, “View recent enrollments”, “Open analytics”.
 
+### 13. **Blockchain Certificate Management**
+
+- **What:** Certificates are issued automatically on the Polygon blockchain via smart contracts, but admins currently have no unified view to monitor issuance status, transaction hashes, or failed transactions.
+- **Suggestion:** Add a "Certificates" or "Web3 Activity" page in the admin portal to list all issued certificates with direct links to Polygonscan for easy verification.
+
 ### 13. **Export data**
 
 - **What:** Settings has an “Export” button that does nothing.
