@@ -16,6 +16,9 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "5000mb",
     },
+    outputFileTracingIncludes: {
+      '/**/*': ['./lib/generated/prisma/libquery_engine-*'],
+    },
   },
   turbopack: {
     resolveAlias: {
