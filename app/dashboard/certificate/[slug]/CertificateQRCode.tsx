@@ -5,15 +5,17 @@ import { QRCodeSVG } from "qrcode.react";
 const FG = "#1B4332";
 
 export function CertificateQRCode({
-  url,
+  qrData,
+  fallbackUrl,
   size = 100,
 }: {
-  url: string;
+  qrData?: string | null;
+  fallbackUrl: string;
   size?: number;
 }) {
   return (
     <QRCodeSVG
-      value={url}
+      value={qrData ?? fallbackUrl}
       size={size}
       level="M"
       fgColor={FG}

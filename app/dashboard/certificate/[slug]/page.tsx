@@ -69,6 +69,8 @@ async function getCertificateData(slug: string) {
       uniqueId: true,
       issuedAt: true,
       recipientName: true,
+      qrData: true,
+      pdfUrl: true,
       blockchainStatus: true,
       txHash: true,
       blockNumber: true,
@@ -125,6 +127,8 @@ async function getCertificateData(slug: string) {
       id: certificate!.uniqueId,
       issuedOn: certificate!.issuedAt.toISOString(),
       recipientName: certificate!.recipientName,
+      qrData: certificate!.qrData,
+      pdfUrl: certificate!.pdfUrl,
       blockchainStatus: certificate!.blockchainStatus,
       txHash: certificate!.txHash,
       blockNumber: certificate!.blockNumber,
@@ -241,6 +245,7 @@ export default async function CertificatePage({
 
   if (data.kind === "eligible") {
     const now = new Date();
+    const previewIssuedAtIso = now.toISOString();
     const previewDay = now.getDate().toString().padStart(2, "0");
     const previewMonth = (now.getMonth() + 1).toString().padStart(2, "0");
     const previewYear = now.getFullYear();
@@ -259,6 +264,7 @@ export default async function CertificatePage({
           courseTitle={data.course.title}
           courseHours={data.course.hours}
           instructorName={data.course.instructorName}
+          issuedAtIso={previewIssuedAtIso}
           day={previewDay}
           month={previewMonth}
           year={previewYear}
@@ -295,7 +301,9 @@ export default async function CertificatePage({
       {/* Screen-only chrome (hidden when printing) */}
       <div className="mx-auto mb-6 flex max-w-[900px] items-center justify-between print:hidden">
         <BackToCourseButton slug={slug} />
-        <CertificatePrintButton />
+        <div className="flex items-center gap-3">
+          <CertificatePrintButton />
+        </div>
       </div>
 
       <CertificateTemplate
@@ -304,7 +312,11 @@ export default async function CertificatePage({
         courseHours={data.course.hours}
         instructorName={data.course.instructorName}
         verificationUrl={verificationUrl}
+        qrData={data.certificate.qrData}
         certDisplayId={certDisplayId}
+        uniqueId={data.certificate.id}
+        issuedAt={issuedDate}
+        contractAddress={data.certificate.contractAddress}
         day={day}
         month={month}
         year={year}

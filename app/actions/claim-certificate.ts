@@ -62,18 +62,19 @@ export async function claimCertificate(
       create: {
         userId: user.id,
         courseId: course.id,
-        recipientName: trimmedName,
+        recipientName: user.name ?? trimmedName,
       },
       select: {
         id: true,
         uniqueId: true,
         issuedAt: true,
+        recipientName: true,
       },
     });
 
     await issueCertificate(certificate.id, {
       uniqueId: certificate.uniqueId,
-      studentName: trimmedName,
+      studentName: certificate.recipientName ?? user.name ?? "",
       courseName: course.title,
       issuedAt: certificate.issuedAt,
     });

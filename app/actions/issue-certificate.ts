@@ -32,7 +32,7 @@ export async function issueCertificate(certificateDbId: string, data: {
     // Avoid re-issuing if already recorded.
     if (certificate.blockchainStatus === "ISSUED" && certificate.txHash) return;
 
-    const { payloadHash } = await buildCertificatePayload({
+    const { payloadHash, qrData } = await buildCertificatePayload({
       uniqueId: data.uniqueId,
       studentName: data.studentName,
       courseName: data.courseName,
@@ -53,6 +53,7 @@ export async function issueCertificate(certificateDbId: string, data: {
       where: { id: certificate.id },
       data: {
         payloadHash,
+        qrData,
         txHash: onChainResult.txHash,
         blockNumber: BigInt(onChainResult.blockNumber),
         chainId: 80002,

@@ -8,7 +8,11 @@ type Props = {
   courseHours: number;
   instructorName: string;
   verificationUrl: string;
+  qrData?: string | null;
   certDisplayId: string;
+  uniqueId: string;
+  issuedAt: Date;
+  contractAddress: string | null;
   day: string;
   month: string;
   year: number;
@@ -25,7 +29,11 @@ export function CertificateTemplate({
   courseHours,
   instructorName,
   verificationUrl,
+  qrData,
   certDisplayId,
+  uniqueId,
+  issuedAt,
+  contractAddress,
   day,
   month,
   year,
@@ -114,7 +122,11 @@ export function CertificateTemplate({
 
               <div className="qr-col">
                 <div className="qr-frame">
-                  <CertificateQRCode url={verificationUrl} size={52} />
+                  <CertificateQRCode
+                    qrData={qrData}
+                    fallbackUrl={verificationUrl}
+                    size={52}
+                  />
                 </div>
                 <div className="qr-title">Scan to Verify</div>
                 <div className="qr-id">ID: {certDisplayId}</div>
@@ -148,6 +160,22 @@ export function CertificateTemplate({
                   </a>
                 </>
               )}
+            </div>
+
+            <div className="meta-footer" aria-label="Certificate metadata">
+              <div className="meta-item">
+                <div className="meta-label">Certificate ID</div>
+                <div className="meta-value mono">{uniqueId}</div>
+              </div>
+              <div className="meta-item">
+                <div className="meta-label">Issued At (UTC)</div>
+                <div className="meta-value mono">{issuedAt.toISOString()}</div>
+              </div>
+              <div className="meta-item">
+                <div className="meta-label">Blockchain</div>
+                <div className="meta-value">Polygon Amoy</div>
+              </div>
+              {contractAddress && <div className="meta-contract">{contractAddress}</div>}
             </div>
           </div>
         </div>
@@ -380,6 +408,42 @@ export function CertificateTemplate({
           color: var(--brand); text-transform: uppercase; text-decoration: none;
         }
         .info-sep { color: var(--brand-light); font-size: 0.8cqw; }
+
+        .meta-footer {
+          width: 100%;
+          margin-top: 0.8cqw;
+          padding-top: 0.8cqw;
+          border-top: 0.08cqw solid rgba(0, 0, 0, 0.18);
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 1.2cqw;
+          align-items: start;
+        }
+
+        .meta-item {
+          display: flex;
+          flex-direction: column;
+          gap: 0.15cqw;
+          min-width: 0;
+        }
+
+        .meta-label,
+        .meta-value {
+          font-family: var(--font-montserrat), system-ui, sans-serif;
+          font-size: 10px;
+          color: #666;
+          line-height: 1.2;
+          letter-spacing: 0.03em;
+          word-break: break-word;
+        }
+
+        .meta-value.mono {
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .meta-contract {
+          display: none;
+        }
       `}</style>
     </>
   );

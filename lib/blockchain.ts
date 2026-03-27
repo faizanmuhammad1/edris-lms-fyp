@@ -171,6 +171,34 @@ function stableStringify(value: unknown): string {
   return `{${props.join(",")}}`;
 }
 
+export type CertificatePayloadFields = {
+  uniqueId: string;
+  studentName: string;
+  courseName: string;
+  issuedAt: string;
+};
+
+export function buildCanonicalCertificatePayload(fields: CertificatePayloadFields) {
+  // Keep explicit key order for readability; hashing remains canonical via stableStringify.
+  return {
+    courseName: fields.courseName,
+    issuedAt: fields.issuedAt,
+    studentName: fields.studentName,
+    uniqueId: fields.uniqueId,
+  };
+}
+
+export function computeCertificatePayloadHash(fields: CertificatePayloadFields): {
+  payload: ReturnType<typeof buildCanonicalCertificatePayload>;
+  payloadString: string;
+  payloadHash: string;
+} {
+  const payload = buildCanonicalCertificatePayload(fields);
+  const payloadString = stableStringify(payload);
+  const payloadHash = ethers.keccak256(ethers.toUtf8Bytes(payloadString));
+  return { payload, payloadString, payloadHash };
+}
+
 function loadAbi(): InterfaceAbi {
   return CONTRACT_ABI as unknown as InterfaceAbi;
 }
@@ -203,18 +231,50 @@ export async function buildCertificatePayload(data: {
   studentName: string;
   courseName: string;
   issuedAt: Date;
-}): Promise<{ payloadString: string; payloadHash: string }> {
-  const payload = {
+}): Promise<{ payloadString: string; payloadHash: string; qrData: string }> {
+  const issuedAtIso = data.issuedAt.toISOString();
+  const { payloadString, payloadHash } = computeCertificatePayloadHash({
     uniqueId: data.uniqueId,
     studentName: data.studentName,
     courseName: data.courseName,
-    issuedAt: data.issuedAt.toISOString(),
+    issuedAt: issuedAtIso,
+  });
+
+  const ipfsUrl =
+    process.env.NEXT_PUBLIC_IPFS_VERIFY_URL ??
+    "https://ipfs.io/ipfs/bafkreibti6dmagofnnycnfind4ois2lua5zouoojzfzqcakq3pjywqysuu";
+
+  const qrData = ipfsUrl;
+
+  return { payloadString, payloadHash, qrData };
+}
+
+export async function buildPayloadFromQR(qrData: string): Promise<{
+  payloadHash: string;
+  parsed: {
+    studentName: string;
+    courseName: string;
+    issuedAt: string;
+    uniqueId: string;
+  };
+}> {
+  const raw = JSON.parse(qrData) as {
+    n: string;
+    c: string;
+    d: string;
+    id: string;
   };
 
-  const payloadString = stableStringify(payload);
-  const payloadHash = ethers.keccak256(ethers.toUtf8Bytes(payloadString));
+  const parsed = {
+    studentName: raw.n,
+    courseName: raw.c,
+    issuedAt: raw.d,
+    uniqueId: raw.id,
+  };
 
-  return { payloadString, payloadHash };
+  const { payloadHash } = computeCertificatePayloadHash(parsed);
+
+  return { payloadHash, parsed };
 }
 
 export async function issueCertificateOnChain(

@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import { resend } from "@/lib/resend";
 import { env } from "@/lib/env";
+import { buildCertificatePayload } from "@/lib/blockchain";
 import {
   certificateIssuedEmail,
   courseCompletionCongratsEmail,
@@ -42,10 +43,15 @@ export async function sendCourseCompletionEmailIfNeeded(params: {
         courseId,
       },
     },
-    update: {},
+    update: {
+      recipientName: {
+        set: user.name,
+      },
+    },
     create: {
       userId,
       courseId,
+      recipientName: user.name,
     },
     select: {
       id: true,
@@ -85,10 +91,13 @@ export async function sendCertificateIssuedEmailIfNeeded(params: {
     select: {
       id: true,
       uniqueId: true,
+      issuedAt: true,
+      recipientName: true,
       txHash: true,
       network: true,
       blockchainStatus: true,
       issuedEmailSentAt: true,
+      qrData: true,
       User: {
         select: {
           name: true,
@@ -105,6 +114,21 @@ export async function sendCertificateIssuedEmailIfNeeded(params: {
 
   if (!certificate) return;
   if (certificate.blockchainStatus !== "ISSUED") return;
+
+  if (!certificate.qrData) {
+    const { qrData } = await buildCertificatePayload({
+      uniqueId: certificate.uniqueId,
+      studentName: certificate.recipientName ?? certificate.User.name ?? "",
+      courseName: certificate.Course.title,
+      issuedAt: certificate.issuedAt,
+    });
+
+    await prisma.certificate.update({
+      where: { id: certificate.id },
+      data: { qrData },
+    });
+  }
+
   if (certificate.issuedEmailSentAt) return;
 
   const appUrl = getServerBaseUrl();

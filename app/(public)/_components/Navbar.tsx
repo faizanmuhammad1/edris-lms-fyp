@@ -20,10 +20,13 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
 
+const verificationHref =
+  process.env.NEXT_PUBLIC_IPFS_VERIFY_URL ?? "/verification";
+
 const navigationItems = [
   { name: "Teach on Edris", href: "/teach" },
   { name: "My Learning", href: "/dashboard" },
-  { name: "Verifications", href: "/verification" },
+  { name: "Verifications", href: verificationHref },
 ];
 
 const categories = [
@@ -127,7 +130,7 @@ export function Navbar() {
             Teach on Edris
           </Link>
 
-          <Link href="/verification" className="p-2 hover:bg-accent rounded-full transition-colors relative group" title="Verify Certificate">
+          <Link href={verificationHref} className="p-2 hover:bg-accent rounded-full transition-colors relative group" title="Verify Certificate">
             <ShieldCheck className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
           </Link>
 

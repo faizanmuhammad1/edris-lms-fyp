@@ -98,6 +98,7 @@ model Verification {
 model Course {
   id               String          @id @default(uuid())
   title            String
+  normalizedName   String?
   description      String
   fileKey          String
   price            Int
@@ -123,6 +124,7 @@ model Course {
   @@index([userId])
   @@index([status])
   @@index([category])
+  @@index([normalizedName])
 }
 
 model Chapter {
@@ -473,6 +475,7 @@ model Certificate {
   blockchainStatus String?  @default("PENDING")
   revokedAt        DateTime?
   pdfUrl           String?
+  qrData           String?  // JSON string embedded in QR code
   verificationUrl  String?
   completionEmailSentAt DateTime?
   issuedEmailSentAt     DateTime?

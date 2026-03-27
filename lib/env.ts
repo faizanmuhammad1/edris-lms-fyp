@@ -40,6 +40,7 @@ export const env = createEnv({
       .string()
       .optional()
       .default("https://amoy.polygonscan.com"),
+    NEXT_PUBLIC_IPFS_VERIFY_URL: z.string().url().optional(),
   },
 
   // For Next.js >= 13.4.4, you only need to destructure client variables:
@@ -48,5 +49,6 @@ export const env = createEnv({
     NEXT_PUBLIC_AWS_REGION: process.env.NEXT_PUBLIC_AWS_REGION,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_BLOCK_EXPLORER: process.env.NEXT_PUBLIC_BLOCK_EXPLORER,
+    NEXT_PUBLIC_IPFS_VERIFY_URL: process.env.NEXT_PUBLIC_IPFS_VERIFY_URL,
   },
 });
