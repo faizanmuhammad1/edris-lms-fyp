@@ -112,6 +112,9 @@ export default async function RenderCertificatePage({
         verificationUrl={verificationUrl}
         qrData={certificate.qrData}
         certDisplayId={certDisplayId}
+        uniqueId={certificate.uniqueId}
+        issuedAt={issuedDate}
+        contractAddress={certificate.contractAddress}
         day={day}
         month={month}
         year={year}

@@ -98,6 +98,7 @@ model Verification {
 model Course {
   id               String          @id @default(uuid())
   title            String
+  normalizedName   String?
   description      String
   fileKey          String
   price            Int
@@ -123,6 +124,7 @@ model Course {
   @@index([userId])
   @@index([status])
   @@index([category])
+  @@index([normalizedName])
 }
 
 model Chapter {

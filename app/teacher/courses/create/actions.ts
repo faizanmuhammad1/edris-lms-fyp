@@ -4,6 +4,7 @@ import { requireTeacher } from "@/app/data/teacher/require-teacher";
 import arcjet, { fixedWindow } from "@/lib/arcjet";
 
 import { prisma } from "@/lib/db";
+import { normalizeCourseName } from "@/lib/course-name";
 import { stripe } from "@/lib/stripe";
 import { ApiResponse } from "@/lib/types";
 import { courseSchema, CourseSchemaType } from "@/lib/zodSchemas";
@@ -63,6 +64,7 @@ export async function CreateTeacherCourse(
     await prisma.course.create({
       data: {
         ...validation.data,
+        normalizedName: normalizeCourseName(validation.data.title),
         userId: session.user.id,
         stripePriceId: data.default_price as string,
       },

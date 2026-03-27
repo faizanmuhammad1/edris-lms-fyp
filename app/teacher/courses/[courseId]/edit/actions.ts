@@ -5,6 +5,7 @@ import arcjet, { fixedWindow } from "@/lib/arcjet";
 import { prisma } from "@/lib/db";
 import { triggerMuxAssetCreation } from "@/lib/mux-trigger";
 import { triggerTranscriptionForLesson } from "@/lib/transcription";
+import { normalizeCourseName } from "@/lib/course-name";
 import { ApiResponse } from "@/lib/types";
 import {
   chapterSchema,
@@ -81,6 +82,7 @@ export async function editTeacherCourse(
     // Prepare update data
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = { ...result.data };
+    updateData.normalizedName = normalizeCourseName(result.data.title);
 
     // Sync with Stripe
     if (result.data.title !== course.title || result.data.price !== course.price) {

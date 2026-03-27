@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import {
   buildPayloadFromQR,
+  computeCertificatePayloadHash,
   verifyCertificateOnChain,
 } from "@/lib/blockchain";
 
@@ -46,7 +47,13 @@ export async function verifyCertificate(
   }
 ): Promise<VerificationResult> {
   try {
-    let qrDataString: string;
+    let parsed: {
+      studentName: string;
+      courseName: string;
+      issuedAt: string;
+      uniqueId: string;
+    };
+    let payloadHash: string;
     let txHash: string | null = null;
     let blockNumber: bigint | null = null;
     let network: string | null = null;
@@ -76,11 +83,11 @@ export async function verifyCertificate(
     }
 
     if (input.mode === "qr" && input.qrData) {
-      qrDataString = qrDataToJson(input.qrData);
-      const parsed = JSON.parse(qrDataString) as { id?: string };
-      if (parsed.id) {
+      const qrDataString = qrDataToJson(input.qrData);
+      const parsedQr = JSON.parse(qrDataString) as { id?: string };
+      if (parsedQr.id) {
         const cert = await prisma.certificate.findUnique({
-          where: { uniqueId: parsed.id },
+          where: { uniqueId: parsedQr.id },
           select: {
             txHash: true,
             blockNumber: true,
@@ -93,6 +100,10 @@ export async function verifyCertificate(
         network = cert?.network ?? null;
         contractAddress = cert?.contractAddress ?? null;
       }
+
+      const qrPayload = await buildPayloadFromQR(qrDataString);
+      payloadHash = qrPayload.payloadHash;
+      parsed = qrPayload.parsed;
     } else if (input.mode === "id" && input.uniqueId) {
       const cert = await prisma.certificate.findUnique({
         where: { uniqueId: input.uniqueId },
@@ -120,15 +131,14 @@ export async function verifyCertificate(
         };
       }
 
-      if (!cert.qrData) {
-        return {
-          isValid: false,
-          error:
-            "Certificate QR data not available. This certificate may have been issued before QR verification was enabled.",
-        };
-      }
+      parsed = {
+        studentName: cert.recipientName ?? cert.User.name ?? "",
+        courseName: cert.Course.title,
+        issuedAt: cert.issuedAt.toISOString(),
+        uniqueId: cert.uniqueId,
+      };
 
-      qrDataString = cert.qrData;
+      payloadHash = computeCertificatePayloadHash(parsed).payloadHash;
       txHash = cert.txHash;
       blockNumber = cert.blockNumber ?? null;
       network = cert.network ?? null;
@@ -136,8 +146,6 @@ export async function verifyCertificate(
     } else {
       return { isValid: false, error: "Invalid verification input" };
     }
-
-    const { payloadHash, parsed } = await buildPayloadFromQR(qrDataString);
 
     const onChainResult = await verifyCertificateOnChain(
       parsed.uniqueId,

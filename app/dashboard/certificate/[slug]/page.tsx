@@ -245,6 +245,7 @@ export default async function CertificatePage({
 
   if (data.kind === "eligible") {
     const now = new Date();
+    const previewIssuedAtIso = now.toISOString();
     const previewDay = now.getDate().toString().padStart(2, "0");
     const previewMonth = (now.getMonth() + 1).toString().padStart(2, "0");
     const previewYear = now.getFullYear();
@@ -263,6 +264,7 @@ export default async function CertificatePage({
           courseTitle={data.course.title}
           courseHours={data.course.hours}
           instructorName={data.course.instructorName}
+          issuedAtIso={previewIssuedAtIso}
           day={previewDay}
           month={previewMonth}
           year={previewYear}
@@ -300,20 +302,6 @@ export default async function CertificatePage({
       <div className="mx-auto mb-6 flex max-w-[900px] items-center justify-between print:hidden">
         <BackToCourseButton slug={slug} />
         <div className="flex items-center gap-3">
-          <a
-            href={`/api/certificates/${encodeURIComponent(
-              data.certificate.id
-            )}/download`}
-            className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium text-white shadow-md transition-colors hover:opacity-90"
-            style={{ backgroundColor: "#1B4332" }}
-            title={
-              data.certificate.pdfUrl
-                ? "Download signed certificate PDF"
-                : "Generating signed PDF for first time"
-            }
-          >
-            Download Signed PDF
-          </a>
           <CertificatePrintButton />
         </div>
       </div>
@@ -326,6 +314,9 @@ export default async function CertificatePage({
         verificationUrl={verificationUrl}
         qrData={data.certificate.qrData}
         certDisplayId={certDisplayId}
+        uniqueId={data.certificate.id}
+        issuedAt={issuedDate}
+        contractAddress={data.certificate.contractAddress}
         day={day}
         month={month}
         year={year}

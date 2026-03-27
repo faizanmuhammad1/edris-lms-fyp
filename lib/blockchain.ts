@@ -171,6 +171,34 @@ function stableStringify(value: unknown): string {
   return `{${props.join(",")}}`;
 }
 
+export type CertificatePayloadFields = {
+  uniqueId: string;
+  studentName: string;
+  courseName: string;
+  issuedAt: string;
+};
+
+export function buildCanonicalCertificatePayload(fields: CertificatePayloadFields) {
+  // Keep explicit key order for readability; hashing remains canonical via stableStringify.
+  return {
+    courseName: fields.courseName,
+    issuedAt: fields.issuedAt,
+    studentName: fields.studentName,
+    uniqueId: fields.uniqueId,
+  };
+}
+
+export function computeCertificatePayloadHash(fields: CertificatePayloadFields): {
+  payload: ReturnType<typeof buildCanonicalCertificatePayload>;
+  payloadString: string;
+  payloadHash: string;
+} {
+  const payload = buildCanonicalCertificatePayload(fields);
+  const payloadString = stableStringify(payload);
+  const payloadHash = ethers.keccak256(ethers.toUtf8Bytes(payloadString));
+  return { payload, payloadString, payloadHash };
+}
+
 function loadAbi(): InterfaceAbi {
   return CONTRACT_ABI as unknown as InterfaceAbi;
 }
@@ -204,30 +232,19 @@ export async function buildCertificatePayload(data: {
   courseName: string;
   issuedAt: Date;
 }): Promise<{ payloadString: string; payloadHash: string; qrData: string }> {
-  const payload = {
+  const issuedAtIso = data.issuedAt.toISOString();
+  const { payloadString, payloadHash } = computeCertificatePayloadHash({
     uniqueId: data.uniqueId,
     studentName: data.studentName,
     courseName: data.courseName,
-    issuedAt: data.issuedAt.toISOString(),
-  };
-
-  const payloadString = stableStringify(payload);
-  const payloadHash = ethers.keccak256(ethers.toUtf8Bytes(payloadString));
-
-  const jsonPayload = JSON.stringify({
-    n: data.studentName,
-    c: data.courseName,
-    d: data.issuedAt.toISOString(),
-    id: data.uniqueId,
+    issuedAt: issuedAtIso,
   });
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const ipfsUrl =
+    process.env.NEXT_PUBLIC_IPFS_VERIFY_URL ??
+    "https://ipfs.io/ipfs/bafkreibti6dmagofnnycnfind4ois2lua5zouoojzfzqcakq3pjywqysuu";
 
-  // QR must contain a real URL so that mobile scanners open the browser.
-  const qrData = `${baseUrl}/verification?qr=${encodeURIComponent(
-    jsonPayload
-  )}`;
+  const qrData = ipfsUrl;
 
   return { payloadString, payloadHash, qrData };
 }
@@ -255,15 +272,7 @@ export async function buildPayloadFromQR(qrData: string): Promise<{
     uniqueId: raw.id,
   };
 
-  const payload = {
-    courseName: parsed.courseName,
-    issuedAt: parsed.issuedAt,
-    studentName: parsed.studentName,
-    uniqueId: parsed.uniqueId,
-  };
-
-  const payloadString = stableStringify(payload);
-  const payloadHash = ethers.keccak256(ethers.toUtf8Bytes(payloadString));
+  const { payloadHash } = computeCertificatePayloadHash(parsed);
 
   return { payloadHash, parsed };
 }

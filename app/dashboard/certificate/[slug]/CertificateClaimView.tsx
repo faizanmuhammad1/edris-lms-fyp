@@ -14,6 +14,7 @@ interface CertificateClaimViewProps {
   courseTitle: string;
   courseHours: number;
   instructorName: string;
+  issuedAtIso: string;
   day: string;
   month: string;
   year: number;
@@ -26,6 +27,7 @@ export function CertificateClaimView({
   courseTitle,
   courseHours,
   instructorName,
+  issuedAtIso,
   day,
   month,
   year,
@@ -62,6 +64,9 @@ export function CertificateClaimView({
         instructorName={instructorName}
         verificationUrl="#"
         certDisplayId="PENDING"
+        uniqueId="00000000-0000-0000-0000-000000000000"
+        issuedAt={new Date(issuedAtIso)}
+        contractAddress={null}
         day={day}
         month={month}
         year={year}

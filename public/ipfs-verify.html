@@ -1,0 +1,963 @@
+<!-- ipfs-verify.html -->
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Edris LMS Certificate Verification</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <style>
+         :root {
+            --primary: #1a5c3a;
+            --accent: #c9a84c;
+            --bg: #f4f7f5;
+            --text: #133326;
+            --muted: #5f6f67;
+            --card: #ffffff;
+            --shadow: 0 10px 28px rgba(10, 40, 24, 0.08);
+            --danger: #b62828;
+            --warn: #b86e17;
+            --ok: #1f8a4b;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at 90% -20%, #e2ecdf 0%, transparent 48%), var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 22px 14px;
+        }
+        
+        .page {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            display: grid;
+            gap: 14px;
+        }
+        
+        .card {
+            background: var(--card);
+            border: 1px solid #dce7df;
+            border-radius: 14px;
+            box-shadow: var(--shadow);
+            padding: 16px;
+        }
+        
+        .header {
+            display: grid;
+            grid-template-columns: 48px 1fr;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(145deg, #1b6b43, #144a2f);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 1.35rem;
+            letter-spacing: 0.01em;
+            color: var(--primary);
+        }
+        
+        .subtitle {
+            margin-top: 3px;
+            color: var(--muted);
+            font-size: 0.93rem;
+        }
+        
+        .dropzone {
+            border: 1.5px dashed #b8ccbf;
+            border-radius: 12px;
+            background: #f8fbf9;
+            text-align: center;
+            padding: 22px 12px;
+            cursor: pointer;
+            transition: border-color .2s ease, background .2s ease;
+        }
+        
+        .dropzone:hover,
+        .dropzone.drag {
+            border-color: var(--primary);
+            background: #f0f7f3;
+        }
+        
+        .dropzone-title {
+            font-weight: 650;
+            color: var(--primary);
+            margin: 0;
+        }
+        
+        .dropzone-sub {
+            margin: 8px 0 0;
+            color: #6a7c73;
+            font-size: 0.9rem;
+        }
+        
+        .filename {
+            margin-top: 10px;
+            font-size: 0.88rem;
+            color: #31473c;
+            word-break: break-all;
+        }
+        
+        .section-title {
+            margin: 0 0 10px;
+            font-size: 0.98rem;
+            color: var(--primary);
+            letter-spacing: 0.01em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .hint {
+            color: #66756e;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .grid {
+            display: grid;
+            gap: 10px;
+        }
+        
+        label {
+            display: grid;
+            gap: 5px;
+            font-size: 0.83rem;
+            color: #4f6058;
+        }
+        
+        input {
+            width: 100%;
+            border: 1px solid #cddbd3;
+            border-radius: 10px;
+            padding: 10px 11px;
+            font-size: 0.93rem;
+            color: #18372a;
+            background: #fff;
+            outline: none;
+        }
+        
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26, 92, 58, 0.14);
+        }
+        
+        .mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 0.84rem;
+        }
+        
+        .btn {
+            width: 100%;
+            border: 0;
+            border-radius: 10px;
+            background: var(--primary);
+            color: #fff;
+            padding: 11px 14px;
+            font-size: 0.95rem;
+            font-weight: 650;
+            cursor: pointer;
+            transition: transform .08s ease, opacity .18s ease;
+        }
+        
+        .btn:hover {
+            opacity: 0.95;
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            border-radius: 12px;
+            padding: 13px;
+            border: 1px solid transparent;
+            display: none;
+            gap: 8px;
+        }
+        
+        .status.show {
+            display: grid;
+        }
+        
+        .status h2 {
+            margin: 0;
+            font-size: 1.1rem;
+            letter-spacing: 0.02em;
+        }
+        
+        .status p {
+            margin: 0;
+            font-size: 0.92rem;
+            line-height: 1.45;
+        }
+        
+        .ok {
+            background: #edf8f1;
+            border-color: #b8e0c7;
+            color: #0f5e31;
+        }
+        
+        .bad {
+            background: #fff0f0;
+            border-color: #f3c3c3;
+            color: #8b1e1e;
+        }
+        
+        .warn {
+            background: #fff7ea;
+            border-color: #edd7aa;
+            color: #8f5d12;
+        }
+        
+        .err {
+            background: #fff6d8;
+            border-color: #f0d989;
+            color: #7f6200;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 6px;
+        }
+        
+        td {
+            border-bottom: 1px solid #dce8df;
+            padding: 7px 4px;
+            vertical-align: top;
+            font-size: 0.88rem;
+        }
+        
+        td:first-child {
+            width: 34%;
+            color: #5d6d64;
+        }
+        
+        .value {
+            color: #16382a;
+            word-break: break-word;
+        }
+        
+        .small-note {
+            color: #4e6559;
+            font-size: 0.84rem;
+            line-height: 1.45;
+            margin-top: 7px;
+        }
+        
+        .footer {
+            text-align: center;
+            color: #4e6559;
+            font-size: 0.83rem;
+            line-height: 1.45;
+        }
+        
+        .footer a {
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .loading {
+            font-size: 0.88rem;
+            color: #5f6f67;
+            margin-top: 6px;
+            display: none;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="page">
+        <section class="card header" aria-label="Header">
+            <div class="logo" aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" fill="none">
+          <path d="M32 6l20 8v18c0 12.5-8.2 20.6-20 26-11.8-5.4-20-13.5-20-26V14l20-8z" fill="#e9f4ed" stroke="#c9a84c" stroke-width="3"/>
+          <path d="M20 29l8 8 16-16" stroke="#1a5c3a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+            </div>
+            <div>
+                <h1>Certificate Verification</h1>
+                <div class="subtitle">Powered by Polygon Blockchain</div>
+            </div>
+        </section>
+
+        <section class="card" aria-label="Upload section">
+            <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Upload PDF certificate">
+                <p class="dropzone-title">Drag and drop certificate PDF here</p>
+                <p class="dropzone-sub">or click to choose a .pdf file</p>
+                <div id="filename" class="filename"></div>
+            </div>
+            <input id="fileInput" type="file" accept="application/pdf,.pdf" hidden />
+            <div id="extracting" class="loading">Extracting text from PDF...</div>
+        </section>
+
+        <section class="card" aria-label="Extracted fields">
+            <h2 class="section-title">
+                Extracted Fields
+                <span class="hint">Edit Fields if extraction is incorrect</span>
+            </h2>
+            <div class="grid">
+                <label>
+          Student Name
+          <input id="studentName" type="text" placeholder="Student name" />
+        </label>
+                <label>
+          Course Name
+          <input id="courseName" type="text" placeholder="Course title" />
+        </label>
+                <label>
+          Certificate ID
+          <input id="uniqueId" class="mono" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+        </label>
+                <label>
+          Issued At (UTC)
+          <input id="issuedAt" class="mono" type="text" placeholder="YYYY-MM-DDTHH:mm:ss.sssZ" />
+        </label>
+            </div>
+        </section>
+
+        <section class="card" aria-label="Verification action">
+            <button id="verifyBtn" class="btn">Verify on Blockchain</button>
+            <div id="status" class="status" role="status" aria-live="polite"></div>
+        </section>
+
+        <section class="footer">
+            <div>Edris LMS Certificate Authority</div>
+            <div>Verification powered by Polygon Amoy Network</div>
+            <a id="contractLink" href="#" target="_blank" rel="noreferrer">View Contract on Polygonscan</a>
+        </section>
+    </main>
+
+    <script>
+        (function() {
+            const CONTRACT_ADDRESS = "0x984E8900552bE43A6b94655Dd12cbcbbe87144be";
+            const RPC_URL = "https://rpc-amoy.polygon.technology";
+            const EXPLORER_URL = "https://amoy.polygonscan.com";
+            const apiBaseParam = new URLSearchParams(window.location.search).get("apiBase");
+            const DEFAULT_APP_BASE = "https://www.edrislms.com";
+
+            function normalizeBaseUrl(value) {
+                return String(value || "").trim().replace(/\/$/, "");
+            }
+
+            function isIpfsLikeHost(hostname) {
+                return /(^|\.)ipfs\.|ipfs\.io|pinata|gateway/i.test(String(hostname || ""));
+            }
+
+            function loadApiBaseCandidates() {
+                const candidates = [];
+                const fromParam = normalizeBaseUrl(apiBaseParam);
+                if (fromParam) candidates.push(fromParam);
+
+                try {
+                    const remembered = normalizeBaseUrl(localStorage.getItem("edrisVerifierApiBase"));
+                    if (remembered) candidates.push(remembered);
+                } catch (_err) {
+                    // Ignore storage access failures.
+                }
+
+                if (!isIpfsLikeHost(window.location.hostname)) {
+                    candidates.push(normalizeBaseUrl(window.location.origin));
+                }
+
+                candidates.push(normalizeBaseUrl(DEFAULT_APP_BASE));
+                candidates.push("https://edrislms.com");
+
+                return Array.from(new Set(candidates.filter(Boolean)));
+            }
+
+            const API_BASE_CANDIDATES = loadApiBaseCandidates();
+
+            const ABI = [{
+                inputs: [{
+                    internalType: "string",
+                    name: "certificateId",
+                    type: "string"
+                }, {
+                    internalType: "bytes32",
+                    name: "payloadHash",
+                    type: "bytes32"
+                }],
+                name: "verifyCertificate",
+                outputs: [{
+                    internalType: "bool",
+                    name: "isValid",
+                    type: "bool"
+                }, {
+                    internalType: "bytes32",
+                    name: "storedHash",
+                    type: "bytes32"
+                }, {
+                    internalType: "uint64",
+                    name: "issuedAt",
+                    type: "uint64"
+                }, {
+                    internalType: "address",
+                    name: "issuer",
+                    type: "address"
+                }],
+                stateMutability: "view",
+                type: "function"
+            }, {
+                inputs: [{
+                    internalType: "string",
+                    name: "certificateId",
+                    type: "string"
+                }],
+                name: "isIssued",
+                outputs: [{
+                    internalType: "bool",
+                    name: "",
+                    type: "bool"
+                }],
+                stateMutability: "view",
+                type: "function"
+            }];
+
+            const dropzone = document.getElementById("dropzone");
+            const fileInput = document.getElementById("fileInput");
+            const filenameEl = document.getElementById("filename");
+            const extractingEl = document.getElementById("extracting");
+            const statusEl = document.getElementById("status");
+            const verifyBtn = document.getElementById("verifyBtn");
+            const contractLink = document.getElementById("contractLink");
+
+            const studentNameInput = document.getElementById("studentName");
+            const courseNameInput = document.getElementById("courseName");
+            const uniqueIdInput = document.getElementById("uniqueId");
+            const issuedAtInput = document.getElementById("issuedAt");
+
+            if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions) {
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+            }
+
+            contractLink.href = EXPLORER_URL + "/address/" + CONTRACT_ADDRESS;
+
+            function stableStringify(value) {
+                if (value === null || typeof value !== 'object')
+                    return JSON.stringify(value)
+                if (Array.isArray(value))
+                    return '[' + value.map(v => stableStringify(v)).join(',') + ']'
+                const keys = Object.keys(value).sort()
+                const props = keys.map(k => JSON.stringify(k) + ':' + stableStringify(value[k]))
+                return '{' + props.join(',') + '}'
+            }
+
+            function normalizeCourseMarker(value) {
+                return String(value || "")
+                    .normalize("NFKD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, "");
+            }
+
+            const COURSE_WORD_BANK = new Set([
+                "a", "an", "and", "api", "app", "apps", "artificial", "aws", "azure", "basics",
+                "blockchain", "bootcamp", "certification", "cloud", "complete", "course", "css", "data",
+                "database", "deep", "design", "development", "devops", "docker", "engineering", "for",
+                "foundation", "foundations", "full", "fundamentals", "git", "github", "google", "html",
+                "in", "intro", "introduction", "java", "javascript", "kubernetes", "learning", "machine",
+                "master", "masterclass", "mern", "mongodb", "next", "nextjs", "node", "nodejs", "of",
+                "on", "python", "react", "sql", "stack", "the", "to", "typescript", "ui", "ux", "web"
+            ]);
+
+            function splitNormalizedMarker(marker) {
+                const source = normalizeCourseMarker(marker);
+                if (!source) return [];
+
+                const parts = [];
+                let i = 0;
+                while (i < source.length) {
+                    let match = "";
+                    const maxLen = Math.min(source.length, i + 24);
+                    for (let end = maxLen; end > i; end -= 1) {
+                        const candidate = source.slice(i, end);
+                        if (COURSE_WORD_BANK.has(candidate)) {
+                            match = candidate;
+                            break;
+                        }
+                    }
+
+                    if (match) {
+                        parts.push(match);
+                        i += match.length;
+                        continue;
+                    }
+
+                    if (parts.length && /^[a-z0-9]+$/.test(parts[parts.length - 1])) {
+                        parts[parts.length - 1] += source[i];
+                    } else {
+                        parts.push(source[i]);
+                    }
+                    i += 1;
+                }
+
+                return parts;
+            }
+
+            function humanizeCourseName(value) {
+                const normalizedValue = normalizeExtractedCourseName(value);
+                if (!normalizedValue) return "";
+                if (/\s/.test(normalizedValue)) return normalizedValue;
+
+                const words = splitNormalizedMarker(normalizedValue);
+                if (!words.length) return normalizedValue;
+
+                const lowercaseWords = new Set(["and", "or", "the", "of", "for", "to", "in", "on", "at", "a", "an"]);
+                return words
+                    .map(function(word, index) {
+                        if (!word) return word;
+                        if (/^[0-9]+$/.test(word)) return word;
+                        if (word === "ui" || word === "ux" || word === "sql" || word === "api" || word === "aws" || word === "css" || word === "html") {
+                            return word.toUpperCase();
+                        }
+                        if (word === "js") return "JS";
+                        if (word === "nextjs") return "Next.js";
+                        if (word === "nodejs") return "Node.js";
+                        // if (word === "github") return "GitHub";
+                        if (index > 0 && lowercaseWords.has(word)) return word;
+                        return word.charAt(0).toUpperCase() + word.slice(1);
+                    })
+                    .join(" ");
+            }
+
+            function setStatus(type, title, html) {
+                statusEl.className = "status show " + type;
+                statusEl.innerHTML = "<h2>" + title + "</h2>" + html;
+            }
+
+            function cleanLine(line) {
+                return String(line || "").replace(/\s+/g, " ").trim();
+            }
+
+            function findNearby(lines, anchorRegex, fallbackRegex, maxDistance) {
+                for (let i = 0; i < lines.length; i += 1) {
+                    if (anchorRegex.test(lines[i])) {
+                        for (let j = i + 1; j < Math.min(lines.length, i + 1 + maxDistance); j += 1) {
+                            const candidate = cleanLine(lines[j]);
+                            if (candidate && !fallbackRegex.test(candidate)) {
+                                return candidate;
+                            }
+                        }
+                    }
+                }
+                return "";
+            }
+
+            function buildPageTextFromItems(items) {
+                let output = "";
+                let prev = null;
+
+                for (const item of items) {
+                    const raw = item && typeof item.str === "string" ? item.str : "";
+                    if (!raw) continue;
+
+                    const x = item.transform && typeof item.transform[4] === "number" ? item.transform[4] : 0;
+                    const y = item.transform && typeof item.transform[5] === "number" ? item.transform[5] : 0;
+                    const w = typeof item.width === "number" ? item.width : 0;
+                    const h = Math.max(
+                        1,
+                        typeof item.height === "number" ? item.height : 0,
+                        item.transform && typeof item.transform[3] === "number" ? Math.abs(item.transform[3]) : 0
+                    );
+
+                    if (prev) {
+                        const sameLine = Math.abs(y - prev.y) <= Math.max(h, prev.h) * 0.55;
+                        if (!sameLine) {
+                            output += "\n";
+                        } else {
+                            const gap = x - (prev.x + prev.w);
+                            const wordGapThreshold = Math.max(h, prev.h) * 0.42;
+                            if (gap > wordGapThreshold && !output.endsWith(" ") && !output.endsWith("\n")) {
+                                output += " ";
+                            }
+                        }
+                    }
+
+                    const text = raw.replace(/\s+/g, " ");
+                    output += text;
+                    prev = {
+                        x,
+                        y,
+                        w,
+                        h
+                    };
+                }
+
+                return output;
+            }
+
+            async function extractTextFromPdf(file) {
+                const buffer = await file.arrayBuffer();
+                const loadingTask = window.pdfjsLib.getDocument({
+                    data: buffer
+                });
+                const pdf = await loadingTask.promise;
+                const pages = [];
+
+                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+                    const page = await pdf.getPage(pageNum);
+                    const textContent = await page.getTextContent();
+                    const pageText = buildPageTextFromItems(textContent.items || []);
+                    pages.push(pageText);
+                }
+
+                return pages.join("\n");
+            }
+
+            function normalizeExtractedCourseName(value) {
+                const cleaned = cleanLine(String(value || "").replace(/^the\s+course\s*/i, ""));
+                if (!cleaned) return "";
+
+                const tokens = cleaned.split(/\s+/).filter(Boolean);
+                const singleChars = tokens.filter(function(token) {
+                    return token.length === 1;
+                }).length;
+
+                if (tokens.length >= 8 && singleChars / tokens.length >= 0.6) {
+                    return tokens.join("");
+                }
+
+                // If PDF extraction produced all-caps title text, normalize to title case while
+                // preserving common connector words in lowercase.
+                if (/^[A-Z0-9 '&:+\-/]+$/.test(cleaned) && /[A-Z]/.test(cleaned)) {
+                    const smallWords = new Set(["and", "or", "the", "of", "for", "to", "in", "on", "at", "a", "an"]);
+                    return cleaned
+                        .toLowerCase()
+                        .split(/\s+/)
+                        .map(function(word, index) {
+                            if (!word) return word;
+                            if (index > 0 && smallWords.has(word)) return word;
+                            return word.charAt(0).toUpperCase() + word.slice(1);
+                        })
+                        .join(" ");
+                }
+
+                return cleaned;
+            }
+
+            async function resolveCourseNameFromBackend(rawName) {
+                const marker = normalizeCourseMarker(rawName);
+                if (!marker) return "";
+
+                for (const base of API_BASE_CANDIDATES) {
+                    const endpoint = base + "/api/courses/resolve-name?marker=" + encodeURIComponent(marker);
+                    try {
+                        const response = await fetch(endpoint);
+                        if (!response.ok) continue;
+
+                        const data = await response.json();
+                        if (typeof data.title === "string" && data.title.trim()) {
+                            try {
+                                localStorage.setItem("edrisVerifierApiBase", base);
+                            } catch (_err) {
+                                // Ignore storage access failures.
+                            }
+                            return data.title.trim();
+                        }
+                    } catch (_err) {
+                        // Try next candidate base URL.
+                    }
+                }
+
+                return "";
+            }
+
+            function extractFields(text) {
+                const normalized = text.replace(/\u00A0/g, " ");
+                const lines = normalized
+                    .split(/\r?\n/)
+                    .map(cleanLine)
+                    .filter(Boolean);
+
+                const uuidMatch = normalized.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+                const dateMatch = normalized.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/);
+
+                let studentName = "";
+                const lower = normalized.toLowerCase();
+                const markerA = "presented to";
+                const markerB = "awarded to";
+                let markerIndex = lower.indexOf(markerA);
+                if (markerIndex < 0) markerIndex = lower.indexOf(markerB);
+                if (markerIndex >= 0) {
+                    const after = normalized.slice(markerIndex + (lower.indexOf(markerA, markerIndex) === markerIndex ? markerA.length : markerB.length));
+                    const candidate = after.split(/\n|for successfully|for completing|for\s+successfully/i)[0];
+                    studentName = cleanLine(candidate);
+                }
+                if (!studentName) {
+                    studentName = findNearby(lines, /presented to|awarded to/i, /certificate|course|issued|date/i, 3);
+                }
+
+                let courseName = "";
+                const completingMatch = normalized.match(/completing\s+(?:the\s+course\s+)?([\s\S]{1,220}?)(?:\bduration\b|\bhours\b|\bcertificate\b|\bissued\b|\bscan\s+to\s+verify\b|\n\n|$)/i);
+                if (completingMatch && completingMatch[1]) {
+                    courseName = normalizeExtractedCourseName(completingMatch[1]);
+                }
+
+                if (!courseName) {
+                    const anchorIndex = lines.findIndex(function(line) {
+                        return /completing|course/i.test(line);
+                    });
+
+                    if (anchorIndex >= 0) {
+                        const collected = [];
+                        for (let i = anchorIndex + 1; i < Math.min(lines.length, anchorIndex + 5); i += 1) {
+                            const line = cleanLine(lines[i]);
+                            if (!line) continue;
+                            if (/duration|hours|certificate id|issued at|date|scan to verify|network/i.test(line)) break;
+                            collected.push(line);
+                        }
+                        courseName = normalizeExtractedCourseName(collected.join(" "));
+                    }
+                }
+
+                if (!courseName) {
+                    courseName = normalizeExtractedCourseName(
+                        findNearby(lines, /course|completing/i, /student|certificate id|issued at|date/i, 4)
+                    );
+                }
+
+                return {
+                    studentName: studentName,
+                    courseName: courseName,
+                    uniqueId: uuidMatch ? uuidMatch[0] : "",
+                    issuedAt: dateMatch ? dateMatch[0] : ""
+                };
+            }
+
+            async function processFile(file) {
+                if (!file || !/\.pdf$/i.test(file.name)) {
+                    setStatus("err", "ERROR ⚠️", "<p>Please upload a valid PDF file.</p><p>Check your internet connection and try again.</p>");
+                    return;
+                }
+
+                filenameEl.textContent = "Selected: " + file.name;
+                extractingEl.classList.add("show");
+                setStatus("warn", "Reading PDF", "<p>Extracting certificate fields...</p>");
+
+                try {
+                    const text = await extractTextFromPdf(file);
+                    const fields = extractFields(text);
+                    const resolvedCourseName = await resolveCourseNameFromBackend(fields.courseName);
+                    const finalCourseName = resolvedCourseName || humanizeCourseName(fields.courseName) || normalizeExtractedCourseName(fields.courseName);
+
+                    studentNameInput.value = fields.studentName;
+                    courseNameInput.value = finalCourseName;
+                    uniqueIdInput.value = fields.uniqueId;
+                    issuedAtInput.value = fields.issuedAt;
+
+                    setStatus("warn", "Fields extracted", "<p>Review and edit fields if needed, then verify on blockchain.</p>");
+                } catch (error) {
+                    setStatus(
+                        "err",
+                        "ERROR ⚠️",
+                        "<p>Failed to extract text from this PDF.</p><p>" +
+                        escapeHtml(error && error.message ? error.message : String(error)) +
+                        "</p><p>Check your internet connection and try again.</p>"
+                    );
+                } finally {
+                    extractingEl.classList.remove("show");
+                }
+            }
+
+            function escapeHtml(input) {
+                return String(input)
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+
+            async function fetchIssuanceLog(provider, certificateId) {
+                try {
+                    const certIdHash = ethers.keccak256(ethers.toUtf8Bytes(certificateId));
+                    const eventTopic = ethers.id("CertificateIssued(string,bytes32,bytes32,address,uint64)");
+                    const logs = await provider.getLogs({
+                        address: CONTRACT_ADDRESS,
+                        topics: [eventTopic, certIdHash],
+                        fromBlock: 0,
+                        toBlock: "latest"
+                    });
+
+                    if (!logs.length) return {
+                        txHash: null,
+                        blockNumber: null
+                    };
+                    const log = logs[logs.length - 1];
+                    return {
+                        txHash: log.transactionHash,
+                        blockNumber: String(log.blockNumber)
+                    };
+                } catch (_err) {
+                    return {
+                        txHash: null,
+                        blockNumber: null
+                    };
+                }
+            }
+
+            async function verifyOnChain() {
+                const studentName = studentNameInput.value.trim();
+                const uniqueId = uniqueIdInput.value.trim();
+                const issuedAt = issuedAtInput.value.trim();
+
+                let courseNameForHash = courseNameInput.value.trim();
+                const resolvedCourseName = await resolveCourseNameFromBackend(courseNameForHash);
+                if (resolvedCourseName) {
+                    courseNameForHash = resolvedCourseName;
+                    courseNameInput.value = resolvedCourseName;
+                }
+
+                if (!studentName || !courseNameForHash || !uniqueId || !issuedAt) {
+                    setStatus("err", "ERROR ⚠️", "<p>Please complete all fields before verification.</p><p>Check your internet connection and try again.</p>");
+                    return;
+                }
+
+                verifyBtn.disabled = true;
+                setStatus("warn", "Verifying", "<p>Computing payload hash and checking blockchain record...</p>");
+
+                try {
+                    const payload = {
+                        courseName: courseNameForHash,
+                        issuedAt: issuedAtInput.value.trim(),
+                        studentName: studentNameInput.value.trim(),
+                        uniqueId: uniqueIdInput.value.trim(),
+                    }
+
+                    const payloadString = stableStringify(payload)
+                    const bytes = ethers.toUtf8Bytes(payloadString)
+                    const payloadHash = ethers.keccak256(bytes)
+
+                    const provider = new ethers.JsonRpcProvider(RPC_URL)
+                    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider)
+
+                    const issued = await contract.isIssued(uniqueIdInput.value.trim());
+                    if (!issued) {
+                        setStatus(
+                            "warn",
+                            "NOT FOUND 🔍",
+                            "<p>No blockchain record exists for certificate ID: <b class=\"mono\">" + escapeHtml(uniqueId) + "</b></p>" +
+                            "<p>This may be a fake certificate.</p>"
+                        );
+                        return;
+                    }
+
+                    const result = await contract.verifyCertificate(uniqueIdInput.value.trim(), payloadHash)
+
+                    if (result.isValid) {
+                        const logInfo = await fetchIssuanceLog(provider, uniqueId);
+                        const txLink = logInfo.txHash ? EXPLORER_URL + "/tx/" + logInfo.txHash : "";
+
+                        setStatus(
+                            "ok",
+                            "CERTIFICATE VERIFIED ✅",
+                            "<table>" +
+                            "<tr><td>Student Name</td><td class=\"value\">" + escapeHtml(studentName) + "</td></tr>" +
+                            "<tr><td>Course</td><td class=\"value\">" + escapeHtml(courseNameForHash) + "</td></tr>" +
+                            "<tr><td>Issued At</td><td class=\"value mono\">" + escapeHtml(issuedAt) + "</td></tr>" +
+                            "<tr><td>Certificate ID</td><td class=\"value mono\">" + escapeHtml(uniqueId) + "</td></tr>" +
+                            "<tr><td>TX Hash</td><td class=\"value mono\">" +
+                            (logInfo.txHash ? "<a href=\"" + txLink + "\" target=\"_blank\" rel=\"noreferrer\">" + escapeHtml(logInfo.txHash) + "</a>" : "Not available") +
+                            "</td></tr>" +
+                            "<tr><td>Block Number</td><td class=\"value\">" + (logInfo.blockNumber ? escapeHtml(logInfo.blockNumber) : "Not available") + "</td></tr>" +
+                            "<tr><td>Issuer</td><td class=\"value mono\">" + escapeHtml(result.issuer) + "</td></tr>" +
+                            "<tr><td>Network</td><td class=\"value\">Polygon Amoy</td></tr>" +
+                            "</table>" +
+                            "<p class=\"small-note\">This certificate is permanently recorded on the Polygon blockchain and its authenticity is cryptographically guaranteed.</p>"
+                        );
+                    } else {
+                        setStatus(
+                            "bad",
+                            "CERTIFICATE TAMPERED ❌",
+                            "<p>The data extracted from this PDF does not match the blockchain record.</p>" +
+                            "<p>This certificate has been altered.</p>"
+                        );
+                    }
+                } catch (error) {
+                    setStatus(
+                        "err",
+                        "ERROR ⚠️",
+                        "<p>" + escapeHtml(error && error.message ? error.message : String(error)) + "</p>" +
+                        "<p>Check your internet connection and try again.</p>"
+                    );
+                } finally {
+                    verifyBtn.disabled = false;
+                }
+            }
+
+            dropzone.addEventListener("click", function() {
+                fileInput.click();
+            });
+            dropzone.addEventListener("keydown", function(event) {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    fileInput.click();
+                }
+            });
+
+            ["dragenter", "dragover"].forEach(function(evt) {
+                dropzone.addEventListener(evt, function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    dropzone.classList.add("drag");
+                });
+            });
+
+            ["dragleave", "drop"].forEach(function(evt) {
+                dropzone.addEventListener(evt, function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    dropzone.classList.remove("drag");
+                });
+            });
+
+            dropzone.addEventListener("drop", function(event) {
+                const files = event.dataTransfer ? event.dataTransfer.files : null;
+                if (files && files[0]) processFile(files[0]);
+            });
+
+            fileInput.addEventListener("change", function() {
+                if (fileInput.files && fileInput.files[0]) processFile(fileInput.files[0]);
+            });
+
+            verifyBtn.addEventListener("click", verifyOnChain);
+        })();
+    </script>
+</body>
+
+</html>
