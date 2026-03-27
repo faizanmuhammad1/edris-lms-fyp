@@ -140,6 +140,7 @@ function VerificationContent() {
 
   const searchParams = useSearchParams();
   const cid = searchParams.get("cid");
+  const qr = searchParams.get("qr");
 
   const scrollToResults = () => {
     setTimeout(() => {
@@ -148,16 +149,31 @@ function VerificationContent() {
   };
 
   useEffect(() => {
-    if (!cid) return;
-    setHash(cid);
+    if (!cid && !qr) return;
+    if (cid) setHash(cid);
     setIsLoading(true);
     setResult(null);
-    verifyCertificate(cid)
+
+    const qrData = qr
+      ? (() => {
+          try {
+            return decodeURIComponent(qr);
+          } catch {
+            return qr;
+          }
+        })()
+      : null;
+
+    verifyCertificate(
+      qrData
+        ? { mode: "qr", qrData }
+        : { mode: "id", uniqueId: cid ?? "" }
+    )
       .then((r) => { setResult(r); scrollToResults(); })
       .catch(() => setResult({ isValid: false, error: "Verification failed. Please try again." }))
       .finally(() => setIsLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cid]);
+  }, [cid, qr]);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,7 +181,10 @@ function VerificationContent() {
     setIsLoading(true);
     setResult(null);
     try {
-      const r = await verifyCertificate(hash.trim());
+      const r = await verifyCertificate({
+        mode: "id",
+        uniqueId: hash.trim(),
+      });
       setResult(r as VerificationResult);
       scrollToResults();
     } catch {
@@ -598,6 +617,13 @@ function VerificationContent() {
                     className="px-3 pb-3 flex-1 min-h-0"
                   >
                     <InnerFrame>
+                      {result.error.toLowerCase().includes("tampered") && (
+                        <div className="px-4 pt-3">
+                          <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
+                            Tamper alert: The scanned certificate data does not match the blockchain record.
+                          </div>
+                        </div>
+                      )}
                       <InvalidResult result={result} />
                     </InnerFrame>
                   </motion.div>
@@ -731,7 +757,7 @@ function ValidResult({
       </div>
 
       {/* Tile grid */}
-      <div className="grid grid-cols-2 gap-1.5 px-0.5">
+      <div className="grid grid-cols-2 gap-1.5 px-5">
         {tiles.map((t, i) => (
           <motion.div
             key={t.label}

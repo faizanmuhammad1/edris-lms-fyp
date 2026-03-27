@@ -8,6 +8,7 @@ type Props = {
   courseHours: number;
   instructorName: string;
   verificationUrl: string;
+  qrData?: string | null;
   certDisplayId: string;
   day: string;
   month: string;
@@ -25,6 +26,7 @@ export function CertificateTemplate({
   courseHours,
   instructorName,
   verificationUrl,
+  qrData,
   certDisplayId,
   day,
   month,
@@ -114,7 +116,11 @@ export function CertificateTemplate({
 
               <div className="qr-col">
                 <div className="qr-frame">
-                  <CertificateQRCode url={verificationUrl} size={52} />
+                  <CertificateQRCode
+                    qrData={qrData}
+                    fallbackUrl={verificationUrl}
+                    size={52}
+                  />
                 </div>
                 <div className="qr-title">Scan to Verify</div>
                 <div className="qr-id">ID: {certDisplayId}</div>

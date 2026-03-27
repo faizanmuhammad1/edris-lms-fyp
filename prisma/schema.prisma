@@ -473,6 +473,7 @@ model Certificate {
   blockchainStatus String?  @default("PENDING")
   revokedAt        DateTime?
   pdfUrl           String?
+  qrData           String?  // JSON string embedded in QR code
   verificationUrl  String?
   completionEmailSentAt DateTime?
   issuedEmailSentAt     DateTime?

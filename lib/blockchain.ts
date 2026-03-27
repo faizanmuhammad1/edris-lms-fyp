@@ -203,7 +203,7 @@ export async function buildCertificatePayload(data: {
   studentName: string;
   courseName: string;
   issuedAt: Date;
-}): Promise<{ payloadString: string; payloadHash: string }> {
+}): Promise<{ payloadString: string; payloadHash: string; qrData: string }> {
   const payload = {
     uniqueId: data.uniqueId,
     studentName: data.studentName,
@@ -214,7 +214,58 @@ export async function buildCertificatePayload(data: {
   const payloadString = stableStringify(payload);
   const payloadHash = ethers.keccak256(ethers.toUtf8Bytes(payloadString));
 
-  return { payloadString, payloadHash };
+  const jsonPayload = JSON.stringify({
+    n: data.studentName,
+    c: data.courseName,
+    d: data.issuedAt.toISOString(),
+    id: data.uniqueId,
+  });
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  // QR must contain a real URL so that mobile scanners open the browser.
+  const qrData = `${baseUrl}/verification?qr=${encodeURIComponent(
+    jsonPayload
+  )}`;
+
+  return { payloadString, payloadHash, qrData };
+}
+
+export async function buildPayloadFromQR(qrData: string): Promise<{
+  payloadHash: string;
+  parsed: {
+    studentName: string;
+    courseName: string;
+    issuedAt: string;
+    uniqueId: string;
+  };
+}> {
+  const raw = JSON.parse(qrData) as {
+    n: string;
+    c: string;
+    d: string;
+    id: string;
+  };
+
+  const parsed = {
+    studentName: raw.n,
+    courseName: raw.c,
+    issuedAt: raw.d,
+    uniqueId: raw.id,
+  };
+
+  const payload = {
+    courseName: parsed.courseName,
+    issuedAt: parsed.issuedAt,
+    studentName: parsed.studentName,
+    uniqueId: parsed.uniqueId,
+  };
+
+  const payloadString = stableStringify(payload);
+  const payloadHash = ethers.keccak256(ethers.toUtf8Bytes(payloadString));
+
+  return { payloadHash, parsed };
 }
 
 export async function issueCertificateOnChain(

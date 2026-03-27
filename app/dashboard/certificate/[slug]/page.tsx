@@ -69,6 +69,8 @@ async function getCertificateData(slug: string) {
       uniqueId: true,
       issuedAt: true,
       recipientName: true,
+      qrData: true,
+      pdfUrl: true,
       blockchainStatus: true,
       txHash: true,
       blockNumber: true,
@@ -125,6 +127,8 @@ async function getCertificateData(slug: string) {
       id: certificate!.uniqueId,
       issuedOn: certificate!.issuedAt.toISOString(),
       recipientName: certificate!.recipientName,
+      qrData: certificate!.qrData,
+      pdfUrl: certificate!.pdfUrl,
       blockchainStatus: certificate!.blockchainStatus,
       txHash: certificate!.txHash,
       blockNumber: certificate!.blockNumber,
@@ -295,7 +299,23 @@ export default async function CertificatePage({
       {/* Screen-only chrome (hidden when printing) */}
       <div className="mx-auto mb-6 flex max-w-[900px] items-center justify-between print:hidden">
         <BackToCourseButton slug={slug} />
-        <CertificatePrintButton />
+        <div className="flex items-center gap-3">
+          <a
+            href={`/api/certificates/${encodeURIComponent(
+              data.certificate.id
+            )}/download`}
+            className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium text-white shadow-md transition-colors hover:opacity-90"
+            style={{ backgroundColor: "#1B4332" }}
+            title={
+              data.certificate.pdfUrl
+                ? "Download signed certificate PDF"
+                : "Generating signed PDF for first time"
+            }
+          >
+            Download Signed PDF
+          </a>
+          <CertificatePrintButton />
+        </div>
       </div>
 
       <CertificateTemplate
@@ -304,6 +324,7 @@ export default async function CertificatePage({
         courseHours={data.course.hours}
         instructorName={data.course.instructorName}
         verificationUrl={verificationUrl}
+        qrData={data.certificate.qrData}
         certDisplayId={certDisplayId}
         day={day}
         month={month}

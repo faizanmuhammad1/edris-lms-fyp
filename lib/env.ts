@@ -29,6 +29,15 @@ export const env = createEnv({
     POLYGON_RPC_URL: z.string().min(1),
     BLOCKCHAIN_PRIVATE_KEY: z.string().min(1),
     CONTRACT_ADDRESS: z.string().min(1),
+
+    // PDF digital signatures (server-only)
+    // Note: most PDF signature libraries require a P12/PFX bundle.
+    // Provide it as base64 to keep it compatible with typical hosting env handling.
+    SIGNING_CERT_P12_BASE64: z.string().min(1).optional(),
+    SIGNING_CERT_P12_PASSWORD: z.string().optional(),
+    SIGNING_SIGNER_NAME: z.string().min(1).optional().default("Edris LMS"),
+    SIGNING_SIGNER_LOCATION: z.string().min(1).optional().default("EDRIS LMS"),
+    SIGNING_SIGNER_CONTACT: z.string().min(1).optional().default("onboarding@edrislms.com"),
   },
 
   client: {
