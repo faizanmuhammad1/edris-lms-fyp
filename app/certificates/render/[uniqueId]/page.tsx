@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { CertificateTemplate } from "@/app/dashboard/certificate/[slug]/CertificateTemplate";
-import { getServerBaseUrl } from "@/lib/base-url";
 
 import { Great_Vibes, Cinzel, EB_Garamond, Montserrat } from "next/font/google";
 
@@ -63,7 +62,6 @@ export default async function RenderCertificatePage({
       blockNumber: true,
       network: true,
       contractAddress: true,
-      qrData: true,
       Course: {
         select: {
           title: true,
@@ -79,15 +77,12 @@ export default async function RenderCertificatePage({
 
   if (!certificate) return notFound();
 
-  const baseUrl = getServerBaseUrl();
-
   const issuedDate = new Date(certificate.issuedAt);
   const day = issuedDate.getDate().toString().padStart(2, "0");
   const month = (issuedDate.getMonth() + 1).toString().padStart(2, "0");
   const year = issuedDate.getFullYear();
 
   const blockchainStatus = certificate.blockchainStatus ?? "PENDING";
-  const verificationUrl = `${baseUrl}/verification?cid=${certificate.uniqueId}`;
   const certDisplayId = formatCertId(
     certificate.uniqueId,
     certificate.issuedAt.toISOString()
@@ -109,8 +104,6 @@ export default async function RenderCertificatePage({
         courseTitle={certificate.Course.title}
         courseHours={certificate.Course.duration}
         instructorName={certificate.Course.user.name}
-        verificationUrl={verificationUrl}
-        qrData={certificate.qrData}
         certDisplayId={certDisplayId}
         uniqueId={certificate.uniqueId}
         issuedAt={issuedDate}
