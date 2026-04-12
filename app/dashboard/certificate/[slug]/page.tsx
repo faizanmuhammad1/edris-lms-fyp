@@ -9,7 +9,7 @@ import { CertificateClaimView } from "./CertificateClaimView";
 import { getCourseCompletionStatus } from "@/app/data/course/get-course-completion-status";
 import { Great_Vibes, Cinzel, EB_Garamond, Montserrat } from "next/font/google";
 import { CertificateTemplate } from "./CertificateTemplate";
-import { getServerBaseUrl } from "@/lib/base-url";
+import { verificationPortalUrl } from "@/lib/verification-portal-url";
 
 const cinzel = Cinzel({
   subsets: ["latin"],
@@ -69,7 +69,6 @@ async function getCertificateData(slug: string) {
       uniqueId: true,
       issuedAt: true,
       recipientName: true,
-      qrData: true,
       pdfUrl: true,
       blockchainStatus: true,
       txHash: true,
@@ -127,7 +126,6 @@ async function getCertificateData(slug: string) {
       id: certificate!.uniqueId,
       issuedOn: certificate!.issuedAt.toISOString(),
       recipientName: certificate!.recipientName,
-      qrData: certificate!.qrData,
       pdfUrl: certificate!.pdfUrl,
       blockchainStatus: certificate!.blockchainStatus,
       txHash: certificate!.txHash,
@@ -280,8 +278,7 @@ export default async function CertificatePage({
   const year = issuedDate.getFullYear();
 
   const blockchainStatus = data.certificate.blockchainStatus ?? "PENDING";
-  const appUrl = getServerBaseUrl();
-  const verificationUrl = `${appUrl}/verification?cid=${data.certificate.id}`;
+  const verifyAtUrl = verificationPortalUrl();
   const certDisplayId = formatCertId(
     data.certificate.id,
     data.certificate.issuedOn
@@ -311,8 +308,6 @@ export default async function CertificatePage({
         courseTitle={data.course.title}
         courseHours={data.course.hours}
         instructorName={data.course.instructorName}
-        verificationUrl={verificationUrl}
-        qrData={data.certificate.qrData}
         certDisplayId={certDisplayId}
         uniqueId={data.certificate.id}
         issuedAt={issuedDate}
@@ -327,7 +322,7 @@ export default async function CertificatePage({
       />
 
       <p className="hidden px-4 py-2 text-center text-[10px] text-gray-400 print:block">
-        Printed from EDRIS LMS &middot; Verify at {verificationUrl}
+        Printed from EDRIS LMS &middot; Verify at {verifyAtUrl}
       </p>
     </div>
   );
