@@ -220,6 +220,7 @@ model AssignmentSubmission {
   status        AssignmentSubmissionStatus @default(Submitted)
   score         Int?
   feedback      String?
+  teacherFeedback String?
   gradedAt      DateTime?
   gradedById    String?
   gradingMethod String?

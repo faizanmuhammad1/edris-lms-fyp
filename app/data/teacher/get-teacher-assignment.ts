@@ -42,6 +42,7 @@ export async function getTeacherAssignment(lessonId: string) {
               status: true,
               score: true,
               feedback: true,
+              teacherFeedback: true,
               gradedAt: true,
               gradingMethod: true,
               gradedByAiAt: true,

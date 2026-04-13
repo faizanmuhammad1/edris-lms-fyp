@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RenderDescription } from "@/components/rich-text-editor/RenderDescription";
 import { FileText, Upload, Loader2, Download, CheckCircle2, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { submitAssignment } from "../actions";
+import { submitAssignment, getSubmissionStatus } from "../actions";
 import { tryCatch } from "@/hooks/try-catch";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -20,6 +20,7 @@ interface AssignmentType {
   maxScore: number | null;
   allowFile: boolean;
   allowText: boolean;
+  autoGradeEnabled: boolean;
   submissions: {
     id: string;
     fileKey: string | null;
@@ -40,6 +41,42 @@ interface LessonAssignmentCardProps {
   lessonId: string;
 }
 
+/** Shimmering dots animation for grading state */
+function GradingAnimation() {
+  return (
+    <div className="rounded-xl border-2 border-blue-500/30 bg-gradient-to-b from-blue-500/10 to-purple-500/10 p-6 space-y-4 shadow-sm">
+      <div className="flex items-center gap-3">
+        <div className="relative">
+          <Sparkles className="size-6 text-blue-500 animate-pulse" />
+          <div className="absolute inset-0 animate-ping">
+            <Sparkles className="size-6 text-blue-500/30" />
+          </div>
+        </div>
+        <div>
+          <span className="font-semibold text-foreground">AI is grading your submission</span>
+          <p className="text-sm text-muted-foreground">This usually takes a few seconds…</p>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <div className="h-2 flex-1 rounded-full bg-blue-500/20 overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-grading-bar" />
+        </div>
+      </div>
+      <style jsx>{`
+        @keyframes grading-bar {
+          0% { width: 0%; }
+          50% { width: 70%; }
+          90% { width: 90%; }
+          100% { width: 95%; }
+        }
+        .animate-grading-bar {
+          animation: grading-bar 8s ease-out forwards;
+        }
+      `}</style>
+    </div>
+  );
+}
+
 export function LessonAssignmentCard({
   assignment,
   slug,
@@ -52,10 +89,49 @@ export function LessonAssignmentCard({
   const [mimeType, setMimeType] = useState<string>("");
   const [textAnswer, setTextAnswer] = useState<string>("");
 
+  // Live submission state for polling
+  const [liveSubmission, setLiveSubmission] = useState(assignment.submissions[0] ?? null);
+  const [isPolling, setIsPolling] = useState(false);
 
-  const mySubmission = assignment.submissions[0] ?? null;
+  const mySubmission = liveSubmission;
 
+  // Determine if we should poll
+  const shouldPoll =
+    mySubmission?.status === "Submitted" && assignment.autoGradeEnabled;
 
+  // Poll for grading status
+  const pollStatus = useCallback(async () => {
+    if (!mySubmission?.id) return;
+    const result = await getSubmissionStatus(mySubmission.id);
+    if (result && result.status === "Graded") {
+      setLiveSubmission((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: result.status,
+              score: result.score,
+              feedback: result.feedback,
+              gradedAt: result.gradedAt,
+              gradingMethod: result.gradingMethod,
+            }
+          : prev
+      );
+      setIsPolling(false);
+    }
+  }, [mySubmission?.id]);
+
+  useEffect(() => {
+    if (!shouldPoll) {
+      setIsPolling(false);
+      return;
+    }
+    setIsPolling(true);
+    // Start polling every 3 seconds
+    const interval = setInterval(pollStatus, 3000);
+    // Also poll immediately
+    pollStatus();
+    return () => clearInterval(interval);
+  }, [shouldPoll, pollStatus]);
 
   function handleSubmit() {
     const hasFile = !!fileKey;
@@ -160,6 +236,21 @@ export function LessonAssignmentCard({
                 {mySubmission.textAnswer}
               </div>
             )}
+
+            {/* AI Grading in progress animation */}
+            {isPolling && !isGraded && <GradingAnimation />}
+
+            {/* Waiting for manual grading */}
+            {!isPolling && !isGraded && (
+              <div className="rounded-xl border border-muted bg-muted/20 p-4 flex items-center gap-3">
+                <Loader2 className="size-5 text-muted-foreground animate-spin shrink-0" />
+                <div>
+                  <span className="text-sm font-medium text-foreground">Awaiting grading</span>
+                  <p className="text-xs text-muted-foreground">Your instructor will review and grade your submission.</p>
+                </div>
+              </div>
+            )}
+
             {isGraded && (
               <div className="rounded-xl border-2 border-green-500/30 bg-gradient-to-b from-green-500/10 to-green-500/5 p-5 space-y-3 shadow-sm">
                 <div className="flex items-center gap-2">
@@ -186,8 +277,11 @@ export function LessonAssignmentCard({
                   )}
                 </p>
                 {mySubmission.feedback && (
-                  <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed pt-1 border-t border-green-500/20">
-                    {mySubmission.feedback}
+                  <div className="space-y-1 pt-1 border-t border-green-500/20">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Feedback</span>
+                    <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                      {mySubmission.feedback}
+                    </div>
                   </div>
                 )}
               </div>
@@ -216,6 +310,8 @@ export function LessonAssignmentCard({
                       setMimeType(data.type);
                     }}
                     className="h-48"
+                    endpoint="/api/s3/upload-direct?useCase=assignment"
+                    useDirectUpload={true}
                   />
                 </div>
                 {fileName && fileKey && (

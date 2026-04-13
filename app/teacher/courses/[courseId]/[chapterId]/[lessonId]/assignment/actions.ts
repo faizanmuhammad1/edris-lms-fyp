@@ -161,20 +161,25 @@ export async function gradeSubmissionWithAI(submissionId: string): Promise<Grade
       return { status: "error", message: "Submission not found", code: "GENERATION_FAILED" };
     }
 
-    const textToGrade = submission.textAnswer?.trim() ?? "";
-    if (!textToGrade) {
+    const hasText = !!submission.textAnswer?.trim();
+    const hasFile = !!submission.fileKey;
+
+    if (!hasText && !hasFile) {
       return {
         status: "error",
-        message: "No text to grade. File-only submissions require manual grading.",
-        code: "MANUAL_REQUIRED",
+        message: "No content to grade. The submission is empty.",
+        code: "NO_CONTENT",
       };
     }
 
-    const { score, feedback } = await gradeAssignmentWithAI({
+    const { score, feedback, teacherFeedback } = await gradeAssignmentWithAI({
       assignmentTitle: submission.Assignment.title,
       assignmentDescription: submission.Assignment.description,
       maxScore: submission.Assignment.maxScore,
       textAnswer: submission.textAnswer,
+      fileKey: submission.fileKey,
+      fileName: submission.fileName,
+      mimeType: submission.mimeType,
     });
 
     await prisma.assignmentSubmission.update({
@@ -183,6 +188,7 @@ export async function gradeSubmissionWithAI(submissionId: string): Promise<Grade
         status: "Graded",
         score,
         feedback,
+        teacherFeedback: teacherFeedback || null,
         gradedAt: new Date(),
         gradedById: null,
         gradingMethod: "AI",

@@ -238,7 +238,7 @@ export async function submitAssignment(
       console.error("Failed sending completion email:", emailError);
     }
 
-    if (assignment.autoGradeEnabled && hasText) {
+    if (assignment.autoGradeEnabled && (hasText || hasFile)) {
       runAutoGradeForSubmission(submission.id).catch(() => {});
     }
 
@@ -418,4 +418,23 @@ export async function submitQuizAttempt({
       message: "Failed to submit quiz",
     };
   }
+}
+
+/**
+ * Poll the current grading status of a submission.
+ * Used by the student UI to show a grading animation while AI grades in background.
+ */
+export async function getSubmissionStatus(submissionId: string) {
+  const session = await requireUser();
+  const submission = await prisma.assignmentSubmission.findFirst({
+    where: { id: submissionId, userId: session.id },
+    select: {
+      status: true,
+      score: true,
+      feedback: true,
+      gradedAt: true,
+      gradingMethod: true,
+    },
+  });
+  return submission;
 }
