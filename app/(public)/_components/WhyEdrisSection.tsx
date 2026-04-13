@@ -7,10 +7,16 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import Link from "next/link";
 import Image from "next/image";
+import {
+  verificationPortalLinkProps,
+  verificationPortalUrl,
+} from "@/lib/verification-portal-url";
 
 if (typeof window !== "undefined") {
     gsap.registerPlugin(ScrollTrigger, useGSAP);
 }
+
+const certificateVerifyHref = verificationPortalUrl();
 
 export function WhyEdrisSection() {
     const sectionRef = useRef<HTMLElement>(null);
@@ -252,7 +258,11 @@ export function WhyEdrisSection() {
                             </div>
                         </div>
 
-                        <Link href="/verification" className="relative z-10 w-full rounded-xl bg-primary hover:bg-primary-hover border border-transparent text-primary-foreground shadow-lg shadow-primary/20 text-center py-3 font-semibold transition-all hover:-translate-y-0.5 mt-auto shrink-0">
+                        <Link
+                            href={certificateVerifyHref}
+                            className="relative z-10 w-full rounded-xl bg-primary hover:bg-primary-hover border border-transparent text-primary-foreground shadow-lg shadow-primary/20 text-center py-3 font-semibold transition-all hover:-translate-y-0.5 mt-auto shrink-0"
+                            {...verificationPortalLinkProps(certificateVerifyHref)}
+                        >
                             Verify Certificates
                         </Link>
                     </div>

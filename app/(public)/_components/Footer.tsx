@@ -6,6 +6,10 @@ import Logo from "@/public/bc413ab4-3838-4b3d-ae28-e8f3cd721b33.png";
 import WhiteLogo from "@/public/edriswhitelogo.png";
 import { Facebook, Twitter, Instagram, Linkedin, ArrowRight } from "lucide-react";
 import { NewsletterSubscribe } from "./NewsletterSubscribe";
+import {
+  verificationPortalLinkProps,
+  verificationPortalUrl,
+} from "@/lib/verification-portal-url";
 
 export function Footer() {
     const currentYear = new Date().getFullYear();
@@ -111,12 +115,13 @@ export function Footer() {
                                     { label: "About Us", href: "/about" },
                                     { label: "Contact Us", href: "/contact" },
                                     { label: "Teach on Edris", href: "/teach" },
-                                    { label: "Verify Certificate", href: "/verification" },
+                                    { label: "Verify Certificate", href: verificationPortalUrl() },
                                 ].map((item) => (
                                     <li key={item.label}>
                                         <Link
                                             href={item.href}
                                             className="group inline-flex items-center text-muted-foreground hover:text-primary transition-colors font-medium"
+                                            {...verificationPortalLinkProps(item.href)}
                                         >
                                             <span>{item.label}</span>
                                             <ArrowRight className="h-3 w-3 ml-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />

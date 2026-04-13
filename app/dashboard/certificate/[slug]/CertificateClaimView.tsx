@@ -62,7 +62,6 @@ export function CertificateClaimView({
         courseTitle={courseTitle}
         courseHours={courseHours}
         instructorName={instructorName}
-        verificationUrl="#"
         certDisplayId="PENDING"
         uniqueId="00000000-0000-0000-0000-000000000000"
         issuedAt={new Date(issuedAtIso)}

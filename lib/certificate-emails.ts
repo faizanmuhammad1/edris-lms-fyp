@@ -9,6 +9,7 @@ import {
   courseCompletionCongratsEmail,
 } from "@/lib/email-templates";
 import { getServerBaseUrl } from "@/lib/base-url";
+import { verificationPortalUrl } from "@/lib/verification-portal-url";
 
 export async function sendCourseCompletionEmailIfNeeded(params: {
   userId: string;
@@ -131,8 +132,7 @@ export async function sendCertificateIssuedEmailIfNeeded(params: {
 
   if (certificate.issuedEmailSentAt) return;
 
-  const appUrl = getServerBaseUrl();
-  const verificationUrl = `${appUrl}/verification?cid=${certificate.uniqueId}`;
+  const verificationUrl = verificationPortalUrl();
   const explorerBase = process.env.NEXT_PUBLIC_BLOCK_EXPLORER ?? "https://amoy.polygonscan.com";
   const txUrl = certificate.txHash ? `${explorerBase}/tx/${certificate.txHash}` : null;
 

@@ -19,9 +19,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
+import {
+  verificationPortalLinkProps,
+  verificationPortalUrl,
+} from "@/lib/verification-portal-url";
 
-const verificationHref =
-  process.env.NEXT_PUBLIC_IPFS_VERIFY_URL ?? "/verification";
+const verificationHref = verificationPortalUrl();
 
 const navigationItems = [
   { name: "Teach on Edris", href: "/teach" },
@@ -63,6 +66,7 @@ export function Navbar() {
                   key={item.name}
                   href={item.href}
                   className="text-lg font-medium hover:text-primary transition-colors"
+                  {...verificationPortalLinkProps(item.href)}
                 >
                   {item.name}
                 </Link>
@@ -130,7 +134,12 @@ export function Navbar() {
             Teach on Edris
           </Link>
 
-          <Link href={verificationHref} className="p-2 hover:bg-accent rounded-full transition-colors relative group" title="Verify Certificate">
+          <Link
+            href={verificationHref}
+            className="p-2 hover:bg-accent rounded-full transition-colors relative group"
+            title="Verify Certificate"
+            {...verificationPortalLinkProps(verificationHref)}
+          >
             <ShieldCheck className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
           </Link>
 

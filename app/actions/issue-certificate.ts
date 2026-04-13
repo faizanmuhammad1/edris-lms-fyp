@@ -7,7 +7,7 @@ import {
   issueCertificateOnChain,
 } from "@/lib/blockchain";
 import { sendCertificateIssuedEmailIfNeeded } from "@/lib/certificate-emails";
-import { getServerBaseUrl } from "@/lib/base-url";
+import { verificationPortalUrl } from "@/lib/verification-portal-url";
 
 export async function issueCertificate(certificateDbId: string, data: {
   uniqueId: string;
@@ -47,7 +47,6 @@ export async function issueCertificate(certificateDbId: string, data: {
     const issuerAddress = new ethers.Wallet(process.env.BLOCKCHAIN_PRIVATE_KEY as string).address;
 
     const contractAddress = process.env.CONTRACT_ADDRESS ?? null;
-    const appUrl = getServerBaseUrl();
 
     await prisma.certificate.update({
       where: { id: certificate.id },
@@ -61,7 +60,7 @@ export async function issueCertificate(certificateDbId: string, data: {
         contractAddress,
         issuerAddress,
         blockchainStatus: "ISSUED",
-        verificationUrl: `${appUrl}/verification?cid=${certificate.uniqueId}`,
+        verificationUrl: verificationPortalUrl(),
       },
     });
 

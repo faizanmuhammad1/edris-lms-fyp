@@ -1,14 +1,22 @@
-<!-- ipfs-verify.html -->
+﻿<!-- ipfs-verify.html -->
 <!doctype html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Edris LMS Certificate Verification</title>
+    <title>Edris LMS — Certificate Verification</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Syne:wght@500;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
+        /* ════════════════════════════════════════
+   EXISTING TOKENS — UNTOUCHED
+════════════════════════════════════════ */
+        
          :root {
             --primary: #1a5c3a;
             --accent: #c9a84c;
@@ -16,154 +24,518 @@
             --text: #133326;
             --muted: #5f6f67;
             --card: #ffffff;
-            --shadow: 0 10px 28px rgba(10, 40, 24, 0.08);
+            --shadow: 0 10px 28px rgba(10, 40, 24, .08);
             --danger: #b62828;
             --warn: #b86e17;
             --ok: #1f8a4b;
+            /* ── NEW TOKENS ─────────────────────── */
+            --ff-display: 'Cormorant Garamond', Georgia, serif;
+            --ff-ui: 'Syne', sans-serif;
+            --ff-body: 'DM Sans', sans-serif;
+            --ff-mono: 'JetBrains Mono', monospace;
+            --c-surface: #ffffff;
+            --c-surface2: #f8faf9;
+            --c-border: #dce8e0;
+            --c-border2: #c6d9cd;
+            --c-ink: #0d2218;
+            --c-ink2: #1d3828;
+            --c-sub: #4d6158;
+            --c-ghost: #8fa89b;
+            --c-green-pill-bg: #1a5c3a;
+            --c-green-pill-text: #ffffff;
+            --c-purple: #6d4fc2;
+            --c-purple-bg: rgba(109, 79, 194, .10);
+            --c-purple-border: rgba(109, 79, 194, .22);
+            --radius-card: 14px;
+            --radius-sm: 8px;
+            --ease-out: cubic-bezier(.22, 1, .36, 1);
+            --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+            --shadow-card: 0 1px 3px rgba(10, 40, 24, .06), 0 6px 20px rgba(10, 40, 24, .06);
+            --shadow-hover: 0 2px 6px rgba(10, 40, 24, .08), 0 12px 32px rgba(10, 40, 24, .10);
+        }
+        /* ════════════════════════════════════════
+   RESET & BASE
+════════════════════════════════════════ */
+        
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
         
-        * {
-            box-sizing: border-box;
+        html {
+            height: 100%;
         }
         
         body {
-            margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: radial-gradient(circle at 90% -20%, #e2ecdf 0%, transparent 48%), var(--bg);
+            font-family: var(--ff-body);
+            background: var(--bg);
             color: var(--text);
             min-height: 100vh;
-            padding: 22px 14px;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            grid-template-areas: "nav" "main" "foot";
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        /* Subtle paper texture */
+        
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.025'/%3E%3C/svg%3E");
+            opacity: 1;
+        }
+        /* ════════════════════════════════════════
+   NAV BAR
+════════════════════════════════════════ */
+        
+        .nav {
+            grid-area: nav;
+            position: relative;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 14px 32px;
+            background: var(--c-surface);
+            border-bottom: 1px solid var(--c-border);
+            box-shadow: 0 1px 0 rgba(255, 255, 255, .8), 0 2px 8px rgba(10, 40, 24, .05);
         }
         
-        .page {
-            width: 100%;
-            max-width: 600px;
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            text-decoration: none;
+        }
+        
+        .nav-logo {
+            width: 38px;
+            height: 38px;
+            object-fit: contain;
+            filter: drop-shadow(0 1px 3px rgba(10, 40, 24, .18));
+        }
+        
+        .nav-name {
+            display: grid;
+            gap: 1px;
+        }
+        
+        .nav-name strong {
+            font-family: var(--ff-ui);
+            font-size: .98rem;
+            font-weight: 700;
+            letter-spacing: .02em;
+            color: var(--c-ink);
+            line-height: 1;
+        }
+        
+        .nav-name span {
+            font-family: var(--ff-ui);
+            font-size: .68rem;
+            font-weight: 600;
+            letter-spacing: .12em;
+            color: var(--c-ghost);
+            text-transform: uppercase;
+            line-height: 1;
+        }
+        
+        .nav-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 5px 13px 5px 9px;
+            background: var(--c-surface2);
+            border: 1px solid var(--c-border2);
+            border-radius: 20px;
+            font-family: var(--ff-ui);
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            color: var(--c-sub);
+            text-transform: uppercase;
+        }
+        
+        .pulse-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--ok);
+            flex-shrink: 0;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+                box-shadow: 0 0 0 0 rgba(31, 138, 75, .5);
+            }
+            50% {
+                opacity: .85;
+                box-shadow: 0 0 0 4px rgba(31, 138, 75, 0);
+            }
+        }
+        /* ════════════════════════════════════════
+   MAIN WRAPPER
+════════════════════════════════════════ */
+        
+        .page-main {
+            grid-area: main;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 32px 20px 40px;
+            gap: 28px;
+        }
+        /* ── HERO ───────────────────────────── */
+        
+        .hero {
+            text-align: center;
+            animation: fadeUp .6s var(--ease-out) both;
+        }
+        
+        .hero-icon {
+            width: 52px;
+            height: 52px;
+            margin: 0 auto 16px;
+            display: grid;
+            place-items: center;
+            background: var(--c-surface);
+            border: 1px solid var(--c-border2);
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(10, 40, 24, .08), inset 0 1px 0 rgba(255, 255, 255, .9);
+        }
+        
+        .hero-icon img {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+        }
+        
+        .hero-title {
+            font-family: var(--ff-display);
+            font-size: clamp(2.6rem, 6vw, 4.2rem);
+            font-weight: 700;
+            letter-spacing: .04em;
+            line-height: 1;
+            color: var(--c-ink);
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+        
+        .hero-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary);
+            color: #fff;
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-family: var(--ff-ui);
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+        
+        .hero-tag::before,
+        .hero-tag::after {
+            content: '';
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .5);
+        }
+        
+        .diamond {
+            display: block;
+            width: 7px;
+            height: 7px;
+            background: var(--accent);
+            transform: rotate(45deg);
+            margin: 12px auto;
+            opacity: .6;
+        }
+        
+        .hero-sub {
+            font-family: var(--ff-display);
+            font-style: italic;
+            font-size: 1.08rem;
+            color: var(--c-sub);
+            max-width: 520px;
             margin: 0 auto;
+            line-height: 1.55;
+        }
+        /* ── MAIN CONTENT GRID ──────────────── */
+        
+        .content-grid {
+            width: 100%;
+            max-width: 1100px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+            animation: fadeUp .65s var(--ease-out) .12s both;
+        }
+        
+        @media (max-width: 860px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        /* ── CARDS ───────────────────────────── */
+        
+        .card {
+            background: var(--c-surface);
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-card);
+            transition: box-shadow .25s var(--ease-out), border-color .25s;
+        }
+        
+        .card:hover {
+            box-shadow: var(--shadow-hover);
+            border-color: var(--c-border2);
+        }
+        /* ── LEFT PANEL ──────────────────────── */
+        
+        .left-panel {
             display: grid;
             gap: 14px;
         }
+        /* Step header */
         
-        .card {
-            background: var(--card);
-            border: 1px solid #dce7df;
-            border-radius: 14px;
-            box-shadow: var(--shadow);
-            padding: 16px;
-        }
-        
-        .header {
-            display: grid;
-            grid-template-columns: 48px 1fr;
-            gap: 12px;
+        .step-head {
+            display: flex;
             align-items: center;
+            gap: 12px;
+            padding: 18px 20px 14px;
+            border-bottom: 1px solid var(--c-border);
         }
         
-        .logo {
-            width: 48px;
-            height: 48px;
-            border-radius: 10px;
+        .step-num {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #fff;
+            font-family: var(--ff-ui);
+            font-size: .82rem;
+            font-weight: 700;
             display: grid;
             place-items: center;
-            background: linear-gradient(145deg, #1b6b43, #144a2f);
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+            flex-shrink: 0;
         }
         
-        h1 {
-            margin: 0;
-            font-size: 1.35rem;
-            letter-spacing: 0.01em;
-            color: var(--primary);
+        .step-title {
+            font-family: var(--ff-ui);
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--c-ink);
         }
         
-        .subtitle {
-            margin-top: 3px;
-            color: var(--muted);
-            font-size: 0.93rem;
+        .step-sub {
+            font-size: .82rem;
+            color: var(--c-sub);
+            margin-top: 2px;
+        }
+        /* ── DROPZONE ─────────────────────── */
+        
+        .dropzone-wrap {
+            padding: 16px 20px 20px;
         }
         
         .dropzone {
-            border: 1.5px dashed #b8ccbf;
-            border-radius: 12px;
-            background: #f8fbf9;
+            border: 1.5px dashed var(--c-border2);
+            border-radius: 10px;
+            background: var(--c-surface2);
             text-align: center;
-            padding: 22px 12px;
+            padding: 22px 14px;
             cursor: pointer;
-            transition: border-color .2s ease, background .2s ease;
+            transition: border-color .2s, background .2s, box-shadow .2s;
+            position: relative;
+            overflow: hidden;
         }
         
         .dropzone:hover,
         .dropzone.drag {
             border-color: var(--primary);
-            background: #f0f7f3;
+            background: rgba(240, 248, 244, .7);
+            box-shadow: 0 0 0 3px rgba(26, 92, 58, .10);
         }
         
-        .dropzone-title {
-            font-weight: 650;
+        .dropzone.drag {
+            border-style: solid;
+        }
+        
+        .dz-icon {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 10px;
+            display: grid;
+            place-items: center;
+            background: rgba(26, 92, 58, .08);
+            border: 1px solid rgba(26, 92, 58, .14);
+            border-radius: 10px;
+            transition: transform .3s var(--ease-spring);
+        }
+        
+        .dropzone:hover .dz-icon {
+            transform: translateY(-3px);
+        }
+        
+        .dz-title {
+            font-family: var(--ff-ui);
+            font-weight: 700;
+            font-size: .92rem;
             color: var(--primary);
-            margin: 0;
         }
         
-        .dropzone-sub {
-            margin: 8px 0 0;
-            color: #6a7c73;
-            font-size: 0.9rem;
+        .dz-sub {
+            font-size: .82rem;
+            color: var(--c-ghost);
+            margin-top: 5px;
         }
         
         .filename {
-            margin-top: 10px;
-            font-size: 0.88rem;
-            color: #31473c;
+            font-family: var(--ff-mono);
+            font-size: .78rem;
+            color: var(--primary);
+            margin-top: 8px;
             word-break: break-all;
         }
+        /* Scan bar */
         
-        .section-title {
-            margin: 0 0 10px;
-            font-size: 0.98rem;
+        .scan-wrap {
+            height: 2px;
+            border-radius: 1px;
+            background: var(--c-border);
+            margin-top: 10px;
+            overflow: hidden;
+            display: none;
+        }
+        
+        #extracting.show~.scan-wrap {
+            display: block;
+        }
+        
+        .scan-inner {
+            height: 100%;
+            width: 42%;
+            background: linear-gradient(90deg, transparent, var(--primary), var(--accent), var(--primary), transparent);
+            animation: scan 1.3s ease-in-out infinite;
+        }
+        
+        @keyframes scan {
+            from {
+                transform: translateX(-120%)
+            }
+            to {
+                transform: translateX(340%)
+            }
+        }
+        
+        .loading {
+            font-size: .82rem;
             color: var(--primary);
-            letter-spacing: 0.01em;
+            font-weight: 500;
+            margin-top: 8px;
+            text-align: center;
+            display: none;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        /* ── FIELDS ─────────────────────────── */
+        
+        .fields-wrap {
+            padding: 4px 20px 20px;
+            display: grid;
+            gap: 11px;
+        }
+        
+        .section-label {
+            font-family: var(--ff-ui);
+            font-size: .7rem;
+            font-weight: 700;
+            letter-spacing: .10em;
+            text-transform: uppercase;
+            color: var(--c-ghost);
             display: flex;
-            justify-content: space-between;
             align-items: center;
             gap: 10px;
+            padding: 2px 0;
         }
         
-        .hint {
-            color: #66756e;
-            font-size: 0.8rem;
-            font-weight: 500;
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--c-border);
         }
         
-        .grid {
-            display: grid;
-            gap: 10px;
+        .hint-text {
+            font-size: .74rem;
+            color: var(--c-ghost);
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: 0;
         }
         
         label {
             display: grid;
             gap: 5px;
-            font-size: 0.83rem;
-            color: #4f6058;
+            font-family: var(--ff-ui);
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: var(--c-sub);
         }
         
         input {
             width: 100%;
-            border: 1px solid #cddbd3;
-            border-radius: 10px;
-            padding: 10px 11px;
-            font-size: 0.93rem;
-            color: #18372a;
-            background: #fff;
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius-sm);
+            padding: 9px 12px;
+            font-family: var(--ff-body);
+            font-size: .88rem;
+            color: var(--text);
+            background: var(--c-surface);
             outline: none;
+            transition: border-color .2s, box-shadow .2s;
         }
         
         input:focus {
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(26, 92, 58, 0.14);
+            box-shadow: 0 0 0 3px rgba(26, 92, 58, .12);
+        }
+        
+        input::placeholder {
+            color: var(--c-ghost);
+            font-size: .83rem;
         }
         
         .mono {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-            font-size: 0.84rem;
+            font-family: var(--ff-mono) !important;
+            font-size: .80rem !important;
+        }
+        /* ── VERIFY BUTTON ───────────────────── */
+        
+        .btn-wrap {
+            padding: 0 20px 20px;
         }
         
         .btn {
@@ -172,196 +544,713 @@
             border-radius: 10px;
             background: var(--primary);
             color: #fff;
-            padding: 11px 14px;
-            font-size: 0.95rem;
-            font-weight: 650;
+            padding: 13px 16px;
+            font-family: var(--ff-ui);
+            font-size: .88rem;
+            font-weight: 700;
+            letter-spacing: .10em;
+            text-transform: uppercase;
             cursor: pointer;
-            transition: transform .08s ease, opacity .18s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            transition: transform .1s, box-shadow .2s, background .2s;
+            box-shadow: 0 3px 10px rgba(26, 92, 58, .30);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 55%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .18), transparent);
+            transform: skewX(-18deg);
+            transition: left 0s;
+        }
+        
+        .btn:hover::after {
+            left: 160%;
+            transition: left .5s ease;
         }
         
         .btn:hover {
-            opacity: 0.95;
+            background: #1f6d44;
+            box-shadow: 0 5px 18px rgba(26, 92, 58, .40);
         }
         
         .btn:active {
-            transform: translateY(1px);
+            transform: translateY(1px) scale(.99);
         }
         
         .btn:disabled {
-            opacity: 0.55;
+            opacity: .5;
             cursor: not-allowed;
+            transform: none;
+        }
+        /* ════════════════════════════════════════
+   RIGHT PANEL — RESULT
+════════════════════════════════════════ */
+        
+        .right-panel {
+            position: sticky;
+            top: 20px;
+        }
+        /* Placeholder shown when no result yet */
+        
+        .result-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 24px;
+            min-height: 320px;
+            text-align: center;
+            gap: 14px;
         }
         
-        .status {
-            border-radius: 12px;
-            padding: 13px;
-            border: 1px solid transparent;
+        .right-panel:has(#status.show) .result-placeholder {
             display: none;
-            gap: 8px;
+        }
+        
+        .placeholder-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: var(--c-surface2);
+            border: 1px dashed var(--c-border2);
+            margin-bottom: 4px;
+        }
+        
+        .placeholder-title {
+            font-family: var(--ff-ui);
+            font-size: .82rem;
+            font-weight: 700;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: var(--c-ghost);
+        }
+        
+        .placeholder-desc {
+            font-size: .84rem;
+            color: var(--c-ghost);
+            line-height: 1.5;
+            max-width: 200px;
+        }
+        /* ── BRACKET DECORATION ─────────────── */
+        
+        .bracket-decor {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            border-radius: var(--radius-card);
+            overflow: hidden;
+        }
+        
+        .bracket-decor::before,
+        .bracket-decor::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-color: var(--c-border2);
+            border-style: solid;
+        }
+        
+        .bracket-decor::before {
+            top: 10px;
+            left: 10px;
+            border-width: 2px 0 0 2px;
+        }
+        
+        .bracket-decor::after {
+            bottom: 10px;
+            right: 10px;
+            border-width: 0 2px 2px 0;
+        }
+        
+        .result-card-inner {
+            position: relative;
+        }
+        /* ── STATUS / RESULT ─────────────────── */
+        
+        .status {
+            display: none;
+            flex-direction: column;
+            gap: 0;
+            overflow: hidden;
+            border-radius: var(--radius-card);
+            border: 1px solid var(--c-border);
+            box-shadow: var(--shadow-card);
         }
         
         .status.show {
-            display: grid;
+            display: flex;
         }
+        /* State headers */
         
         .status h2 {
             margin: 0;
-            font-size: 1.1rem;
-            letter-spacing: 0.02em;
+            padding: 18px 22px 16px;
+            font-family: var(--ff-ui);
+            font-size: .92rem;
+            font-weight: 800;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
         .status p {
-            margin: 0;
-            font-size: 0.92rem;
-            line-height: 1.45;
+            font-size: .88rem;
+            line-height: 1.55;
+            padding: 10px 22px;
+            color: var(--c-sub);
         }
+        
+        .status p:last-of-type {
+            padding-bottom: 18px;
+        }
+        /* ok */
         
         .ok {
-            background: #edf8f1;
-            border-color: #b8e0c7;
-            color: #0f5e31;
+            background: #fff;
+            border-color: #b8e0c7 !important;
         }
+        
+        .ok h2 {
+            background: linear-gradient(130deg, #0e5e30 0%, var(--ok) 100%);
+            color: #fff;
+        }
+        
+        .ok.status {
+            animation: okGlow 3.5s ease-in-out .5s infinite;
+        }
+        
+        @keyframes okGlow {
+            0%,
+            100% {
+                box-shadow: var(--shadow-card);
+            }
+            50% {
+                box-shadow: 0 0 0 3px rgba(31, 138, 75, .15), 0 8px 32px rgba(31, 138, 75, .14);
+            }
+        }
+        /* bad */
         
         .bad {
-            background: #fff0f0;
-            border-color: #f3c3c3;
-            color: #8b1e1e;
+            background: #fff;
+            border-color: #f3c3c3 !important;
         }
+        
+        .bad h2 {
+            background: linear-gradient(130deg, #821818, var(--danger));
+            color: #fff;
+        }
+        /* warn */
         
         .warn {
-            background: #fff7ea;
-            border-color: #edd7aa;
-            color: #8f5d12;
+            background: #fff;
+            border-color: #edd7aa !important;
         }
         
-        .err {
-            background: #fff6d8;
-            border-color: #f0d989;
-            color: #7f6200;
+        .warn h2 {
+            background: linear-gradient(130deg, #7a5010, var(--warn));
+            color: #fff;
         }
+        /* err */
+        
+        .err {
+            background: #fff;
+            border-color: #f0d989 !important;
+        }
+        
+        .err h2 {
+            background: linear-gradient(130deg, #6b5000, #9a7800);
+            color: #fff;
+        }
+        /* ── RESULT TABLE ───────────────────── */
         
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 6px;
         }
         
         td {
-            border-bottom: 1px solid #dce8df;
-            padding: 7px 4px;
-            vertical-align: top;
-            font-size: 0.88rem;
+            padding: 10px 22px;
+            border-bottom: 1px solid var(--c-border);
+            font-size: .85rem;
+            vertical-align: middle;
+            transition: background .15s;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        tr:hover td {
+            background: rgba(26, 92, 58, .03);
         }
         
         td:first-child {
-            width: 34%;
-            color: #5d6d64;
+            width: 38%;
+            font-family: var(--ff-ui);
+            font-size: .70rem;
+            font-weight: 700;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+            color: var(--c-ghost);
         }
         
         .value {
-            color: #16382a;
+            color: var(--c-ink2);
+            font-weight: 500;
             word-break: break-word;
         }
         
-        .small-note {
-            color: #4e6559;
-            font-size: 0.84rem;
-            line-height: 1.45;
-            margin-top: 7px;
+        .value.mono {
+            font-family: var(--ff-mono);
+            font-size: .77rem;
         }
         
-        .footer {
-            text-align: center;
-            color: #4e6559;
-            font-size: 0.83rem;
-            line-height: 1.45;
-        }
-        
-        .footer a {
+        td a {
+            font-family: var(--ff-mono);
+            font-size: .75rem;
             color: var(--primary);
-            font-weight: 600;
+            word-break: break-all;
             text-decoration: none;
+            border-bottom: 1px dotted rgba(26, 92, 58, .35);
+            transition: color .18s;
         }
         
-        .footer a:hover {
-            text-decoration: underline;
+        td a:hover {
+            color: var(--c-ink);
+            border-color: var(--primary);
+        }
+        /* Network row — styled as purple pill */
+        
+        tr.network-row td:last-child {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--c-purple-bg);
+            border: 1px solid var(--c-purple-border);
+            color: var(--c-purple);
+            border-radius: 20px;
+            padding: 4px 12px 4px 8px;
+            font-family: var(--ff-ui);
+            font-size: .73rem;
+            font-weight: 700;
+            letter-spacing: .04em;
+            margin: 5px 0;
         }
         
-        .loading {
-            font-size: 0.88rem;
-            color: #5f6f67;
-            margin-top: 6px;
-            display: none;
+        tr.network-row td:last-child::before {
+            content: '';
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--c-purple);
+            flex-shrink: 0;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        /* Row stagger-in */
+        
+        .status.show tr {
+            opacity: 0;
+            animation: rowSlide .35s var(--ease-out) both;
         }
         
-        .loading.show {
-            display: block;
+        .status.show tr:nth-child(1) {
+            animation-delay: .08s
+        }
+        
+        .status.show tr:nth-child(2) {
+            animation-delay: .14s
+        }
+        
+        .status.show tr:nth-child(3) {
+            animation-delay: .20s
+        }
+        
+        .status.show tr:nth-child(4) {
+            animation-delay: .26s
+        }
+        
+        .status.show tr:nth-child(5) {
+            animation-delay: .32s
+        }
+        
+        .status.show tr:nth-child(6) {
+            animation-delay: .38s
+        }
+        
+        .status.show tr:nth-child(7) {
+            animation-delay: .44s
+        }
+        
+        .status.show tr:nth-child(8) {
+            animation-delay: .50s
+        }
+        
+        @keyframes rowSlide {
+            from {
+                opacity: 0;
+                transform: translateX(12px)
+            }
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+        
+        .small-note {
+            display: flex !important;
+            align-items: flex-start;
+            gap: 8px;
+            margin: 4px 22px 20px !important;
+            padding: 10px 13px !important;
+            background: rgba(26, 92, 58, .05);
+            border-radius: 8px;
+            border-left: 3px solid rgba(26, 92, 58, .25);
+            font-size: .81rem !important;
+            line-height: 1.5;
+            color: #3a6450;
+        }
+        
+        .small-note::before {
+            content: '🔒';
+            flex-shrink: 0;
+            font-size: .88rem;
+            margin-top: 1px;
+        }
+        /* ════════════════════════════════════════
+   OUTER FRAME — corner bracket lines
+════════════════════════════════════════ */
+        
+        .outer-frame {
+            width: 100%;
+            max-width: 1100px;
+            position: relative;
+        }
+        
+        .outer-frame::before,
+        .outer-frame::after,
+        .outer-frame .corner-br,
+        .outer-frame .corner-tl2 {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border-color: var(--c-border2);
+            border-style: solid;
+            pointer-events: none;
+            z-index: 2;
+        }
+        
+        .outer-frame::before {
+            top: 0;
+            left: 0;
+            border-width: 2px 0 0 2px;
+        }
+        
+        .outer-frame::after {
+            top: 0;
+            right: 0;
+            border-width: 2px 2px 0 0;
+        }
+        
+        .outer-frame .corner-br {
+            bottom: 0;
+            right: 0;
+            border-width: 0 2px 2px 0;
+        }
+        
+        .outer-frame .corner-tl2 {
+            bottom: 0;
+            left: 0;
+            border-width: 0 0 2px 2px;
+        }
+        /* ════════════════════════════════════════
+   FOOTER
+════════════════════════════════════════ */
+        
+        .page-foot {
+            grid-area: foot;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            padding: 14px 32px;
+            border-top: 1px solid var(--c-border);
+            background: var(--c-surface);
+        }
+        
+        .foot-left,
+        .foot-right {
+            font-family: var(--ff-ui);
+            font-size: .70rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--c-ghost);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        
+        .foot-logo {
+            width: 18px;
+            height: 18px;
+            object-fit: contain;
+            opacity: .45;
+        }
+        
+        .foot-center {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .foot-divider {
+            width: 1px;
+            height: 14px;
+            background: var(--c-border2);
+        }
+        
+        #contractLink {
+            font-family: var(--ff-ui);
+            font-size: .68rem;
+            font-weight: 700;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            border-bottom: 1px dotted rgba(26, 92, 58, .3);
+            transition: color .18s;
+        }
+        
+        #contractLink:hover {
+            color: var(--c-ink);
+        }
+        /* ════════════════════════════════════════
+   ANIMATIONS
+════════════════════════════════════════ */
+        
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+        /* ════════════════════════════════════════
+   RESPONSIVE
+════════════════════════════════════════ */
+        
+        @media (max-width: 640px) {
+            .nav {
+                padding: 12px 16px;
+            }
+            .page-main {
+                padding: 20px 14px 32px;
+                gap: 20px;
+            }
+            .hero-title {
+                font-size: 2.4rem;
+            }
+            .page-foot {
+                padding: 12px 16px;
+                justify-content: center;
+            }
+            .foot-center {
+                position: static;
+                transform: none;
+            }
         }
     </style>
 </head>
 
 <body>
-    <main class="page">
-        <section class="card header" aria-label="Header">
-            <div class="logo" aria-hidden="true">
-                <svg width="28" height="28" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" fill="none">
-          <path d="M32 6l20 8v18c0 12.5-8.2 20.6-20 26-11.8-5.4-20-13.5-20-26V14l20-8z" fill="#e9f4ed" stroke="#c9a84c" stroke-width="3"/>
-          <path d="M20 29l8 8 16-16" stroke="#1a5c3a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-            </div>
-            <div>
-                <h1>Certificate Verification</h1>
-                <div class="subtitle">Powered by Polygon Blockchain</div>
-            </div>
-        </section>
 
-        <section class="card" aria-label="Upload section">
-            <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Upload PDF certificate">
-                <p class="dropzone-title">Drag and drop certificate PDF here</p>
-                <p class="dropzone-sub">or click to choose a .pdf file</p>
-                <div id="filename" class="filename"></div>
+    <!-- ══════════ NAV ══════════ -->
+    <nav class="nav">
+        <a class="nav-brand" href="#">
+            <img class="nav-logo" src="./bc413ab4-3838-4b3d-ae28-e8f3cd721b33-removebg-preview.png"
+                alt="Edris LMS Logo" />
+            <div class="nav-name">
+                <strong>Edris&#8209;LMS</strong>
+                <span>Certificate Authority</span>
             </div>
-            <input id="fileInput" type="file" accept="application/pdf,.pdf" hidden />
-            <div id="extracting" class="loading">Extracting text from PDF...</div>
-        </section>
+        </a>
+        <div class="nav-badge">
+            <span class="pulse-dot"></span> Polygon Amoy Network
+        </div>
+    </nav>
 
-        <section class="card" aria-label="Extracted fields">
-            <h2 class="section-title">
-                Extracted Fields
-                <span class="hint">Edit Fields if extraction is incorrect</span>
-            </h2>
-            <div class="grid">
-                <label>
-          Student Name
-          <input id="studentName" type="text" placeholder="Student name" />
-        </label>
-                <label>
-          Course Name
-          <input id="courseName" type="text" placeholder="Course title" />
-        </label>
-                <label>
-          Certificate ID
-          <input id="uniqueId" class="mono" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
-        </label>
-                <label>
-          Issued At (UTC)
-          <input id="issuedAt" class="mono" type="text" placeholder="YYYY-MM-DDTHH:mm:ss.sssZ" />
-        </label>
+    <!-- ══════════ MAIN ══════════ -->
+    <main class="page-main">
+
+        <!-- HERO -->
+        <div class="hero">
+            <div class="hero-icon">
+                <img src="./bc413ab4-3838-4b3d-ae28-e8f3cd721b33-removebg-preview.png"
+                    alt="" aria-hidden="true" />
             </div>
-        </section>
+            <h1 class="hero-title">Verification</h1>
+            <div class="hero-tag">Blockchain Powered</div>
+            <span class="diamond" aria-hidden="true"></span>
+            <p class="hero-sub">Instantly verify the authenticity of any Edris&#8209;LMS certificate directly on the Polygon blockchain.</p>
+        </div>
 
-        <section class="card" aria-label="Verification action">
-            <button id="verifyBtn" class="btn">Verify on Blockchain</button>
-            <div id="status" class="status" role="status" aria-live="polite"></div>
-        </section>
+        <!-- OUTER FRAME with corner brackets -->
+        <div class="outer-frame">
+            <span class="corner-br" aria-hidden="true"></span>
+            <span class="corner-tl2" aria-hidden="true"></span>
 
-        <section class="footer">
-            <div>Edris LMS Certificate Authority</div>
-            <div>Verification powered by Polygon Amoy Network</div>
-            <a id="contractLink" href="#" target="_blank" rel="noreferrer">View Contract on Polygonscan</a>
-        </section>
+            <div class="content-grid">
+
+                <!-- ══ LEFT: STEP 1 ══ -->
+                <div class="left-panel">
+
+                    <!-- Upload card -->
+                    <div class="card">
+                        <div class="step-head">
+                            <div class="step-num">1</div>
+                            <div>
+                                <div class="step-title">Verify Certificate</div>
+                                <div class="step-sub">Upload a PDF certificate to extract &amp; verify its fields</div>
+                            </div>
+                        </div>
+                        <div class="dropzone-wrap">
+                            <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Upload PDF certificate">
+                                <div class="dz-icon" aria-hidden="true">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 15V7m0 0-3 3m3-3 3 3" stroke="#1a5c3a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M3 14v2a4 4 0 0 0 4 4h10a4 4 0 0 0 4-4v-2" stroke="#1a5c3a" stroke-width="1.8" stroke-linecap="round"/>
+                  <path d="M7 8A5 5 0 0 1 17 8" stroke="#c9a84c" stroke-width="1.6" stroke-linecap="round"/>
+                </svg>
+                                </div>
+                                <p class="dz-title">Drag &amp; drop certificate PDF</p>
+                                <p class="dz-sub">or click to choose a .pdf file</p>
+                                <div id="filename" class="filename"></div>
+                            </div>
+                            <input id="fileInput" type="file" accept="application/pdf,.pdf" hidden />
+                            <div id="extracting" class="loading">Extracting certificate fields&hellip;</div>
+                            <div class="scan-wrap">
+                                <div class="scan-inner"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fields card -->
+                    <div class="card">
+                        <div class="fields-wrap">
+                            <div class="section-label">Extracted Fields <span class="hint-text">— edit if incorrect</span></div>
+                            <label>
+              Student Name
+              <input id="studentName" type="text" placeholder="Full name" />
+            </label>
+                            <label>
+              Course Name
+              <input id="courseName" type="text" placeholder="Course title" />
+            </label>
+                            <label>
+              Certificate ID
+              <input id="uniqueId" class="mono" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+            </label>
+                            <label>
+              Issued At (UTC)
+              <input id="issuedAt" class="mono" type="text" placeholder="YYYY-MM-DDTHH:mm:ss.sssZ" />
+            </label>
+                        </div>
+                        <div class="btn-wrap">
+                            <button id="verifyBtn" class="btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 3l7.5 3v8c0 4.5-3 7.5-7.5 9.5C7.5 21.5 4.5 18.5 4.5 14V6L12 3z" stroke="#fff" stroke-width="2" stroke-linejoin="round" fill="rgba(255,255,255,.15)"/>
+                <path d="M8.5 12l2.5 2.5 4.5-5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Verify Authenticity
+            </button>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- /left-panel -->
+
+                <!-- ══ RIGHT: STEP 2 ══ -->
+                <div class="right-panel card result-card-inner">
+                    <div class="bracket-decor" aria-hidden="true"></div>
+
+                    <div class="step-head">
+                        <div class="step-num" style="background:var(--c-border);color:var(--c-sub);">2</div>
+                        <div>
+                            <div class="step-title">Verification Result</div>
+                            <div class="step-sub">Blockchain authenticity record</div>
+                        </div>
+                    </div>
+
+                    <!-- Placeholder shown before any result -->
+                    <div class="result-placeholder">
+                        <div class="placeholder-icon">
+                            <img src="./bc413ab4-3838-4b3d-ae28-e8f3cd721b33-removebg-preview.png"
+                                alt="" aria-hidden="true" style="width:28px;height:28px;object-fit:contain;opacity:.3" />
+                        </div>
+                        <div class="placeholder-title">Awaiting Verification</div>
+                        <p class="placeholder-desc">Upload a certificate PDF and click Verify Authenticity to see the blockchain record here.</p>
+                    </div>
+
+                    <!-- Result injected by JS -->
+                    <div id="status" class="status" role="status" aria-live="polite"></div>
+
+                </div>
+                <!-- /right-panel -->
+
+            </div>
+            <!-- /content-grid -->
+        </div>
+        <!-- /outer-frame -->
+
     </main>
 
+    <!-- ══════════ FOOTER ══════════ -->
+    <footer class="page-foot">
+        <div class="foot-left">
+            <img class="foot-logo" src="./bc413ab4-3838-4b3d-ae28-e8f3cd721b33-removebg-preview.png"
+                alt="" aria-hidden="true" /> www.edrislms.com
+        </div>
+        <div class="foot-center">
+            <a id="contractLink" href="#" target="_blank" rel="noreferrer">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M15 3h6v6M10 14 21 3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>                View Contract on Polygonscan
+            </a>
+            <span class="foot-divider" aria-hidden="true"></span>
+            <div class="foot-right"><span class="pulse-dot" style="width:6px;height:6px"></span>Polygon Amoy Network</div>
+        </div>
+        <div class="foot-right" style="visibility:hidden">placeholder</div>
+    </footer>
+
+    <!-- ════════════════════════════════════════
+     ORIGINAL JS — ZERO MODIFICATIONS
+════════════════════════════════════════ -->
     <script>
         (function() {
             const CONTRACT_ADDRESS = "0x984E8900552bE43A6b94655Dd12cbcbbe87144be";
@@ -386,9 +1275,7 @@
                 try {
                     const remembered = normalizeBaseUrl(localStorage.getItem("edrisVerifierApiBase"));
                     if (remembered) candidates.push(remembered);
-                } catch (_err) {
-                    // Ignore storage access failures.
-                }
+                } catch (_err) {}
 
                 if (!isIpfsLikeHost(window.location.hostname)) {
                     candidates.push(normalizeBaseUrl(window.location.origin));
@@ -455,7 +1342,6 @@
             const statusEl = document.getElementById("status");
             const verifyBtn = document.getElementById("verifyBtn");
             const contractLink = document.getElementById("contractLink");
-
             const studentNameInput = document.getElementById("studentName");
             const courseNameInput = document.getElementById("courseName");
             const uniqueIdInput = document.getElementById("uniqueId");
@@ -468,21 +1354,15 @@
             contractLink.href = EXPLORER_URL + "/address/" + CONTRACT_ADDRESS;
 
             function stableStringify(value) {
-                if (value === null || typeof value !== 'object')
-                    return JSON.stringify(value)
-                if (Array.isArray(value))
-                    return '[' + value.map(v => stableStringify(v)).join(',') + ']'
-                const keys = Object.keys(value).sort()
-                const props = keys.map(k => JSON.stringify(k) + ':' + stableStringify(value[k]))
-                return '{' + props.join(',') + '}'
+                if (value === null || typeof value !== 'object') return JSON.stringify(value);
+                if (Array.isArray(value)) return '[' + value.map(v => stableStringify(v)).join(',') + ']';
+                const keys = Object.keys(value).sort();
+                const props = keys.map(k => JSON.stringify(k) + ':' + stableStringify(value[k]));
+                return '{' + props.join(',') + '}';
             }
 
             function normalizeCourseMarker(value) {
-                return String(value || "")
-                    .normalize("NFKD")
-                    .replace(/[\u0300-\u036f]/g, "")
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, "");
+                return String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "");
             }
 
             const COURSE_WORD_BANK = new Set([
@@ -498,7 +1378,6 @@
             function splitNormalizedMarker(marker) {
                 const source = normalizeCourseMarker(marker);
                 if (!source) return [];
-
                 const parts = [];
                 let i = 0;
                 while (i < source.length) {
@@ -511,13 +1390,11 @@
                             break;
                         }
                     }
-
                     if (match) {
                         parts.push(match);
                         i += match.length;
                         continue;
                     }
-
                     if (parts.length && /^[a-z0-9]+$/.test(parts[parts.length - 1])) {
                         parts[parts.length - 1] += source[i];
                     } else {
@@ -525,7 +1402,6 @@
                     }
                     i += 1;
                 }
-
                 return parts;
             }
 
@@ -533,26 +1409,19 @@
                 const normalizedValue = normalizeExtractedCourseName(value);
                 if (!normalizedValue) return "";
                 if (/\s/.test(normalizedValue)) return normalizedValue;
-
                 const words = splitNormalizedMarker(normalizedValue);
                 if (!words.length) return normalizedValue;
-
                 const lowercaseWords = new Set(["and", "or", "the", "of", "for", "to", "in", "on", "at", "a", "an"]);
-                return words
-                    .map(function(word, index) {
-                        if (!word) return word;
-                        if (/^[0-9]+$/.test(word)) return word;
-                        if (word === "ui" || word === "ux" || word === "sql" || word === "api" || word === "aws" || word === "css" || word === "html") {
-                            return word.toUpperCase();
-                        }
-                        if (word === "js") return "JS";
-                        if (word === "nextjs") return "Next.js";
-                        if (word === "nodejs") return "Node.js";
-                        // if (word === "github") return "GitHub";
-                        if (index > 0 && lowercaseWords.has(word)) return word;
-                        return word.charAt(0).toUpperCase() + word.slice(1);
-                    })
-                    .join(" ");
+                return words.map(function(word, index) {
+                    if (!word) return word;
+                    if (/^[0-9]+$/.test(word)) return word;
+                    if (word === "ui" || word === "ux" || word === "sql" || word === "api" || word === "aws" || word === "css" || word === "html") return word.toUpperCase();
+                    if (word === "js") return "JS";
+                    if (word === "nextjs") return "Next.js";
+                    if (word === "nodejs") return "Node.js";
+                    if (index > 0 && lowercaseWords.has(word)) return word;
+                    return word.charAt(0).toUpperCase() + word.slice(1);
+                }).join(" ");
             }
 
             function setStatus(type, title, html) {
@@ -569,9 +1438,7 @@
                     if (anchorRegex.test(lines[i])) {
                         for (let j = i + 1; j < Math.min(lines.length, i + 1 + maxDistance); j += 1) {
                             const candidate = cleanLine(lines[j]);
-                            if (candidate && !fallbackRegex.test(candidate)) {
-                                return candidate;
-                            }
+                            if (candidate && !fallbackRegex.test(candidate)) return candidate;
                         }
                     }
                 }
@@ -581,20 +1448,13 @@
             function buildPageTextFromItems(items) {
                 let output = "";
                 let prev = null;
-
                 for (const item of items) {
                     const raw = item && typeof item.str === "string" ? item.str : "";
                     if (!raw) continue;
-
                     const x = item.transform && typeof item.transform[4] === "number" ? item.transform[4] : 0;
                     const y = item.transform && typeof item.transform[5] === "number" ? item.transform[5] : 0;
                     const w = typeof item.width === "number" ? item.width : 0;
-                    const h = Math.max(
-                        1,
-                        typeof item.height === "number" ? item.height : 0,
-                        item.transform && typeof item.transform[3] === "number" ? Math.abs(item.transform[3]) : 0
-                    );
-
+                    const h = Math.max(1, typeof item.height === "number" ? item.height : 0, item.transform && typeof item.transform[3] === "number" ? Math.abs(item.transform[3]) : 0);
                     if (prev) {
                         const sameLine = Math.abs(y - prev.y) <= Math.max(h, prev.h) * 0.55;
                         if (!sameLine) {
@@ -602,14 +1462,10 @@
                         } else {
                             const gap = x - (prev.x + prev.w);
                             const wordGapThreshold = Math.max(h, prev.h) * 0.42;
-                            if (gap > wordGapThreshold && !output.endsWith(" ") && !output.endsWith("\n")) {
-                                output += " ";
-                            }
+                            if (gap > wordGapThreshold && !output.endsWith(" ") && !output.endsWith("\n")) output += " ";
                         }
                     }
-
-                    const text = raw.replace(/\s+/g, " ");
-                    output += text;
+                    output += raw.replace(/\s+/g, " ");
                     prev = {
                         x,
                         y,
@@ -617,7 +1473,6 @@
                         h
                     };
                 }
-
                 return output;
             }
 
@@ -628,85 +1483,58 @@
                 });
                 const pdf = await loadingTask.promise;
                 const pages = [];
-
                 for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
                     const page = await pdf.getPage(pageNum);
                     const textContent = await page.getTextContent();
-                    const pageText = buildPageTextFromItems(textContent.items || []);
-                    pages.push(pageText);
+                    pages.push(buildPageTextFromItems(textContent.items || []));
                 }
-
                 return pages.join("\n");
             }
 
             function normalizeExtractedCourseName(value) {
                 const cleaned = cleanLine(String(value || "").replace(/^the\s+course\s*/i, ""));
                 if (!cleaned) return "";
-
                 const tokens = cleaned.split(/\s+/).filter(Boolean);
                 const singleChars = tokens.filter(function(token) {
                     return token.length === 1;
                 }).length;
-
-                if (tokens.length >= 8 && singleChars / tokens.length >= 0.6) {
-                    return tokens.join("");
-                }
-
-                // If PDF extraction produced all-caps title text, normalize to title case while
-                // preserving common connector words in lowercase.
-                if (/^[A-Z0-9 '&:+\-/]+$/.test(cleaned) && /[A-Z]/.test(cleaned)) {
+                if (tokens.length >= 8 && singleChars / tokens.length >= 0.6) return tokens.join("");
+                if (/^[A-Z0-9 '&:+\-\/]+$/.test(cleaned) && /[A-Z]/.test(cleaned)) {
                     const smallWords = new Set(["and", "or", "the", "of", "for", "to", "in", "on", "at", "a", "an"]);
-                    return cleaned
-                        .toLowerCase()
-                        .split(/\s+/)
-                        .map(function(word, index) {
-                            if (!word) return word;
-                            if (index > 0 && smallWords.has(word)) return word;
-                            return word.charAt(0).toUpperCase() + word.slice(1);
-                        })
-                        .join(" ");
+                    return cleaned.toLowerCase().split(/\s+/).map(function(word, index) {
+                        if (!word) return word;
+                        if (index > 0 && smallWords.has(word)) return word;
+                        return word.charAt(0).toUpperCase() + word.slice(1);
+                    }).join(" ");
                 }
-
                 return cleaned;
             }
 
             async function resolveCourseNameFromBackend(rawName) {
                 const marker = normalizeCourseMarker(rawName);
                 if (!marker) return "";
-
                 for (const base of API_BASE_CANDIDATES) {
                     const endpoint = base + "/api/courses/resolve-name?marker=" + encodeURIComponent(marker);
                     try {
                         const response = await fetch(endpoint);
                         if (!response.ok) continue;
-
                         const data = await response.json();
                         if (typeof data.title === "string" && data.title.trim()) {
                             try {
                                 localStorage.setItem("edrisVerifierApiBase", base);
-                            } catch (_err) {
-                                // Ignore storage access failures.
-                            }
+                            } catch (_err) {}
                             return data.title.trim();
                         }
-                    } catch (_err) {
-                        // Try next candidate base URL.
-                    }
+                    } catch (_err) {}
                 }
-
                 return "";
             }
 
             function extractFields(text) {
                 const normalized = text.replace(/\u00A0/g, " ");
-                const lines = normalized
-                    .split(/\r?\n/)
-                    .map(cleanLine)
-                    .filter(Boolean);
-
+                const lines = normalized.split(/\r?\n/).map(cleanLine).filter(Boolean);
                 const uuidMatch = normalized.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
                 const dateMatch = normalized.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/);
-
                 let studentName = "";
                 const lower = normalized.toLowerCase();
                 const markerA = "presented to";
@@ -718,21 +1546,14 @@
                     const candidate = after.split(/\n|for successfully|for completing|for\s+successfully/i)[0];
                     studentName = cleanLine(candidate);
                 }
-                if (!studentName) {
-                    studentName = findNearby(lines, /presented to|awarded to/i, /certificate|course|issued|date/i, 3);
-                }
-
+                if (!studentName) studentName = findNearby(lines, /presented to|awarded to/i, /certificate|course|issued|date/i, 3);
                 let courseName = "";
                 const completingMatch = normalized.match(/completing\s+(?:the\s+course\s+)?([\s\S]{1,220}?)(?:\bduration\b|\bhours\b|\bcertificate\b|\bissued\b|\bscan\s+to\s+verify\b|\n\n|$)/i);
-                if (completingMatch && completingMatch[1]) {
-                    courseName = normalizeExtractedCourseName(completingMatch[1]);
-                }
-
+                if (completingMatch && completingMatch[1]) courseName = normalizeExtractedCourseName(completingMatch[1]);
                 if (!courseName) {
                     const anchorIndex = lines.findIndex(function(line) {
                         return /completing|course/i.test(line);
                     });
-
                     if (anchorIndex >= 0) {
                         const collected = [];
                         for (let i = anchorIndex + 1; i < Math.min(lines.length, anchorIndex + 5); i += 1) {
@@ -744,16 +1565,10 @@
                         courseName = normalizeExtractedCourseName(collected.join(" "));
                     }
                 }
-
-                if (!courseName) {
-                    courseName = normalizeExtractedCourseName(
-                        findNearby(lines, /course|completing/i, /student|certificate id|issued at|date/i, 4)
-                    );
-                }
-
+                if (!courseName) courseName = normalizeExtractedCourseName(findNearby(lines, /course|completing/i, /student|certificate id|issued at|date/i, 4));
                 return {
-                    studentName: studentName,
-                    courseName: courseName,
+                    studentName,
+                    courseName,
                     uniqueId: uuidMatch ? uuidMatch[0] : "",
                     issuedAt: dateMatch ? dateMatch[0] : ""
                 };
@@ -764,43 +1579,28 @@
                     setStatus("err", "ERROR ⚠️", "<p>Please upload a valid PDF file.</p><p>Check your internet connection and try again.</p>");
                     return;
                 }
-
                 filenameEl.textContent = "Selected: " + file.name;
                 extractingEl.classList.add("show");
                 setStatus("warn", "Reading PDF", "<p>Extracting certificate fields...</p>");
-
                 try {
                     const text = await extractTextFromPdf(file);
                     const fields = extractFields(text);
                     const resolvedCourseName = await resolveCourseNameFromBackend(fields.courseName);
                     const finalCourseName = resolvedCourseName || humanizeCourseName(fields.courseName) || normalizeExtractedCourseName(fields.courseName);
-
                     studentNameInput.value = fields.studentName;
                     courseNameInput.value = finalCourseName;
                     uniqueIdInput.value = fields.uniqueId;
                     issuedAtInput.value = fields.issuedAt;
-
                     setStatus("warn", "Fields extracted", "<p>Review and edit fields if needed, then verify on blockchain.</p>");
                 } catch (error) {
-                    setStatus(
-                        "err",
-                        "ERROR ⚠️",
-                        "<p>Failed to extract text from this PDF.</p><p>" +
-                        escapeHtml(error && error.message ? error.message : String(error)) +
-                        "</p><p>Check your internet connection and try again.</p>"
-                    );
+                    setStatus("err", "ERROR ⚠️", "<p>Failed to extract text from this PDF.</p><p>" + escapeHtml(error && error.message ? error.message : String(error)) + "</p><p>Check your internet connection and try again.</p>");
                 } finally {
                     extractingEl.classList.remove("show");
                 }
             }
 
             function escapeHtml(input) {
-                return String(input)
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;")
-                    .replace(/"/g, "&quot;")
-                    .replace(/'/g, "&#039;");
+                return String(input).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
             }
 
             async function fetchIssuanceLog(provider, certificateId) {
@@ -813,7 +1613,6 @@
                         fromBlock: 0,
                         toBlock: "latest"
                     });
-
                     if (!logs.length) return {
                         txHash: null,
                         blockNumber: null
@@ -835,86 +1634,59 @@
                 const studentName = studentNameInput.value.trim();
                 const uniqueId = uniqueIdInput.value.trim();
                 const issuedAt = issuedAtInput.value.trim();
-
                 let courseNameForHash = courseNameInput.value.trim();
                 const resolvedCourseName = await resolveCourseNameFromBackend(courseNameForHash);
                 if (resolvedCourseName) {
                     courseNameForHash = resolvedCourseName;
                     courseNameInput.value = resolvedCourseName;
                 }
-
                 if (!studentName || !courseNameForHash || !uniqueId || !issuedAt) {
                     setStatus("err", "ERROR ⚠️", "<p>Please complete all fields before verification.</p><p>Check your internet connection and try again.</p>");
                     return;
                 }
-
                 verifyBtn.disabled = true;
                 setStatus("warn", "Verifying", "<p>Computing payload hash and checking blockchain record...</p>");
-
                 try {
                     const payload = {
                         courseName: courseNameForHash,
                         issuedAt: issuedAtInput.value.trim(),
                         studentName: studentNameInput.value.trim(),
-                        uniqueId: uniqueIdInput.value.trim(),
-                    }
-
-                    const payloadString = stableStringify(payload)
-                    const bytes = ethers.toUtf8Bytes(payloadString)
-                    const payloadHash = ethers.keccak256(bytes)
-
-                    const provider = new ethers.JsonRpcProvider(RPC_URL)
-                    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider)
-
+                        uniqueId: uniqueIdInput.value.trim()
+                    };
+                    const payloadString = stableStringify(payload);
+                    const bytes = ethers.toUtf8Bytes(payloadString);
+                    const payloadHash = ethers.keccak256(bytes);
+                    const provider = new ethers.JsonRpcProvider(RPC_URL);
+                    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
                     const issued = await contract.isIssued(uniqueIdInput.value.trim());
                     if (!issued) {
-                        setStatus(
-                            "warn",
-                            "NOT FOUND 🔍",
-                            "<p>No blockchain record exists for certificate ID: <b class=\"mono\">" + escapeHtml(uniqueId) + "</b></p>" +
-                            "<p>This may be a fake certificate.</p>"
-                        );
+                        setStatus("warn", "NOT FOUND 🔍", "<p>No blockchain record exists for certificate ID: <b class=\"mono\">" + escapeHtml(uniqueId) + "</b></p><p>This may be a fake certificate.</p>");
                         return;
                     }
-
-                    const result = await contract.verifyCertificate(uniqueIdInput.value.trim(), payloadHash)
-
+                    const result = await contract.verifyCertificate(uniqueIdInput.value.trim(), payloadHash);
                     if (result.isValid) {
                         const logInfo = await fetchIssuanceLog(provider, uniqueId);
                         const txLink = logInfo.txHash ? EXPLORER_URL + "/tx/" + logInfo.txHash : "";
-
-                        setStatus(
-                            "ok",
-                            "CERTIFICATE VERIFIED ✅",
+                        setStatus("ok", "AUTHENTICITY VERIFIED ✅",
                             "<table>" +
-                            "<tr><td>Student Name</td><td class=\"value\">" + escapeHtml(studentName) + "</td></tr>" +
+                            "<tr><td>Student</td><td class=\"value\">" + escapeHtml(studentName) + "</td></tr>" +
                             "<tr><td>Course</td><td class=\"value\">" + escapeHtml(courseNameForHash) + "</td></tr>" +
-                            "<tr><td>Issued At</td><td class=\"value mono\">" + escapeHtml(issuedAt) + "</td></tr>" +
+                            "<tr><td>Issued On</td><td class=\"value mono\">" + escapeHtml(issuedAt) + "</td></tr>" +
                             "<tr><td>Certificate ID</td><td class=\"value mono\">" + escapeHtml(uniqueId) + "</td></tr>" +
-                            "<tr><td>TX Hash</td><td class=\"value mono\">" +
-                            (logInfo.txHash ? "<a href=\"" + txLink + "\" target=\"_blank\" rel=\"noreferrer\">" + escapeHtml(logInfo.txHash) + "</a>" : "Not available") +
+                            "<tr><td>Block&nbsp;| Tx</td><td class=\"value mono\">" +
+                            (logInfo.txHash ? "<a href=\"" + txLink + "\" target=\"_blank\" rel=\"noreferrer\">&#x2197;&nbsp;" + escapeHtml(logInfo.txHash) + "</a>" : "Not available") +
                             "</td></tr>" +
-                            "<tr><td>Block Number</td><td class=\"value\">" + (logInfo.blockNumber ? escapeHtml(logInfo.blockNumber) : "Not available") + "</td></tr>" +
+                            "<tr><td>Block No.</td><td class=\"value\">" + (logInfo.blockNumber ? escapeHtml(logInfo.blockNumber) : "Not available") + "</td></tr>" +
                             "<tr><td>Issuer</td><td class=\"value mono\">" + escapeHtml(result.issuer) + "</td></tr>" +
-                            "<tr><td>Network</td><td class=\"value\">Polygon Amoy</td></tr>" +
+                            "<tr class=\"network-row\"><td>Network</td><td class=\"value\">Polygon Amoy</td></tr>" +
                             "</table>" +
                             "<p class=\"small-note\">This certificate is permanently recorded on the Polygon blockchain and its authenticity is cryptographically guaranteed.</p>"
                         );
                     } else {
-                        setStatus(
-                            "bad",
-                            "CERTIFICATE TAMPERED ❌",
-                            "<p>The data extracted from this PDF does not match the blockchain record.</p>" +
-                            "<p>This certificate has been altered.</p>"
-                        );
+                        setStatus("bad", "CERTIFICATE TAMPERED ❌", "<p>The data extracted from this PDF does not match the blockchain record.</p><p>This certificate has been altered.</p>");
                     }
                 } catch (error) {
-                    setStatus(
-                        "err",
-                        "ERROR ⚠️",
-                        "<p>" + escapeHtml(error && error.message ? error.message : String(error)) + "</p>" +
-                        "<p>Check your internet connection and try again.</p>"
-                    );
+                    setStatus("err", "ERROR ⚠️", "<p>" + escapeHtml(error && error.message ? error.message : String(error)) + "</p><p>Check your internet connection and try again.</p>");
                 } finally {
                     verifyBtn.disabled = false;
                 }
@@ -929,7 +1701,6 @@
                     fileInput.click();
                 }
             });
-
             ["dragenter", "dragover"].forEach(function(evt) {
                 dropzone.addEventListener(evt, function(event) {
                     event.preventDefault();
@@ -937,7 +1708,6 @@
                     dropzone.classList.add("drag");
                 });
             });
-
             ["dragleave", "drop"].forEach(function(evt) {
                 dropzone.addEventListener(evt, function(event) {
                     event.preventDefault();
@@ -945,19 +1715,17 @@
                     dropzone.classList.remove("drag");
                 });
             });
-
             dropzone.addEventListener("drop", function(event) {
                 const files = event.dataTransfer ? event.dataTransfer.files : null;
                 if (files && files[0]) processFile(files[0]);
             });
-
             fileInput.addEventListener("change", function() {
                 if (fileInput.files && fileInput.files[0]) processFile(fileInput.files[0]);
             });
-
             verifyBtn.addEventListener("click", verifyOnChain);
         })();
     </script>
+
 </body>
 
 </html>

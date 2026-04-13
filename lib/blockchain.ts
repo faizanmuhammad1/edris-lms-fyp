@@ -1,6 +1,7 @@
 import "server-only";
 
 import { ethers, type InterfaceAbi } from "ethers";
+import { verificationPortalUrl } from "@/lib/verification-portal-url";
 import contractAddressArtifact from "@/deployments/contract-address.json";
 
 /** Inlined from deployments/LMSCertificate.json — avoids ENOENT on Vercel serverless. */
@@ -240,9 +241,7 @@ export async function buildCertificatePayload(data: {
     issuedAt: issuedAtIso,
   });
 
-  const ipfsUrl =
-    process.env.NEXT_PUBLIC_IPFS_VERIFY_URL ??
-    "https://ipfs.io/ipfs/bafkreibti6dmagofnnycnfind4ois2lua5zouoojzfzqcakq3pjywqysuu";
+  const ipfsUrl = verificationPortalUrl();
 
   const qrData = ipfsUrl;
 
