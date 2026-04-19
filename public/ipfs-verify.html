@@ -221,6 +221,11 @@
             height: 28px;
             object-fit: contain;
         }
+
+        .hero-icon svg {
+            width: 28px;
+            height: 28px;
+        }
         
         .hero-title {
             font-family: var(--ff-display);
@@ -626,6 +631,12 @@
             background: var(--c-surface2);
             border: 1px dashed var(--c-border2);
             margin-bottom: 4px;
+        }
+
+        .placeholder-icon svg {
+            width: 28px;
+            height: 28px;
+            opacity: .5;
         }
         
         .placeholder-title {
@@ -1095,8 +1106,10 @@
     <!-- ══════════ NAV ══════════ -->
     <nav class="nav">
         <a class="nav-brand" href="#">
-            <img class="nav-logo" src="./bc413ab4-3838-4b3d-ae28-e8f3cd721b33-removebg-preview.png"
-                alt="Edris LMS Logo" />
+            <svg class="nav-logo" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 2 20 5.5v6.8c0 4.3-2.8 7.9-8 9.7-5.2-1.8-8-5.4-8-9.7V5.5L12 2Z" stroke="#1a5c3a" stroke-width="1.5" fill="rgba(201,168,76,.14)"/>
+                <path d="m8.5 12.1 2.2 2.2 4.7-4.8" stroke="#1a5c3a" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
             <div class="nav-name">
                 <strong>Edris&#8209;LMS</strong>
                 <span>Certificate Authority</span>
@@ -1113,8 +1126,10 @@
         <!-- HERO -->
         <div class="hero">
             <div class="hero-icon">
-                <img src="./bc413ab4-3838-4b3d-ae28-e8f3cd721b33-removebg-preview.png"
-                    alt="" aria-hidden="true" />
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 2 20 5.5v6.8c0 4.3-2.8 7.9-8 9.7-5.2-1.8-8-5.4-8-9.7V5.5L12 2Z" stroke="#1a5c3a" stroke-width="1.5" fill="rgba(201,168,76,.14)"/>
+                    <path d="m8.5 12.1 2.2 2.2 4.7-4.8" stroke="#1a5c3a" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
             </div>
             <h1 class="hero-title">Verification</h1>
             <div class="hero-tag">Blockchain Powered</div>
@@ -1212,8 +1227,10 @@
                     <!-- Placeholder shown before any result -->
                     <div class="result-placeholder">
                         <div class="placeholder-icon">
-                            <img src="./bc413ab4-3838-4b3d-ae28-e8f3cd721b33-removebg-preview.png"
-                                alt="" aria-hidden="true" style="width:28px;height:28px;object-fit:contain;opacity:.3" />
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M12 2 20 5.5v6.8c0 4.3-2.8 7.9-8 9.7-5.2-1.8-8-5.4-8-9.7V5.5L12 2Z" stroke="#1a5c3a" stroke-width="1.5" fill="rgba(201,168,76,.14)"/>
+                                <path d="m8.5 12.1 2.2 2.2 4.7-4.8" stroke="#1a5c3a" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
                         </div>
                         <div class="placeholder-title">Awaiting Verification</div>
                         <p class="placeholder-desc">Upload a certificate PDF and click Verify Authenticity to see the blockchain record here.</p>
@@ -1235,8 +1252,11 @@
     <!-- ══════════ FOOTER ══════════ -->
     <footer class="page-foot">
         <div class="foot-left">
-            <img class="foot-logo" src="./bc413ab4-3838-4b3d-ae28-e8f3cd721b33-removebg-preview.png"
-                alt="" aria-hidden="true" /> www.edrislms.com
+            <svg class="foot-logo" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 2 20 5.5v6.8c0 4.3-2.8 7.9-8 9.7-5.2-1.8-8-5.4-8-9.7V5.5L12 2Z" stroke="#1a5c3a" stroke-width="1.6" fill="rgba(201,168,76,.12)"/>
+                <path d="m8.5 12.1 2.2 2.2 4.7-4.8" stroke="#1a5c3a" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            www.edrislms.com
         </div>
         <div class="foot-center">
             <a id="contractLink" href="#" target="_blank" rel="noreferrer">
@@ -1665,18 +1685,12 @@
                     }
                     const result = await contract.verifyCertificate(uniqueIdInput.value.trim(), payloadHash);
                     if (result.isValid) {
-                        const logInfo = await fetchIssuanceLog(provider, uniqueId);
-                        const txLink = logInfo.txHash ? EXPLORER_URL + "/tx/" + logInfo.txHash : "";
                         setStatus("ok", "AUTHENTICITY VERIFIED ✅",
                             "<table>" +
                             "<tr><td>Student</td><td class=\"value\">" + escapeHtml(studentName) + "</td></tr>" +
                             "<tr><td>Course</td><td class=\"value\">" + escapeHtml(courseNameForHash) + "</td></tr>" +
                             "<tr><td>Issued On</td><td class=\"value mono\">" + escapeHtml(issuedAt) + "</td></tr>" +
                             "<tr><td>Certificate ID</td><td class=\"value mono\">" + escapeHtml(uniqueId) + "</td></tr>" +
-                            "<tr><td>Block&nbsp;| Tx</td><td class=\"value mono\">" +
-                            (logInfo.txHash ? "<a href=\"" + txLink + "\" target=\"_blank\" rel=\"noreferrer\">&#x2197;&nbsp;" + escapeHtml(logInfo.txHash) + "</a>" : "Not available") +
-                            "</td></tr>" +
-                            "<tr><td>Block No.</td><td class=\"value\">" + (logInfo.blockNumber ? escapeHtml(logInfo.blockNumber) : "Not available") + "</td></tr>" +
                             "<tr><td>Issuer</td><td class=\"value mono\">" + escapeHtml(result.issuer) + "</td></tr>" +
                             "<tr class=\"network-row\"><td>Network</td><td class=\"value\">Polygon Amoy</td></tr>" +
                             "</table>" +
