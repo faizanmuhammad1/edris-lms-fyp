@@ -10,6 +10,7 @@ import { TestimonialsSection } from "./_components/TestimonialsSection";
 import { FAQSection } from "./_components/FAQSection";
 import { CTASection } from "./_components/CTASection";
 import { getAllCourses } from "@/app/data/course/get-all-courses";
+import { getLandingStats } from "@/app/data/landing/get-landing-stats";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
@@ -38,21 +39,24 @@ export default async function Home() {
     redirect("/dashboard");
   }
 
-  const courses = await getAllCourses();
+  const [courses, stats] = await Promise.all([
+    getAllCourses(),
+    getLandingStats(),
+  ]);
 
   return (
     <>
-      <HeroSection />
+      <HeroSection stats={stats} />
       <PlatformMockupSection />
       <WhyEdrisSection />
-      <CategoriesSection />
-      <FeaturedCourses courses={courses} />
+      <CategoriesSection categoryCounts={stats.categoryCounts} />
+      <FeaturedCourses courses={courses} courseStats={stats.courseStats} />
       <HowItWorksSection />
       <InteractiveFeaturesSection />
-      <InstructorsSection />
+      <InstructorsSection instructorStats={stats.instructorStats} />
       <TestimonialsSection />
       <FAQSection />
-      <CTASection />
+      <CTASection totalStudents={stats.totalStudents} />
     </>
   );
 }

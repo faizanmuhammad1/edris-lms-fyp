@@ -12,18 +12,30 @@ import gsap from "gsap";
 interface iAppProps {
   data: PublicCourseType;
   isPurchased?: boolean;
+  courseStats?: {
+    enrollmentCount: number;
+    averageRating: number;
+    reviewCount: number;
+  };
 }
 
-export function PublicCourseCard({ data, isPurchased = false }: iAppProps) {
+export function PublicCourseCard({ data, isPurchased = false, courseStats }: iAppProps) {
   const constructedUrl = useConstructUrl(data.fileKey as string);
   const courseImage = data.fileKey ? constructedUrl : getCourseImage(data.category, data.id);
 
-  // Generate consistent mock stats based on course ID
-  const hash = data.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const rating = (4.0 + (hash % 10) / 10).toFixed(1); // 4.0 to 4.9
+  // Use real stats when available, fall back to hash-based mock stats
+  const rating = courseStats && courseStats.reviewCount > 0
+    ? courseStats.averageRating.toFixed(1)
+    : (() => {
+        const hash = data.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        return (4.0 + (hash % 10) / 10).toFixed(1);
+      })();
   const numRating = parseFloat(rating);
-  const students = Math.floor(100 + (hash % 5000));
-  const ratingCount = Math.floor(students / 5);
+  const students = courseStats ? courseStats.enrollmentCount : (() => {
+    const hash = data.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return Math.floor(100 + (hash % 5000));
+  })();
+  const ratingCount = courseStats ? courseStats.reviewCount : Math.floor(students / 5);
 
   const isBestseller = numRating >= 4.6 && students > 500;
   const instructorName = data.user?.name || "Edris Instructor";

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { PublicCourseType } from "@/app/data/course/get-all-courses";
+import { LandingStats } from "@/app/data/landing/get-landing-stats";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -16,9 +17,10 @@ if (typeof window !== "undefined") {
 
 interface FeaturedCoursesProps {
     courses: PublicCourseType[];
+    courseStats: LandingStats["courseStats"];
 }
 
-export function FeaturedCourses({ courses }: FeaturedCoursesProps) {
+export function FeaturedCourses({ courses, courseStats }: FeaturedCoursesProps) {
     const featuredCourses = courses.slice(0, 8);
     const sectionRef = useRef<HTMLElement>(null);
 
@@ -115,7 +117,7 @@ export function FeaturedCourses({ courses }: FeaturedCoursesProps) {
                     <div className="gsap-featured-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 xl:gap-10 min-h-[400px]">
                         {featuredCourses.map((course) => (
                             <div key={course.id} className="gsap-featured-card h-full" style={{ transformStyle: 'preserve-3d' }}>
-                                <PublicCourseCard data={course} />
+                                <PublicCourseCard data={course} courseStats={courseStats[course.id]} />
                             </div>
                         ))}
                     </div>

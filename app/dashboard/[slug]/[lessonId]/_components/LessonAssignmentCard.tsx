@@ -21,6 +21,7 @@ interface AssignmentType {
   allowFile: boolean;
   allowText: boolean;
   autoGradeEnabled: boolean;
+  allowedFileTypes: string | null;
   submissions: {
     id: string;
     fileKey: string | null;
@@ -291,10 +292,20 @@ export function LessonAssignmentCard({
           <>
             {assignment.allowFile && (
               <div className="space-y-4">
-                <label className="text-sm font-medium block">Upload file</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium block">Upload file</label>
+                  {assignment.allowedFileTypes && (
+                    <span className="text-xs text-muted-foreground">
+                      Accepted: {assignment.allowedFileTypes.split(",").map((t: string) => {
+                        const labels: Record<string, string> = { pdf: "PDF", image: "Images", word: "Word", text: "Text", zip: "ZIP" };
+                        return labels[t] ?? t;
+                      }).join(", ")}
+                    </span>
+                  )}
+                </div>
                 <div className="w-full">
                   <Uploader
-                    fileTypeAccepted="document"
+                    fileTypeAccepted={assignment.allowedFileTypes === "image" ? "image" : "document"}
                     value={fileKey}
                     onChange={(key: string) => {
                       setFileKey(key);

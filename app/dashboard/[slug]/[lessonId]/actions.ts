@@ -156,6 +156,7 @@ export async function submitAssignment(
         allowFile: true,
         allowText: true,
         autoGradeEnabled: true,
+        allowedFileTypes: true,
         maxFileSizeBytes: true,
         maxTextLength: true,
       },
@@ -172,6 +173,23 @@ export async function submitAssignment(
     const maxTextLen = assignment.maxTextLength ?? ASSIGNMENT_MAX_TEXT_LENGTH_DEFAULT;
     if (fileSize != null && fileSize > maxFileBytes) {
       return { status: "error", message: `File size exceeds the limit (max ${Math.round(maxFileBytes / 1024 / 1024)}MB)` };
+    }
+    // Validate file type against teacher-configured restrictions
+    if (fileKey && mimeType && assignment.allowedFileTypes) {
+      const allowed = assignment.allowedFileTypes.split(",");
+      const mimeMap: Record<string, string[]> = {
+        pdf: ["application/pdf", "application/x-pdf"],
+        image: ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"],
+        word: ["application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+        text: ["text/plain", "text/markdown"],
+        zip: ["application/zip", "application/x-zip-compressed", "application/x-compressed", "multipart/x-zip", "application/x-rar-compressed"],
+      };
+      const allowedMimes = allowed.flatMap((t) => mimeMap[t] ?? []);
+      if (allowedMimes.length > 0 && !allowedMimes.includes(mimeType)) {
+        const typeLabels: Record<string, string> = { pdf: "PDF", image: "images", word: "Word documents", text: "text files", zip: "ZIP archives" };
+        const allowedLabels = allowed.map((t) => typeLabels[t] ?? t).join(", ");
+        return { status: "error", message: `This assignment only accepts: ${allowedLabels}` };
+      }
     }
     const textAnswer = sanitizeAssignmentText(rawTextAnswer);
     if (textAnswer.length > maxTextLen) {

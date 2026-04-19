@@ -18,12 +18,12 @@ import Logo from "@/public/bc413ab4-3838-4b3d-ae28-e8f3cd721b33.png";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useRef } from "react";
+import { LandingStats } from "@/app/data/landing/get-landing-stats";
 
-const stats = [
-    { icon: Users, value: "2,000+", label: "Active Students" },
-    { icon: BookOpen, value: "50+", label: "Expert Courses" },
-    { icon: Award, value: "500+", label: "Certificates Issued" },
-];
+function formatStat(value: number): string {
+    if (value >= 1000) return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1).replace(/\.0$/, '')}k+`;
+    return `${value.toLocaleString()}+`;
+}
 
 const popularSearches = [
     { label: "Python", category: "Development" },
@@ -32,8 +32,18 @@ const popularSearches = [
     { label: "Design", category: "Design" },
 ];
 
-export function HeroSection() {
+interface HeroSectionProps {
+    stats: LandingStats;
+}
+
+export function HeroSection({ stats: platformStats }: HeroSectionProps) {
     const [searchQuery, setSearchQuery] = useState("");
+
+    const stats = [
+        { icon: Users, value: formatStat(platformStats.totalStudents), label: "Active Students" },
+        { icon: BookOpen, value: formatStat(platformStats.totalCourses), label: "Expert Courses" },
+        { icon: Award, value: formatStat(platformStats.totalCertificates), label: "Certificates Issued" },
+    ];
     const router = useRouter();
     const sectionRef = useRef<HTMLElement>(null);
     const orbRef = useRef<HTMLDivElement>(null);
@@ -388,14 +398,14 @@ export function HeroSection() {
                                                 </div>
                                             ))}
                                             <div className="w-8 h-8 rounded-full border-2 border-background bg-primary/10 flex items-center justify-center relative shadow-sm z-10 backdrop-blur-sm">
-                                                <span className="text-[9px] font-black text-primary">+3k</span>
+                                                <span className="text-[9px] font-black text-primary">+{platformStats.totalStudents > 1000 ? `${Math.floor(platformStats.totalStudents / 1000)}k` : platformStats.totalStudents}</span>
                                             </div>
                                         </div>
                                     </div>
                                     <div className="bg-muted/40 p-2 rounded-xl border border-border/50 flex flex-col items-start gap-0.5">
                                         <div className="flex items-center justify-between w-full">
                                             <span className="text-[10px] font-bold text-foreground">Average Rating</span>
-                                            <span className="text-[10px] font-black text-amber-600 dark:text-amber-500">4.9</span>
+                                            <span className="text-[10px] font-black text-amber-600 dark:text-amber-500">{platformStats.averageRating > 0 ? platformStats.averageRating.toFixed(1) : "5.0"}</span>
                                         </div>
                                         <div className="flex gap-0.5">
                                             {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-3 h-3 fill-amber-500 text-amber-500" />)}

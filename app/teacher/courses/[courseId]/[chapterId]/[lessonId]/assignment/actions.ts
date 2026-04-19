@@ -32,7 +32,7 @@ export async function createOrUpdateAssignment(
     if (!parsed.success) {
       return { status: "error", message: parsed.error.errors[0]?.message ?? "Invalid data" };
     }
-    const { title, description, dueDate, maxScore, allowFile, allowText, autoGradeEnabled, maxFileSizeBytes, maxTextLength } = parsed.data;
+    const { title, description, dueDate, maxScore, allowFile, allowText, autoGradeEnabled, allowedFileTypes, maxFileSizeBytes, maxTextLength } = parsed.data;
     await prisma.assignment.upsert({
       where: { lessonId },
       create: {
@@ -44,6 +44,7 @@ export async function createOrUpdateAssignment(
         allowFile,
         allowText,
         autoGradeEnabled: autoGradeEnabled ?? false,
+        allowedFileTypes: allowFile ? (allowedFileTypes ?? null) : null,
         maxFileSizeBytes: maxFileSizeBytes ?? null,
         maxTextLength: maxTextLength ?? null,
       },
@@ -55,6 +56,7 @@ export async function createOrUpdateAssignment(
         allowFile,
         allowText,
         autoGradeEnabled: autoGradeEnabled ?? false,
+        allowedFileTypes: allowFile ? (allowedFileTypes ?? null) : null,
         maxFileSizeBytes: maxFileSizeBytes ?? null,
         maxTextLength: maxTextLength ?? null,
       },

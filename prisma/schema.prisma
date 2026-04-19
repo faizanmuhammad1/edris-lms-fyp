@@ -197,6 +197,7 @@ model Assignment {
   allowFile         Boolean                @default(true)
   allowText         Boolean                @default(false)
   autoGradeEnabled  Boolean                @default(false)
+  allowedFileTypes  String?                // Comma-separated: "pdf,image,word,text,zip" or null for any
   maxFileSizeBytes  Int?
   maxTextLength     Int?
   createdAt         DateTime               @default(now())

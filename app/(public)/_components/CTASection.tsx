@@ -11,7 +11,12 @@ if (typeof window !== "undefined") {
     gsap.registerPlugin(ScrollTrigger, useGSAP);
 }
 
-export function CTASection() {
+function formatStat(value: number): string {
+    if (value >= 1000) return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1).replace(/\.0$/, '')}k+`;
+    return `${value.toLocaleString()}+`;
+}
+
+export function CTASection({ totalStudents }: { totalStudents: number }) {
     const sectionRef = useRef<HTMLElement>(null);
     const cardRef = useRef<HTMLDivElement>(null);
 
@@ -234,7 +239,7 @@ export function CTASection() {
                                 ))}
                             </div>
                             <p className="text-sm font-medium text-zinc-400">
-                                Joined by <strong className="text-white">2,000+</strong> learners this month
+                                Joined by <strong className="text-white">{formatStat(totalStudents)}</strong> learners this month
                             </p>
                         </div>
                     </div>

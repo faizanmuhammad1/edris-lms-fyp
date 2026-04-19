@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, Sparkles, Loader2, MessageSquare, ChevronDown, ChevronUp } from "lucide-react";
+import { Download, Sparkles, Loader2, MessageSquare, ChevronDown, ChevronUp, RotateCcw, Zap } from "lucide-react";
 import { GradeSubmissionDialog } from "./GradeSubmissionDialog";
 import { formatDistanceToNow } from "date-fns";
 import { gradeSubmissionWithAI } from "../actions";
@@ -45,6 +45,7 @@ export function SubmissionsList({
   const router = useRouter();
   const [gradingId, setGradingId] = useState<string | null>(null);
   const [aiGradingId, setAiGradingId] = useState<string | null>(null);
+  const [bulkGrading, setBulkGrading] = useState(false);
   const [expandedFeedback, setExpandedFeedback] = useState<Set<string>>(new Set());
 
   const selectedSubmission = gradingId ? submissions.find((s) => s.id === gradingId) : null;
@@ -52,7 +53,8 @@ export function SubmissionsList({
   const graded = submissions.filter((s) => s.status === "Graded");
   const autoGraded = graded.filter((s) => s.gradingMethod === "AI").length;
   const manualGraded = graded.filter((s) => s.gradingMethod === "Manual").length;
-  const pending = submissions.filter((s) => s.status === "Submitted").length;
+  const pendingSubmissions = submissions.filter((s) => s.status === "Submitted");
+  const pending = pendingSubmissions.length;
 
   function toggleFeedback(id: string) {
     setExpandedFeedback((prev) => {
@@ -93,6 +95,53 @@ export function SubmissionsList({
     }
   }
 
+  async function runBulkGradeWithAI() {
+    if (pending === 0) return;
+    setBulkGrading(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const sub of pendingSubmissions) {
+      setAiGradingId(sub.id);
+      try {
+        const result = await gradeSubmissionWithAI(sub.id);
+        if (result.status === "success") {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch {
+        failCount++;
+      }
+    }
+
+    setAiGradingId(null);
+    setBulkGrading(false);
+
+    if (successCount > 0) {
+      toast.success(`AI graded ${successCount} submission${successCount !== 1 ? "s" : ""} successfully${failCount > 0 ? `. ${failCount} failed.` : "."}`);
+    } else if (failCount > 0) {
+      toast.error(`All ${failCount} submissions failed to grade. Please grade manually.`);
+    }
+    router.refresh();
+  }
+
+  /** Determines what submission type badge to show */
+  function getSubmissionTypeBadge(sub: Submission) {
+    const hasFile = !!sub.fileKey;
+    const hasText = !!sub.textAnswer?.trim();
+    if (hasFile && hasText) return <Badge variant="outline" className="text-xs">File + Text</Badge>;
+    if (hasFile) {
+      const mime = sub.mimeType || "";
+      if (mime.startsWith("image/")) return <Badge variant="outline" className="text-xs">📷 Image</Badge>;
+      if (mime === "application/pdf") return <Badge variant="outline" className="text-xs">📄 PDF</Badge>;
+      if (mime.includes("word")) return <Badge variant="outline" className="text-xs">📝 Word</Badge>;
+      return <Badge variant="outline" className="text-xs">📎 File</Badge>;
+    }
+    if (hasText) return <Badge variant="outline" className="text-xs">✏️ Text</Badge>;
+    return null;
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -100,14 +149,36 @@ export function SubmissionsList({
           <div>
             <CardTitle>Submissions</CardTitle>
             <CardDescription>
-              View and grade student submissions. Use &quot;Grade with AI&quot; for text and file submissions, or grade manually.
+              View and grade student submissions. AI supports text, images, PDFs, and Word docs.
             </CardDescription>
           </div>
-          {autoGradeEnabled && (
-            <Badge variant="secondary" className="shrink-0">
-              Auto-grading on
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {autoGradeEnabled && (
+              <Badge variant="secondary" className="shrink-0">
+                Auto-grading on
+              </Badge>
+            )}
+            {pending > 0 && (
+              <Button
+                variant="default"
+                size="sm"
+                disabled={bulkGrading || !!aiGradingId}
+                onClick={runBulkGradeWithAI}
+              >
+                {bulkGrading ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin mr-1" />
+                    Grading {pending}…
+                  </>
+                ) : (
+                  <>
+                    <Zap className="size-4 mr-1" />
+                    Grade All Pending ({pending})
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
         {submissions.length > 0 && (
           <p className="text-sm text-muted-foreground mt-2">
@@ -131,9 +202,12 @@ export function SubmissionsList({
                     <p className="font-medium">
                       {sub.User.name ?? sub.User.email ?? "Student"}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      Submitted {formatDistanceToNow(new Date(sub.submittedAt), { addSuffix: true })}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-xs text-muted-foreground">
+                        Submitted {formatDistanceToNow(new Date(sub.submittedAt), { addSuffix: true })}
+                      </p>
+                      {getSubmissionTypeBadge(sub)}
+                    </div>
                     {sub.fileName && (
                       <Button
                         variant="link"
@@ -142,6 +216,11 @@ export function SubmissionsList({
                       >
                         <Download className="size-3 mr-1" />
                         {sub.fileName}
+                        {sub.fileSize && (
+                          <span className="text-muted-foreground ml-1">
+                            ({(sub.fileSize / 1024 / 1024).toFixed(1)} MB)
+                          </span>
+                        )}
                       </Button>
                     )}
                     {sub.textAnswer && (
@@ -173,7 +252,7 @@ export function SubmissionsList({
                       <Button
                         variant="outline"
                         size="sm"
-                        disabled={!!aiGradingId}
+                        disabled={!!aiGradingId || bulkGrading}
                         onClick={() => runGradeWithAI(sub.id)}
                       >
                         {aiGradingId === sub.id ? (
@@ -185,6 +264,28 @@ export function SubmissionsList({
                           <>
                             <Sparkles className="size-4 mr-1" />
                             Grade with AI
+                          </>
+                        )}
+                      </Button>
+                    )}
+                    {/* Re-grade button for already graded submissions */}
+                    {sub.status === "Graded" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={!!aiGradingId || bulkGrading}
+                        onClick={() => runGradeWithAI(sub.id)}
+                        title="Re-grade this submission with AI"
+                      >
+                        {aiGradingId === sub.id ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin mr-1" />
+                            Re-grading…
+                          </>
+                        ) : (
+                          <>
+                            <RotateCcw className="size-4 mr-1" />
+                            Re-grade AI
                           </>
                         )}
                       </Button>

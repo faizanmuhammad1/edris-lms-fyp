@@ -26,7 +26,6 @@ const categories = [
         title: "Development",
         icon: Code,
         href: "/courses?category=Development",
-        count: "120+ courses",
         gradient: "from-blue-500/10 to-blue-600/5",
         iconBg: "bg-blue-500/10 group-hover:bg-blue-500/20",
         iconColor: "text-blue-600 dark:text-blue-400",
@@ -35,7 +34,6 @@ const categories = [
         title: "Business",
         icon: Briefcase,
         href: "/courses?category=Business",
-        count: "80+ courses",
         gradient: "from-amber-500/10 to-amber-600/5",
         iconBg: "bg-amber-500/10 group-hover:bg-amber-500/20",
         iconColor: "text-amber-600 dark:text-amber-400",
@@ -44,7 +42,6 @@ const categories = [
         title: "Finance",
         icon: BarChart3,
         href: "/courses?category=Finance+%26+Accounting",
-        count: "60+ courses",
         gradient: "from-emerald-500/10 to-emerald-600/5",
         iconBg: "bg-emerald-500/10 group-hover:bg-emerald-500/20",
         iconColor: "text-emerald-600 dark:text-emerald-400",
@@ -53,7 +50,6 @@ const categories = [
         title: "IT & Software",
         icon: Monitor,
         href: "/courses?category=IT+%26+Software",
-        count: "90+ courses",
         gradient: "from-violet-500/10 to-violet-600/5",
         iconBg: "bg-violet-500/10 group-hover:bg-violet-500/20",
         iconColor: "text-violet-600 dark:text-violet-400",
@@ -62,7 +58,6 @@ const categories = [
         title: "Design",
         icon: Palette,
         href: "/courses?category=Design",
-        count: "70+ courses",
         gradient: "from-pink-500/10 to-pink-600/5",
         iconBg: "bg-pink-500/10 group-hover:bg-pink-500/20",
         iconColor: "text-pink-600 dark:text-pink-400",
@@ -71,7 +66,6 @@ const categories = [
         title: "Marketing",
         icon: Megaphone,
         href: "/courses?category=Marketing",
-        count: "50+ courses",
         gradient: "from-orange-500/10 to-orange-600/5",
         iconBg: "bg-orange-500/10 group-hover:bg-orange-500/20",
         iconColor: "text-orange-600 dark:text-orange-400",
@@ -80,7 +74,6 @@ const categories = [
         title: "Health & Fitness",
         icon: Heart,
         href: "/courses?category=Health+%26+Fitness",
-        count: "40+ courses",
         gradient: "from-red-500/10 to-red-600/5",
         iconBg: "bg-red-500/10 group-hover:bg-red-500/20",
         iconColor: "text-red-600 dark:text-red-400",
@@ -89,14 +82,34 @@ const categories = [
         title: "Music",
         icon: Music,
         href: "/courses?category=Music",
-        count: "30+ courses",
         gradient: "from-cyan-500/10 to-cyan-600/5",
         iconBg: "bg-cyan-500/10 group-hover:bg-cyan-500/20",
         iconColor: "text-cyan-600 dark:text-cyan-400",
     },
 ];
 
-export function CategoriesSection() {
+function getCategoryCount(title: string, categoryCounts: Record<string, number>): string {
+    // Map display titles to DB category values
+    const mappings: Record<string, string[]> = {
+        "Development": ["Development"],
+        "Business": ["Business"],
+        "Finance": ["Finance & Accounting", "Finance"],
+        "IT & Software": ["IT & Software"],
+        "Design": ["Design"],
+        "Marketing": ["Marketing"],
+        "Health & Fitness": ["Health & Fitness"],
+        "Music": ["Music"],
+    };
+
+    const keys = mappings[title] || [title];
+    let count = 0;
+    for (const key of keys) {
+        count += categoryCounts[key] || 0;
+    }
+    return `${count} course${count !== 1 ? 's' : ''}`;
+}
+
+export function CategoriesSection({ categoryCounts }: { categoryCounts: Record<string, number> }) {
     const sectionRef = useRef<HTMLElement>(null);
 
     useGSAP(() => {
@@ -210,7 +223,7 @@ export function CategoriesSection() {
                                             </h3>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-sm font-semibold text-muted-foreground">
-                                                    {category.count}
+                                                    {getCategoryCount(category.title, categoryCounts)}
                                                 </span>
                                                 <span className="w-0 overflow-hidden group-hover/card:w-auto transition-all duration-500 text-xs text-primary font-bold opacity-0 group-hover/card:opacity-100 whitespace-nowrap">
                                                     — Explore
