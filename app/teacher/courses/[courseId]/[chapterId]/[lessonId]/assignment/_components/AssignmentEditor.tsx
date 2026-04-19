@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { assignmentSchema, type AssignmentSchemaType } from "@/lib/zodSchemas";
+import { assignmentSchema, ALLOWED_FILE_TYPE_OPTIONS, type AssignmentSchemaType } from "@/lib/zodSchemas";
 import { createOrUpdateAssignment } from "../actions";
 import { TeacherAssignmentType } from "@/app/data/teacher/get-teacher-assignment";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,9 +53,15 @@ export function AssignmentEditor({
       allowFile: assignment?.allowFile ?? true,
       allowText: assignment?.allowText ?? false,
       autoGradeEnabled: assignment?.autoGradeEnabled ?? false,
+      allowedFileTypes: assignment?.allowedFileTypes ?? null,
       maxFileSizeBytes: assignment?.maxFileSizeBytes ?? undefined,
       maxTextLength: assignment?.maxTextLength ?? undefined,
     },
+  });
+
+  const allowFile = useWatch({
+    control: form.control,
+    name: "allowFile",
   });
 
   const dueDate = useWatch({
@@ -213,6 +219,89 @@ export function AssignmentEditor({
                   )}
                 />
               </div>
+              {/* File type restrictions (only show when file upload is enabled) */}
+              {allowFile && (
+                <FormField
+                  control={form.control}
+                  name="allowedFileTypes"
+                  render={({ field }) => {
+                    const selected = field.value ? field.value.split(",") : [];
+                    const isAllTypes = !field.value;
+
+                    function toggleType(type: string) {
+                      if (isAllTypes) {
+                        // Switching from "all" to specific — select only this one
+                        field.onChange(type);
+                        return;
+                      }
+                      const current = new Set(selected);
+                      if (current.has(type)) {
+                        current.delete(type);
+                      } else {
+                        current.add(type);
+                      }
+                      // If all selected or none selected, revert to null (all types)
+                      if (current.size === 0 || current.size === ALLOWED_FILE_TYPE_OPTIONS.length) {
+                        field.onChange(null);
+                      } else {
+                        field.onChange(Array.from(current).join(","));
+                      }
+                    }
+
+                    const TYPE_LABELS: Record<string, string> = {
+                      pdf: "📄 PDF",
+                      image: "🖼️ Images",
+                      word: "📝 Word Docs",
+                      text: "📃 Text Files",
+                      zip: "📦 ZIP / Archives",
+                    };
+
+                    return (
+                      <FormItem className="rounded-xl border p-4 bg-muted/20 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <FormLabel className="text-base font-medium">Allowed file types</FormLabel>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={isAllTypes}
+                              onCheckedChange={(checked) => {
+                                field.onChange(checked ? null : ALLOWED_FILE_TYPE_OPTIONS.join(","));
+                              }}
+                            />
+                            <Label className="text-sm">All types</Label>
+                          </div>
+                        </div>
+                        {!isAllTypes && (
+                          <div className="flex flex-wrap gap-3">
+                            {ALLOWED_FILE_TYPE_OPTIONS.map((type) => (
+                              <label
+                                key={type}
+                                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer transition-colors ${
+                                  selected.includes(type)
+                                    ? "border-primary bg-primary/10 text-foreground"
+                                    : "border-border bg-background text-muted-foreground hover:border-primary/50"
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selected.includes(type)}
+                                  onChange={() => toggleType(type)}
+                                  className="rounded border"
+                                />
+                                {TYPE_LABELS[type] ?? type}
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          {isAllTypes
+                            ? "Students can upload any supported file type."
+                            : `Students can only upload: ${selected.map(t => TYPE_LABELS[t] ?? t).join(", ")}`}
+                        </p>
+                      </FormItem>
+                    );
+                  }}
+                />
+              )}
               <FormField
                 control={form.control}
                 name="autoGradeEnabled"
@@ -221,7 +310,7 @@ export function AssignmentEditor({
                     <div className="space-y-0.5">
                       <FormLabel className="text-base font-medium">Auto-grade with AI</FormLabel>
                       <p className="text-sm text-muted-foreground">
-                        When enabled, text submissions are graded automatically and students receive feedback without your action. File-only submissions still need manual grading.
+                        When enabled, all submissions (text, images, PDFs, Word docs) are graded automatically by AI. Students receive instant feedback without manual action.
                       </p>
                     </div>
                     <FormControl>

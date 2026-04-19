@@ -32,7 +32,7 @@ export async function createOrUpdateAssignment(
     if (!parsed.success) {
       return { status: "error", message: parsed.error.errors[0]?.message ?? "Invalid data" };
     }
-    const { title, description, dueDate, maxScore, allowFile, allowText, autoGradeEnabled, maxFileSizeBytes, maxTextLength } = parsed.data;
+    const { title, description, dueDate, maxScore, allowFile, allowText, autoGradeEnabled, allowedFileTypes, maxFileSizeBytes, maxTextLength } = parsed.data;
     await prisma.assignment.upsert({
       where: { lessonId },
       create: {
@@ -44,6 +44,7 @@ export async function createOrUpdateAssignment(
         allowFile,
         allowText,
         autoGradeEnabled: autoGradeEnabled ?? false,
+        allowedFileTypes: allowFile ? (allowedFileTypes ?? null) : null,
         maxFileSizeBytes: maxFileSizeBytes ?? null,
         maxTextLength: maxTextLength ?? null,
       },
@@ -55,6 +56,7 @@ export async function createOrUpdateAssignment(
         allowFile,
         allowText,
         autoGradeEnabled: autoGradeEnabled ?? false,
+        allowedFileTypes: allowFile ? (allowedFileTypes ?? null) : null,
         maxFileSizeBytes: maxFileSizeBytes ?? null,
         maxTextLength: maxTextLength ?? null,
       },
@@ -161,20 +163,25 @@ export async function gradeSubmissionWithAI(submissionId: string): Promise<Grade
       return { status: "error", message: "Submission not found", code: "GENERATION_FAILED" };
     }
 
-    const textToGrade = submission.textAnswer?.trim() ?? "";
-    if (!textToGrade) {
+    const hasText = !!submission.textAnswer?.trim();
+    const hasFile = !!submission.fileKey;
+
+    if (!hasText && !hasFile) {
       return {
         status: "error",
-        message: "No text to grade. File-only submissions require manual grading.",
-        code: "MANUAL_REQUIRED",
+        message: "No content to grade. The submission is empty.",
+        code: "NO_CONTENT",
       };
     }
 
-    const { score, feedback } = await gradeAssignmentWithAI({
+    const { score, feedback, teacherFeedback } = await gradeAssignmentWithAI({
       assignmentTitle: submission.Assignment.title,
       assignmentDescription: submission.Assignment.description,
       maxScore: submission.Assignment.maxScore,
       textAnswer: submission.textAnswer,
+      fileKey: submission.fileKey,
+      fileName: submission.fileName,
+      mimeType: submission.mimeType,
     });
 
     await prisma.assignmentSubmission.update({
@@ -183,6 +190,7 @@ export async function gradeSubmissionWithAI(submissionId: string): Promise<Grade
         status: "Graded",
         score,
         feedback,
+        teacherFeedback: teacherFeedback || null,
         gradedAt: new Date(),
         gradedById: null,
         gradingMethod: "AI",

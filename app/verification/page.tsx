@@ -172,7 +172,6 @@ function VerificationContent() {
       .then((r) => { setResult(r); scrollToResults(); })
       .catch(() => setResult({ isValid: false, error: "Verification failed. Please try again." }))
       .finally(() => setIsLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cid, qr]);
 
   const handleVerify = async (e: React.FormEvent) => {

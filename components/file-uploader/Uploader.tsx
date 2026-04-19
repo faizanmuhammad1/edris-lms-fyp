@@ -48,9 +48,11 @@ interface iAppProps {
   className?: string; // Allow custom styling
   onUploadSuccess?: (data: { key: string; name: string; size: number; type: string }) => void;
   fileName?: string;
+  endpoint?: string;
+  useDirectUpload?: boolean;
 }
 
-export function Uploader({ onChange, value, fileTypeAccepted, className, onUploadSuccess, fileName }: iAppProps) {
+export function Uploader({ onChange, value, fileTypeAccepted, className, onUploadSuccess, fileName, endpoint, useDirectUpload }: iAppProps) {
   const fileUrl = useConstructUrl(value || "");
   const [fileState, setFileState] = useState<UploaderState>({
     error: false,
@@ -73,8 +75,95 @@ export function Uploader({ onChange, value, fileTypeAccepted, className, onUploa
       }));
 
       try {
+        if (useDirectUpload) {
+          const formData = new FormData();
+          formData.append("file", file);
+
+          const xhr = new XMLHttpRequest();
+
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percentageCompleted = (event.loaded / event.total) * 100;
+              setFileState((prev) => ({
+                ...prev,
+                progress: Math.round(percentageCompleted),
+              }));
+            }
+          };
+
+          xhr.onload = () => {
+            if (xhr.status === 200) {
+              try {
+                const response = JSON.parse(xhr.responseText);
+                setFileState((prev) => ({
+                  ...prev,
+                  progress: 100,
+                  uploading: false,
+                  key: response.key,
+                  error: false,
+                }));
+
+                onChange?.(response.key);
+                onUploadSuccess?.({
+                  key: response.key,
+                  name: file.name,
+                  size: file.size,
+                  type: file.type,
+                });
+                toast.success("File uploaded successfully");
+              } catch {
+                setFileState((prev) => ({
+                  ...prev,
+                  uploading: false,
+                  progress: 0,
+                  error: true,
+                }));
+                toast.error("Invalid response from server");
+              }
+            } else {
+              console.error("Direct Upload Failed:", xhr.responseText);
+              setFileState((prev) => ({
+                ...prev,
+                uploading: false,
+                progress: 0,
+                error: true,
+              }));
+              try {
+                const response = JSON.parse(xhr.responseText);
+                toast.error(response.error || "Upload failed");
+              } catch {
+                toast.error("Upload failed");
+              }
+            }
+          };
+
+          xhr.onerror = () => {
+            setFileState((prev) => ({
+              ...prev,
+              uploading: false,
+              progress: 0,
+              error: true,
+            }));
+            toast.error("Network error. Please try again");
+          };
+
+          xhr.onabort = () => {
+            setFileState((prev) => ({
+              ...prev,
+              uploading: false,
+              progress: 0,
+              error: true,
+            }));
+            toast.error("Upload cancelled");
+          };
+
+          xhr.open("POST", endpoint || "/api/s3/upload-direct");
+          xhr.send(formData);
+          return;
+        }
+
         // 1. Get Presigned URL
-        const presignedRes = await fetch("/api/s3/upload", {
+        const presignedRes = await fetch(endpoint || "/api/s3/upload", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -171,7 +260,7 @@ export function Uploader({ onChange, value, fileTypeAccepted, className, onUploa
         toast.error("Something went wrong");
       }
     },
-    [onChange, onUploadSuccess]
+    [onChange, onUploadSuccess, useDirectUpload, endpoint]
   );
 
   const onDrop = useCallback(

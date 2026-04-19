@@ -26,6 +26,7 @@ export async function getTeacherAssignment(lessonId: string) {
           allowFile: true,
           allowText: true,
           autoGradeEnabled: true,
+          allowedFileTypes: true,
           maxFileSizeBytes: true,
           maxTextLength: true,
           submissions: {
@@ -42,6 +43,7 @@ export async function getTeacherAssignment(lessonId: string) {
               status: true,
               score: true,
               feedback: true,
+              teacherFeedback: true,
               gradedAt: true,
               gradingMethod: true,
               gradedByAiAt: true,

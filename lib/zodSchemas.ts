@@ -93,6 +93,8 @@ export const ASSIGNMENT_MAX_FILE_BYTES_DEFAULT = 20 * 1024 * 1024;
 /** Default max text length for assignment answers (30k chars) */
 export const ASSIGNMENT_MAX_TEXT_LENGTH_DEFAULT = 30_000;
 
+export const ALLOWED_FILE_TYPE_OPTIONS = ["pdf", "image", "word", "text", "zip"] as const;
+
 export const assignmentSchema = z
   .object({
     title: z.string().min(1, "Title is required"),
@@ -102,6 +104,7 @@ export const assignmentSchema = z
     allowFile: z.boolean(),
     allowText: z.boolean(),
     autoGradeEnabled: z.boolean().optional(),
+    allowedFileTypes: z.string().optional().nullable(), // comma-separated: "pdf,image,word,text,zip" or null/undefined for any
     maxFileSizeBytes: z.coerce.number().int().min(0).max(100 * 1024 * 1024).optional().nullable(),
     maxTextLength: z.coerce.number().int().min(0).max(100_000).optional().nullable(),
   })

@@ -12,15 +12,13 @@ if (typeof window !== "undefined") {
     gsap.registerPlugin(ScrollTrigger, useGSAP);
 }
 
-const instructors = [
+const instructorDefaults = [
     {
         id: 1,
         name: "Faizan Muhammad",
         role: "Lead Developer",
         image: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=800&auto=format&fit=crop", // Professional South Asian man
         bio: "Software engineering expert passionate about building scalable, high-performance web applications and systems.",
-        students: "45K+",
-        courses: 8,
     },
     {
         id: 2,
@@ -28,8 +26,6 @@ const instructors = [
         role: "Full-Stack Engineer",
         image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=800&auto=format&fit=crop", // Professional South Asian man
         bio: "Dedicated full-stack developer bridging the gap between elegant user interfaces and robust backend architectures.",
-        students: "32K+",
-        courses: 5,
     },
     {
         id: 3,
@@ -37,12 +33,26 @@ const instructors = [
         role: "Lead UI/UX Designer",
         image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=800&auto=format&fit=crop", // Professional South Asian woman
         bio: "Award-winning designer with a keen eye for detail, crafting intuitive and beautiful digital experiences.",
-        students: "89K+",
-        courses: 12,
     },
 ];
 
-function InstructorCard({ instructor }: { instructor: typeof instructors[0] }) {
+function formatStat(value: number): string {
+    if (value >= 1000) return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1).replace(/\.0$/, '')}K+`;
+    return `${value}`;
+}
+
+type InstructorStat = {
+    name: string;
+    totalStudents: number;
+    totalCourses: number;
+};
+
+type InstructorDisplay = typeof instructorDefaults[0] & {
+    students: string;
+    courses: number;
+};
+
+function InstructorCard({ instructor }: { instructor: InstructorDisplay }) {
     const cardRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
 
@@ -179,9 +189,19 @@ function InstructorCard({ instructor }: { instructor: typeof instructors[0] }) {
     );
 }
 
-export function InstructorsSection() {
+export function InstructorsSection({ instructorStats }: { instructorStats: InstructorStat[] }) {
     const sectionRef = useRef<HTMLElement>(null);
     const gridRef = useRef<HTMLDivElement>(null);
+
+    // Merge real stats into instructor display data
+    const instructors: InstructorDisplay[] = instructorDefaults.map((def) => {
+        const realStat = instructorStats.find(s => s.name === def.name);
+        return {
+            ...def,
+            students: realStat ? formatStat(realStat.totalStudents) : "0",
+            courses: realStat ? realStat.totalCourses : 0,
+        };
+    });
 
     useGSAP(() => {
         const tl = gsap.timeline({

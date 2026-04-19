@@ -116,6 +116,8 @@ export async function getLessonContent(lessonId: string) {
           maxScore: true,
           allowFile: true,
           allowText: true,
+          autoGradeEnabled: true,
+          allowedFileTypes: true,
           submissions: {
             where: { userId: session.id },
             select: {
