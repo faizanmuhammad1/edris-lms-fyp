@@ -100,8 +100,16 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
   }, [handleExitQuiz]);
 
   interface SecureDOM {
-    addEventListener: typeof EventTarget.prototype.addEventListener;
-    removeEventListener: typeof EventTarget.prototype.removeEventListener;
+    addEventListener: (
+      type: string,
+      callback: any,
+      options?: boolean | AddEventListenerOptions
+    ) => void;
+    removeEventListener: (
+      type: string,
+      callback: any,
+      options?: boolean | EventListenerOptions
+    ) => void;
     hiddenGetter: () => boolean;
     visibilityStateGetter: () => DocumentVisibilityState;
     hasFocusGetter: () => boolean;
@@ -114,8 +122,8 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
   useEffect(() => {
     // 1. Initialize secureDOM from clean iframe sandbox to prevent script/extension overrides
     if (!secureDOMRef.current) {
-      let addEventListener = EventTarget.prototype.addEventListener;
-      let removeEventListener = EventTarget.prototype.removeEventListener;
+      let addEventListener = EventTarget.prototype.addEventListener as any;
+      let removeEventListener = EventTarget.prototype.removeEventListener as any;
       let hiddenGetter = () => document.hidden;
       let visibilityStateGetter = () => document.visibilityState;
       let hasFocusGetter = () => document.hasFocus();
@@ -126,8 +134,10 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
         iframe.style.display = "none";
         document.body.appendChild(iframe);
         if (iframe.contentWindow) {
-          const cleanEventTargetProto = iframe.contentWindow.EventTarget.prototype;
-          const cleanDocumentProto = iframe.contentWindow.Document.prototype;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const contentWin = iframe.contentWindow as any;
+          const cleanEventTargetProto = contentWin.EventTarget.prototype;
+          const cleanDocumentProto = contentWin.Document.prototype;
 
           addEventListener = cleanEventTargetProto.addEventListener;
           removeEventListener = cleanEventTargetProto.removeEventListener;
