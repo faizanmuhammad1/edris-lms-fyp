@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import Logo from "@/public/bc413ab4-3838-4b3d-ae28-e8f3cd721b33.png";
 import WhiteLogo from "@/public/edriswhitelogo.png";
-import { Facebook, Twitter, Instagram, Linkedin, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { NewsletterSubscribe } from "./NewsletterSubscribe";
 import {
   verificationPortalLinkProps,
@@ -66,23 +66,7 @@ export function Footer() {
                             Empowering the next generation of builders with expert-led technical education and blockchain-verified credentials.
                         </p>
 
-                        <div className="flex gap-4 pt-2">
-                            {[
-                                { icon: Instagram, href: "#", label: "Instagram" },
-                                { icon: Twitter, href: "#", label: "Twitter" },
-                                { icon: Linkedin, href: "#", label: "LinkedIn" },
-                                { icon: Facebook, href: "#", label: "Facebook" },
-                            ].map((social) => (
-                                <Link
-                                    key={social.label}
-                                    href={social.href}
-                                    className="group flex h-10 w-10 items-center justify-center rounded-full bg-muted border border-border/50 text-muted-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-300 hover:-translate-y-1 shadow-sm"
-                                    aria-label={social.label}
-                                >
-                                    <social.icon className="h-4 w-4 transition-transform group-hover:scale-110" />
-                                </Link>
-                            ))}
-                        </div>
+
                     </div>
 
                     {/* Links Grid */}
@@ -96,6 +80,7 @@ export function Footer() {
                                         <li key={item}>
                                             <Link
                                                 href={`/courses?category=${encodeURIComponent(item)}`}
+                                                onClick={() => window.scrollTo(0, 0)}
                                                 className="group inline-flex items-center text-muted-foreground hover:text-primary transition-colors font-medium"
                                             >
                                                 <span>{item}</span>
@@ -112,7 +97,6 @@ export function Footer() {
                             <h4 className="text-sm font-bold text-foreground tracking-widest uppercase">Company</h4>
                             <ul className="space-y-3">
                                 {[
-                                    { label: "About Us", href: "/about" },
                                     { label: "Contact Us", href: "/contact" },
                                     { label: "Teach on Edris", href: "/teach" },
                                     { label: "Verify Certificate", href: verificationPortalUrl() },
@@ -120,6 +104,7 @@ export function Footer() {
                                     <li key={item.label}>
                                         <Link
                                             href={item.href}
+                                            onClick={() => window.scrollTo(0, 0)}
                                             className="group inline-flex items-center text-muted-foreground hover:text-primary transition-colors font-medium"
                                             {...verificationPortalLinkProps(item.href)}
                                         >
@@ -144,6 +129,7 @@ export function Footer() {
                                     <li key={item.label}>
                                         <Link
                                             href={item.href}
+                                            onClick={() => window.scrollTo(0, 0)}
                                             className="group inline-flex items-center text-muted-foreground hover:text-primary transition-colors font-medium"
                                         >
                                             <span>{item.label}</span>
@@ -170,12 +156,12 @@ export function Footer() {
                     <p className="text-sm text-muted-foreground font-medium flex items-center gap-2 tracking-wide sm:pl-2">
                         &copy; {currentYear} Edris LMS Inc. All rights reserved.
                     </p>
-                    <Link href="/about" className="flex items-center gap-3 text-[13px] font-bold text-primary dark:text-[#86AD94] border border-primary/20 dark:border-[#2A362E] rounded-full px-5 py-2 md:py-1.5 min-h-[36px] bg-primary/5 dark:bg-[#17211C] hover:bg-primary/10 dark:hover:bg-[#1E2E25] transition-colors shadow-sm whitespace-nowrap">
+                    <div className="flex items-center gap-3 text-[13px] font-bold text-primary dark:text-[#86AD94] border border-primary/20 dark:border-[#2A362E] rounded-full px-5 py-2 md:py-1.5 min-h-[36px] bg-primary/5 dark:bg-[#17211C] shadow-sm whitespace-nowrap select-none">
                         <span className="flex items-center justify-center h-4 w-4 rounded-full bg-primary/20 dark:bg-[#2A362E]">
                             <span className="h-2 w-2 rounded-full bg-primary dark:bg-[#86AD94]"></span>
                         </span>
                         <span className="leading-none pt-px">Edris Learning 2.0 Just Dropped</span>
-                    </Link>
+                    </div>
                 </div>
             </div>
         </footer>

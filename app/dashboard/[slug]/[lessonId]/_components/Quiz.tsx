@@ -81,6 +81,8 @@ export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, o
     pasteAttemptCount: number;
     rightClickCount: number;
     devToolsAttemptCount: number;
+    screenshotCount: number;
+    printCount: number;
   } | null>(null);
   const submitFnRef = useRef<(() => void) | null>(null);
 
@@ -110,7 +112,24 @@ export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, o
           setResults(response.data);
           setIsSubmitted(true);
           setIntegritySnapshot(
-            cheatingCountersRef ? { ...cheatingCountersRef.current } : null
+            cheatingCountersRef
+              ? {
+                  ...cheatingCountersRef.current,
+                  screenshotCount: violationLogRef?.current?.filter((v) => v.type === "printscreen").length ?? 0,
+                  printCount: violationLogRef?.current?.filter((v) => v.type === "print").length ?? 0,
+                }
+              : {
+                  tabSwitchCount: 0,
+                  backButtonCount: 0,
+                  windowBlurCount: 0,
+                  visibilityChangeCount: 0,
+                  copyAttemptCount: 0,
+                  pasteAttemptCount: 0,
+                  rightClickCount: 0,
+                  devToolsAttemptCount: 0,
+                  screenshotCount: violationLogRef?.current?.filter((v) => v.type === "printscreen").length ?? 0,
+                  printCount: violationLogRef?.current?.filter((v) => v.type === "print").length ?? 0,
+                }
           );
 
           if (response.data.passed) {
@@ -298,112 +317,117 @@ export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, o
             })}
           </div>
 
-          {integritySnapshot && (
-            <div
-              className={cn(
-                "rounded-lg border p-4 flex items-start gap-3",
-                (integritySnapshot.tabSwitchCount +
-                  integritySnapshot.backButtonCount +
-                  integritySnapshot.windowBlurCount +
-                  integritySnapshot.visibilityChangeCount +
-                  integritySnapshot.copyAttemptCount +
-                  integritySnapshot.pasteAttemptCount +
-                  integritySnapshot.rightClickCount +
-                  integritySnapshot.devToolsAttemptCount) === 0
-                  ? "border-green-200 dark:border-green-900 bg-green-50/50 dark:bg-green-950/10"
-                  : "border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/10"
-              )}
-            >
-              <ShieldCheck
-                className={cn(
-                  "h-5 w-5 shrink-0 mt-0.5",
-                  (integritySnapshot.tabSwitchCount +
-                    integritySnapshot.backButtonCount +
-                    integritySnapshot.windowBlurCount +
-                    integritySnapshot.visibilityChangeCount +
-                    integritySnapshot.copyAttemptCount +
-                    integritySnapshot.pasteAttemptCount +
-                    integritySnapshot.rightClickCount +
-                    integritySnapshot.devToolsAttemptCount) === 0
-                    ? "text-green-600 dark:text-green-400"
-                    : "text-amber-600 dark:text-amber-400"
-                )}
-              />
-              <div className="text-sm">
-                {(integritySnapshot.tabSwitchCount +
-                  integritySnapshot.backButtonCount +
-                  integritySnapshot.windowBlurCount +
-                  integritySnapshot.visibilityChangeCount +
-                  integritySnapshot.copyAttemptCount +
-                  integritySnapshot.pasteAttemptCount +
-                  integritySnapshot.rightClickCount +
-                  integritySnapshot.devToolsAttemptCount) === 0 ? (
-                  <p className="font-medium text-green-800 dark:text-green-300">
-                    Integrity: No issues recorded for this attempt.
-                  </p>
-                ) : (
-                  <>
-                    <p className="font-medium text-amber-800 dark:text-amber-300">
-                      This attempt had{" "}
-                      {integritySnapshot.tabSwitchCount +
-                        integritySnapshot.backButtonCount +
-                        integritySnapshot.windowBlurCount +
-                        integritySnapshot.visibilityChangeCount +
-                        integritySnapshot.copyAttemptCount +
-                        integritySnapshot.pasteAttemptCount +
-                        integritySnapshot.rightClickCount +
-                        integritySnapshot.devToolsAttemptCount}{" "}
-                      warning(s) recorded:
-                    </p>
-                    <ul className="mt-1 list-disc list-inside text-muted-foreground space-y-0.5">
-                      {integritySnapshot.tabSwitchCount > 0 && (
-                        <li>Tab switch / visibility change</li>
-                      )}
-                      {integritySnapshot.backButtonCount > 0 && (
-                        <li>Back navigation</li>
-                      )}
-                      {integritySnapshot.windowBlurCount > 0 && (
-                        <li>Window focus lost</li>
-                      )}
-                      {integritySnapshot.visibilityChangeCount > 0 && integritySnapshot.tabSwitchCount === 0 && (
-                        <li>Visibility change</li>
-                      )}
-                      {integritySnapshot.copyAttemptCount > 0 && (
-                        <li>Copy attempt</li>
-                      )}
-                      {integritySnapshot.pasteAttemptCount > 0 && (
-                        <li>Paste attempt</li>
-                      )}
-                      {integritySnapshot.rightClickCount > 0 && (
-                        <li>Right-click</li>
-                      )}
-                      {integritySnapshot.devToolsAttemptCount > 0 && (
-                        <li>Restricted key / DevTools attempt</li>
-                      )}
-                    </ul>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
+          {integritySnapshot && (() => {
+            const totalViolations =
+              integritySnapshot.tabSwitchCount +
+              integritySnapshot.backButtonCount +
+              integritySnapshot.windowBlurCount +
+              integritySnapshot.visibilityChangeCount +
+              integritySnapshot.copyAttemptCount +
+              integritySnapshot.pasteAttemptCount +
+              integritySnapshot.rightClickCount +
+              integritySnapshot.devToolsAttemptCount +
+              integritySnapshot.screenshotCount +
+              integritySnapshot.printCount;
 
-          <div className="flex gap-4">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSelectedAnswers({});
-                setIsSubmitted(false);
-                setResults(null);
-                setTimeUp(false);
-                setIntegritySnapshot(null);
-              }}
-            >
-              Retake Quiz
-            </Button>
-            <Button onClick={() => router.push(`/dashboard/${courseSlug}`)}>
-              Continue to Course
-            </Button>
-          </div>
+            return (
+              <div
+                className={cn(
+                  "rounded-lg border p-4 flex items-start gap-3",
+                  totalViolations === 0
+                    ? "border-green-200 dark:border-green-900 bg-green-50/50 dark:bg-green-950/10"
+                    : "border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/10"
+                )}
+              >
+                <ShieldCheck
+                  className={cn(
+                    "h-5 w-5 shrink-0 mt-0.5",
+                    totalViolations === 0
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-amber-600 dark:text-amber-400"
+                  )}
+                />
+                <div className="text-sm">
+                  {totalViolations === 0 ? (
+                    <p className="font-medium text-green-800 dark:text-green-300">
+                      Integrity: No issues recorded for this attempt.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="font-medium text-amber-800 dark:text-amber-300">
+                        This attempt had {totalViolations} warning(s) recorded:
+                      </p>
+                      <ul className="mt-1 list-disc list-inside text-muted-foreground space-y-0.5">
+                        {integritySnapshot.tabSwitchCount > 0 && (
+                          <li>Tab switch / visibility change</li>
+                        )}
+                        {integritySnapshot.backButtonCount > 0 && (
+                          <li>Back navigation</li>
+                        )}
+                        {integritySnapshot.windowBlurCount > 0 && (
+                          <li>Window focus lost</li>
+                        )}
+                        {integritySnapshot.visibilityChangeCount > 0 && integritySnapshot.tabSwitchCount === 0 && (
+                          <li>Visibility change</li>
+                        )}
+                        {integritySnapshot.copyAttemptCount > 0 && (
+                          <li>Copy attempt</li>
+                        )}
+                        {integritySnapshot.pasteAttemptCount > 0 && (
+                          <li>Paste attempt</li>
+                        )}
+                        {integritySnapshot.rightClickCount > 0 && (
+                          <li>Right-click</li>
+                        )}
+                        {integritySnapshot.devToolsAttemptCount > 0 && (
+                          <li>Restricted key / DevTools attempt</li>
+                        )}
+                        {integritySnapshot.screenshotCount > 0 && (
+                          <li>Screenshot attempt ({integritySnapshot.screenshotCount})</li>
+                        )}
+                        {integritySnapshot.printCount > 0 && (
+                          <li>Print attempt ({integritySnapshot.printCount})</li>
+                        )}
+                      </ul>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+ 
+           <div className="flex gap-4">
+             <Button
+               variant="outline"
+               onClick={() => {
+                 setSelectedAnswers({});
+                 setIsSubmitted(false);
+                 setResults(null);
+                 setTimeUp(false);
+                 setIntegritySnapshot(null);
+                 if (cheatingCountersRef) {
+                   cheatingCountersRef.current = {
+                     tabSwitchCount: 0,
+                     backButtonCount: 0,
+                     windowBlurCount: 0,
+                     visibilityChangeCount: 0,
+                     copyAttemptCount: 0,
+                     pasteAttemptCount: 0,
+                     rightClickCount: 0,
+                     devToolsAttemptCount: 0,
+                   };
+                 }
+                 if (violationLogRef) {
+                   violationLogRef.current = [];
+                 }
+               }}
+             >
+               Retake Quiz
+             </Button>
+             <Button onClick={() => router.push(`/dashboard/${courseSlug}`)}>
+               Continue to Course
+             </Button>
+           </div>
         </CardContent>
       </Card>
     );

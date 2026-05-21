@@ -1,4 +1,4 @@
-﻿<!-- ipfs-verify.html -->
+<!-- ipfs-verify.html -->
 <!doctype html>
 <html lang="en">
 
@@ -1499,7 +1499,7 @@
             async function extractTextFromPdf(file) {
                 const buffer = await file.arrayBuffer();
                 const loadingTask = window.pdfjsLib.getDocument({
-                    data: buffer
+                    data: new Uint8Array(buffer)
                 });
                 const pdf = await loadingTask.promise;
                 const pages = [];
@@ -1553,8 +1553,11 @@
             function extractFields(text) {
                 const normalized = text.replace(/\u00A0/g, " ");
                 const lines = normalized.split(/\r?\n/).map(cleanLine).filter(Boolean);
-                const uuidMatch = normalized.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-                const dateMatch = normalized.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/);
+                
+                // Strip spaces and normalize dash characters for UUID & Date kerning resilience
+                const tightStr = normalized.replace(/\s+/g, "").replace(/[\u2010-\u2015\u2212]/g, "-");
+                const uuidMatch = tightStr.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+                const dateMatch = tightStr.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/i);
                 let studentName = "";
                 const lower = normalized.toLowerCase();
                 const markerA = "presented to";
@@ -1562,7 +1565,7 @@
                 let markerIndex = lower.indexOf(markerA);
                 if (markerIndex < 0) markerIndex = lower.indexOf(markerB);
                 if (markerIndex >= 0) {
-                    const after = normalized.slice(markerIndex + (lower.indexOf(markerA, markerIndex) === markerIndex ? markerA.length : markerB.length));
+                    const after = normalized.slice(markerIndex + (lower.indexOf(markerA, markerIndex) === markerIndex ? markerA.length : markerB.length)).trim();
                     const candidate = after.split(/\n|for successfully|for completing|for\s+successfully/i)[0];
                     studentName = cleanLine(candidate);
                 }
@@ -1604,14 +1607,28 @@
                 setStatus("warn", "Reading PDF", "<p>Extracting certificate fields...</p>");
                 try {
                     const text = await extractTextFromPdf(file);
+                    if (!text || !text.trim()) {
+                        setStatus("err", "NO TEXT EXTRACTED", "<p>The PDF does not seem to contain text layers. It might be an image-based PDF.</p>");
+                        return;
+                    }
                     const fields = extractFields(text);
+                    console.log("Raw Extracted Text: ", text);
+                    console.log("Extracted Fields: ", fields);
+
                     const resolvedCourseName = await resolveCourseNameFromBackend(fields.courseName);
                     const finalCourseName = resolvedCourseName || humanizeCourseName(fields.courseName) || normalizeExtractedCourseName(fields.courseName);
+                    
                     studentNameInput.value = fields.studentName;
                     courseNameInput.value = finalCourseName;
                     uniqueIdInput.value = fields.uniqueId;
                     issuedAtInput.value = fields.issuedAt;
-                    setStatus("warn", "Fields extracted", "<p>Review and edit fields if needed, then verify on blockchain.</p>");
+
+                    if (!fields.studentName && !fields.courseName && !fields.uniqueId && !fields.issuedAt) {
+                        setStatus("err", "EXTRACTION FAILED", "<p>We found text, but couldn't parse the fields. Please check the Developer Console (F12 -> Console) and provide a screenshot of 'Raw Extracted Text'.</p><textarea style='width:100%;height:100px;font-size:0.7rem;margin-top:10px;'>" + escapeHtml(text) + "</textarea>");
+                    } else {
+                        setStatus("warn", "Fields extracted", "<p>Review and edit fields if needed, then verify on blockchain.</p>");
+                    }
+
                 } catch (error) {
                     setStatus("err", "ERROR ⚠️", "<p>Failed to extract text from this PDF.</p><p>" + escapeHtml(error && error.message ? error.message : String(error)) + "</p><p>Check your internet connection and try again.</p>");
                 } finally {

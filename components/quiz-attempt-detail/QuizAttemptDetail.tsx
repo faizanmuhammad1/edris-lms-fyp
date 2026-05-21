@@ -17,6 +17,8 @@ const VIOLATION_LABELS: Record<string, string> = {
   paste: "Paste attempt",
   right_click: "Right-click",
   devtools: "DevTools / restricted key",
+  printscreen: "Screenshot attempt / PrintScreen key",
+  print: "Print attempt",
 };
 
 export interface QuizAttemptDetailData {
@@ -52,6 +54,8 @@ export interface QuizAttemptDetailData {
 }
 
 function getTotalViolations(a: QuizAttemptDetailData): number {
+  const printscreenCount = a.violationLog?.filter((v) => v.type === "printscreen").length ?? 0;
+  const printCount = a.violationLog?.filter((v) => v.type === "print").length ?? 0;
   return (
     a.tabSwitchCount +
     a.backButtonCount +
@@ -60,7 +64,9 @@ function getTotalViolations(a: QuizAttemptDetailData): number {
     a.copyAttemptCount +
     a.pasteAttemptCount +
     a.rightClickCount +
-    a.devToolsAttemptCount
+    a.devToolsAttemptCount +
+    printscreenCount +
+    printCount
   );
 }
 
@@ -90,6 +96,8 @@ export function QuizAttemptDetail({ attempt }: { attempt: QuizAttemptDetailData 
     { label: "Paste attempt", value: attempt.pasteAttemptCount },
     { label: "Right-click", value: attempt.rightClickCount },
     { label: "DevTools attempt", value: attempt.devToolsAttemptCount },
+    { label: "Screenshot attempt", value: attempt.violationLog?.filter((v) => v.type === "printscreen").length ?? 0 },
+    { label: "Print attempt", value: attempt.violationLog?.filter((v) => v.type === "print").length ?? 0 },
   ];
 
   return (

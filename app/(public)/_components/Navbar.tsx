@@ -77,6 +77,7 @@ export function Navbar() {
                 <Link
                   key={cat}
                   href={`/courses?category=${cat}`}
+                  onClick={() => window.scrollTo(0, 0)}
                   className="text-base text-muted-foreground hover:text-primary transition-colors"
                 >
                   {cat}
@@ -105,7 +106,11 @@ export function Navbar() {
             <DropdownMenuContent align="start" className="w-56 p-2">
               {categories.map((cat) => (
                 <DropdownMenuItem key={cat} asChild>
-                  <Link href={`/courses?category=${encodeURIComponent(cat)}`} className="cursor-pointer w-full">
+                  <Link
+                    href={`/courses?category=${encodeURIComponent(cat)}`}
+                    onClick={() => window.scrollTo(0, 0)}
+                    className="cursor-pointer w-full"
+                  >
                     {cat}
                   </Link>
                 </DropdownMenuItem>
@@ -172,7 +177,7 @@ export function Navbar() {
               >
                 Log in
               </Link>
-              <Link href="/signup" className={buttonVariants({ size: "sm", className: "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20" })}>
+              <Link href="/login" className={buttonVariants({ size: "sm", className: "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20" })}>
                 Sign up
               </Link>
             </div>

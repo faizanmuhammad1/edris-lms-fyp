@@ -6,7 +6,7 @@ import Link from "next/link";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { Facebook, Twitter, Linkedin, ArrowRight, Award } from "lucide-react";
+import { Linkedin, ArrowRight, Award } from "lucide-react";
 
 if (typeof window !== "undefined") {
     gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -17,22 +17,25 @@ const instructorDefaults = [
         id: 1,
         name: "Faizan Muhammad",
         role: "Lead Developer",
-        image: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=800&auto=format&fit=crop", // Professional South Asian man
+        image: "/faizan.png",
         bio: "Software engineering expert passionate about building scalable, high-performance web applications and systems.",
+        linkedin: "https://www.linkedin.com/in/faizanmuhammad2/",
     },
     {
         id: 2,
         name: "Jahanzaib Shaikh",
         role: "Full-Stack Engineer",
-        image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=800&auto=format&fit=crop", // Professional South Asian man
+        image: "/jahanzaib.png",
         bio: "Dedicated full-stack developer bridging the gap between elegant user interfaces and robust backend architectures.",
+        linkedin: "https://www.linkedin.com/in/jahanzaib-shaikh-9a6199215/",
     },
     {
         id: 3,
         name: "Aleena Imran",
         role: "Lead UI/UX Designer",
-        image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=800&auto=format&fit=crop", // Professional South Asian woman
+        image: "/aleena.png",
         bio: "Award-winning designer with a keen eye for detail, crafting intuitive and beautiful digital experiences.",
+        linkedin: "https://www.linkedin.com/in/aleena-imran-9a4155282/",
     },
 ];
 
@@ -139,15 +142,14 @@ function InstructorCard({ instructor }: { instructor: InstructorDisplay }) {
             <div ref={contentRef} className="absolute inset-0 z-20 flex flex-col justify-end p-6 md:p-8">
                 {/* Social Links (Hidden by default, slides down on hover) */}
                 <div className="absolute top-6 right-6 flex flex-col gap-3 translate-x-12 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-500 ease-out">
-                    <button className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 backdrop-blur-md text-white hover:bg-primary hover:text-primary-foreground transition-colors border border-white/20">
-                        <Twitter size={18} />
-                    </button>
-                    <button className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 backdrop-blur-md text-white hover:bg-primary hover:text-primary-foreground transition-colors border border-white/20">
+                    <Link
+                        href={instructor.linkedin}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 backdrop-blur-md text-white hover:bg-primary hover:text-primary-foreground transition-colors border border-white/20"
+                    >
                         <Linkedin size={18} />
-                    </button>
-                    <button className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 backdrop-blur-md text-white hover:bg-primary hover:text-primary-foreground transition-colors border border-white/20">
-                        <Facebook size={18} />
-                    </button>
+                    </Link>
                 </div>
 
                 <div className="translate-y-8 group-hover:translate-y-0 transition-transform duration-500 ease-out">
@@ -168,17 +170,6 @@ function InstructorCard({ instructor }: { instructor: InstructorDisplay }) {
                         <p className="text-white/80 text-sm md:text-base leading-relaxed mb-4">
                             {instructor.bio}
                         </p>
-
-                        <div className="flex items-center gap-6 pt-4 border-t border-white/20 text-sm font-medium text-white/90">
-                            <span className="flex items-center gap-2">
-                                <svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                                {instructor.students} Students
-                            </span>
-                            <span className="flex items-center gap-2">
-                                <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-                                {instructor.courses} Courses
-                            </span>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -308,7 +299,7 @@ export function InstructorsSection({ instructorStats }: { instructorStats: Instr
                             Are you an expert in your field? Share your knowledge, build your personal brand, and earn on Edris.
                         </p>
                         <Link
-                            href="/auth/register"
+                            href="/teach"
                             className="inline-flex h-12 items-center justify-center rounded-full bg-primary px-8 text-base font-medium text-white shadow-lg shadow-primary/25 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5 transition-all duration-300 group"
                         >
                             Start Teaching Today

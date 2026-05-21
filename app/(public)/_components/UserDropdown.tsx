@@ -3,7 +3,6 @@ import { getAvatarUrl } from "@/lib/avatar";
 import {
   BookOpen,
   ChevronDownIcon,
-  Home,
   LayoutDashboardIcon,
   LogOutIcon,
 } from "lucide-react";
@@ -66,12 +65,7 @@ export function UserDropdown({ email, name, image }: iAppProps) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <Link href="/">
-              <Home size={16} className="opacity-60" aria-hidden="true" />
-              <span>Home</span>
-            </Link>
-          </DropdownMenuItem>
+
           <DropdownMenuItem asChild>
             <Link href="/courses">
               <BookOpen size={16} className="opacity-60" aria-hidden="true" />

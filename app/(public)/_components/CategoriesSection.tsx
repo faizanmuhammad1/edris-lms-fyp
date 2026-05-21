@@ -194,7 +194,7 @@ export function CategoriesSection({ categoryCounts }: { categoryCounts: Record<s
                 <div className="gsap-cat-grid group/catgrid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                     {categories.map((category) => (
                         <div key={category.title} className="gsap-cat-card" style={{ transformStyle: 'preserve-3d' }}>
-                            <Link href={category.href} className="block h-full">
+                            <Link href={category.href} onClick={() => window.scrollTo(0, 0)} className="block h-full">
                                 <div
                                     onMouseMove={(e) => handleMouseMove(e, e.currentTarget)}
                                     className={`relative h-full overflow-hidden rounded-2xl border border-white/50 dark:border-white/10 bg-card/60 backdrop-blur-xl p-6 transition-all duration-500 hover:z-20 group-hover/catgrid:opacity-60 group-hover/catgrid:blur-[2px] hover:!opacity-100 hover:!blur-none hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/15 hover:-translate-y-2 group/card`}

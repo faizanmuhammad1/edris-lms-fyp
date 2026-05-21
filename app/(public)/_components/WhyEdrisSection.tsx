@@ -1,22 +1,17 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import { Bot, ShieldCheck, ArrowRight, Cpu, Link as LinkIcon } from "lucide-react";
+import { Bot, ShieldCheck, Cpu, Link as LinkIcon } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import Link from "next/link";
 import Image from "next/image";
-import {
-  verificationPortalLinkProps,
-  verificationPortalUrl,
-} from "@/lib/verification-portal-url";
 
 if (typeof window !== "undefined") {
     gsap.registerPlugin(ScrollTrigger, useGSAP);
 }
 
-const certificateVerifyHref = verificationPortalUrl();
 
 export function WhyEdrisSection() {
     const sectionRef = useRef<HTMLElement>(null);
@@ -229,10 +224,6 @@ export function WhyEdrisSection() {
                                     Stuck on a complex concept? Ask our context-aware AI directly inside video lessons for instant, hyper-specific explanations.
                                 </p>
                             </div>
-
-                            <Link href="/courses" className="inline-flex items-center text-primary font-semibold hover:text-foreground transition-colors group/link mt-auto w-max">
-                                Meet your tutor <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/link:translate-x-1" />
-                            </Link>
                         </div>
                     </div>
 
@@ -257,14 +248,6 @@ export function WhyEdrisSection() {
                                 <LinkIcon className="h-7 w-7 text-primary drop-shadow-md" />
                             </div>
                         </div>
-
-                        <Link
-                            href={certificateVerifyHref}
-                            className="relative z-10 w-full rounded-xl bg-primary hover:bg-primary-hover border border-transparent text-primary-foreground shadow-lg shadow-primary/20 text-center py-3 font-semibold transition-all hover:-translate-y-0.5 mt-auto shrink-0"
-                            {...verificationPortalLinkProps(certificateVerifyHref)}
-                        >
-                            Verify Certificates
-                        </Link>
                     </div>
 
                     {/* Item 3: Square Video Course Block */}

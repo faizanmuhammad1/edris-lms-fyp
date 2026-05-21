@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
-import { HomeIcon, Tv2 } from "lucide-react";
+import { Tv2 } from "lucide-react";
 import Image from "next/image";
 import { useSignOut } from "@/hooks/use-singout";
 
@@ -121,12 +121,6 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
-                <Link href="/">
-                  <HomeIcon />
-                  Homepage
-                </Link>
-              </DropdownMenuItem>
 
               {/* Role based links */}
               {(session?.user as UserWithRole)?.role === "admin" ? (

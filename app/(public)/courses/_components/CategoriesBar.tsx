@@ -13,6 +13,7 @@ import {
     Music,
     Globe
 } from "lucide-react";
+import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
@@ -77,6 +78,10 @@ export function CategoriesBar() {
     const searchParams = useSearchParams();
     const currentCategory = searchParams.get("category");
 
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, [currentCategory]);
+
     return (
         <div className="w-full relative py-4 border-b border-border/40 bg-background/50 backdrop-blur-md sticky top-16 z-40">
             <div className="container relative z-10 mx-auto px-6 md:px-12 lg:px-24 xl:px-32 2xl:px-40">
@@ -89,6 +94,7 @@ export function CategoriesBar() {
                                 <Link
                                     key={category.title}
                                     href={category.href}
+                                    onClick={() => window.scrollTo(0, 0)}
                                     className={cn(
                                         "flex flex-row items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300",
                                         isActive

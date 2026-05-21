@@ -60,7 +60,7 @@ export function CourseProgressCard({ data }: iAppProps) {
           href={`/dashboard/${data.Course.slug}`}
           className={buttonVariants({ className: "w-full mt-4" })}
         >
-          Continue Watching
+          {progressPercentage === 100 ? "Watch Again" : "Continue Watching"}
         </Link>
       </CardContent>
     </Card>

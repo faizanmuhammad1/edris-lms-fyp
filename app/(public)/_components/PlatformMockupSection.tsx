@@ -73,7 +73,7 @@ export function PlatformMockupSection() {
                 {/* The Mockup Container */}
                 <div
                     ref={mockupContainerRef}
-                    className="relative w-full max-w-5xl rounded-2xl border border-border/80 bg-card shadow-2xl overflow-hidden ring-1 ring-black/[0.04]"
+                    className="relative w-full max-w-5xl rounded-2xl border border-border/80 bg-card shadow-2xl overflow-hidden ring-1 ring-black/[0.04] select-none pointer-events-none"
                     style={{ transformOrigin: "center bottom" }}
                 >
                     {/* Browser-style Title Bar */}
