@@ -60,7 +60,7 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
 
   const violationLogRef = useRef<{ type: string; at: string }[]>([]);
   const addViolation = useCallback((type: string) => {
-    if (quizSubmittedRef.current) return;
+    if (quizSubmittedRef.current || isExitingRef.current) return;
     violationLogRef.current.push({
       type,
       at: new Date().toISOString(),
@@ -72,12 +72,12 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
 
     isExitingRef.current = true;
     setIsExiting(true);
-    // Auto-submit current answers if any
-    if (Object.keys(answersRef.current).length > 0 && submitQuizRef.current) {
+    // Auto-submit current answers (even if empty) if we have the submit function
+    if (submitQuizRef.current) {
       // Trigger auto-submission
       submitQuizRef.current();
     } else {
-      // No answers or no submit function, just close
+      // No submit function, just close
       if (window.opener && !window.opener.closed) {
         window.opener.postMessage({ type: "quizCancelled" }, "*");
       }
@@ -86,7 +86,7 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
   }, []);
 
   const handleViolation = useCallback((type: string) => {
-    if (quizSubmittedRef.current || !quizStartedRef.current) return;
+    if (quizSubmittedRef.current || !quizStartedRef.current || isExitingRef.current) return;
 
     const currentWarnings = warningsRef.current + 1;
     warningsRef.current = currentWarnings;
@@ -605,6 +605,7 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
             }}
             cheatingCountersRef={cheatingCountersRef}
             violationLogRef={violationLogRef}
+            isExiting={isExiting}
           />
         </div>
       </div>

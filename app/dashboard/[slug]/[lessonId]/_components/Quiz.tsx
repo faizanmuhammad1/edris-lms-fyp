@@ -54,9 +54,10 @@ interface QuizProps {
     devToolsAttemptCount: number;
   }>;
   violationLogRef?: React.MutableRefObject<{ type: string; at: string }[]>;
+  isExiting?: boolean;
 }
 
-export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, onSubmitRef, cheatingCountersRef, violationLogRef }: QuizProps) {
+export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, onSubmitRef, cheatingCountersRef, violationLogRef, isExiting }: QuizProps) {
   const router = useRouter();
   const [selectedAnswers, setSelectedAnswers] = useState<
     Record<string, string>
@@ -492,7 +493,7 @@ export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, o
                 <RadioGroup
                   value={selectedAnswers[question.id] || ""}
                   onValueChange={(value) => handleAnswerChangeLocal(question.id, value)}
-                  disabled={isSubmitted || timeUp}
+                  disabled={isSubmitted || timeUp || isExiting}
                 >
                   {question.options
                     .sort((a, b) => a.position - b.position)
@@ -522,7 +523,7 @@ export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, o
           </div>
           <Button
             onClick={handleSubmit}
-            disabled={!allQuestionsAnswered || isSubmitted || isPending || timeUp}
+            disabled={!allQuestionsAnswered || isSubmitted || isPending || timeUp || isExiting}
             size="lg"
           >
             {isPending ? (
