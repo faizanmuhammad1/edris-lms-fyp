@@ -4,6 +4,7 @@ import { requireTeacher } from "@/app/data/teacher/require-teacher";
 import { prisma } from "@/lib/db";
 import { ApiResponse } from "@/lib/types";
 import { lessonSchema, LessonSchemaType } from "@/lib/zodSchemas";
+import { scheduleTranscription } from "@/lib/transcription-queue";
 
 export async function updateTeacherLesson(
   values: LessonSchemaType,
@@ -40,6 +41,9 @@ export async function updateTeacherLesson(
       };
     }
 
+    // Check if video key is being added or changed
+    const videoKeyChanged = result.data.videoKey && result.data.videoKey !== lesson.videoKey;
+
     await prisma.lesson.update({
       where: {
         id: lessonId,
@@ -49,8 +53,15 @@ export async function updateTeacherLesson(
         description: result.data.description,
         thumbnailKey: result.data.thumbnailKey,
         videoKey: result.data.videoKey,
+        // Reset transcription status if video changed
+        ...(videoKeyChanged && { transcriptionStatus: "Pending" }),
       },
     });
+
+    // Schedule transcription if video was added/changed
+    if (videoKeyChanged) {
+      await scheduleTranscription(lessonId);
+    }
 
     return {
       status: "success",

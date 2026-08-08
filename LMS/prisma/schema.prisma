@@ -163,6 +163,10 @@ model Lesson {
   videoKey     String?
   position     Int
 
+  // Transcription fields (for worker integration)
+  transcriptionStatus TranscriptionStatus @default(Pending)
+  transcript          Transcript?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   Chapter   Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
@@ -171,6 +175,28 @@ model Lesson {
   lessonProgress LessonProgress[]
   quiz           Quiz?
   comments       Comment[]
+}
+
+// Transcription status enum
+enum TranscriptionStatus {
+  Pending
+  Processing
+  Done
+  Failed
+}
+
+// Transcript model for storing video transcriptions
+model Transcript {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  
+  lessonId String @unique @db.ObjectId
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  
+  fullText String
+  segments Json?
+  language String?
+  
+  processedAt DateTime @default(now())
 }
 
 model Quiz {

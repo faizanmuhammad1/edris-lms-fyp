@@ -64,22 +64,22 @@ export const chapterSchema = z.object({
   name: z
     .string()
     .min(3, { message: "Name must be at least 3 characters long" }),
-  courseId: z.string().uuid({ message: "Invalid course id" }),
+  courseId: z.string().min(1, { message: "Course ID is required" }),
 });
 
 export const lessonSchema = z.object({
   name: z
     .string()
     .min(3, { message: "Name must be at least 3 characters long" }),
-  chapterId: z.string().uuid({ message: "Invalid chapter ID" }),
-  courseId: z.string().uuid({ message: "Invalid course ID" }),
+  chapterId: z.string().min(1, { message: "Chapter ID is required" }),
+  courseId: z.string().min(1, { message: "Course ID is required" }),
   description: z
     .string()
-    .min(3, { message: "Description must be at least 3 characters long" })
-    .optional(),
+    .optional()
+    .transform(val => val === "" ? undefined : val),
 
-  videoKey: z.string().optional(),
-  thumbnailKey: z.string().optional(),
+  videoKey: z.string().optional().transform(val => val === "" ? undefined : val),
+  thumbnailKey: z.string().optional().transform(val => val === "" ? undefined : val),
 });
 
 export type CourseSchemaType = z.infer<typeof courseSchema>;

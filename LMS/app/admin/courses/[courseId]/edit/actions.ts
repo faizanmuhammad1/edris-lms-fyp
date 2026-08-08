@@ -13,6 +13,7 @@ import {
 } from "@/lib/zodSchemas";
 import { request } from "@arcjet/next";
 import { revalidatePath } from "next/cache";
+import { scheduleTranscription } from "@/lib/transcription-queue";
 
 const aj = arcjet.withRule(
   fixedWindow({
@@ -226,7 +227,8 @@ export async function createLesson(
       };
     }
 
-    await prisma.$transaction(async (tx) => {
+    // Create lesson and get its ID for transcription scheduling
+    const newLesson = await prisma.$transaction(async (tx) => {
       const maxPos = await tx.lesson.findFirst({
         where: {
           chapterId: result.data.chapterId,
@@ -239,7 +241,7 @@ export async function createLesson(
         },
       });
 
-      await tx.lesson.create({
+      return await tx.lesson.create({
         data: {
           title: result.data.name,
           description: result.data.description,
@@ -250,6 +252,11 @@ export async function createLesson(
         },
       });
     });
+
+    // Schedule transcription if lesson has a video
+    if (newLesson.videoKey) {
+      await scheduleTranscription(newLesson.id);
+    }
 
     revalidatePath(`/admin/courses/${result.data.courseId}/edit`);
 

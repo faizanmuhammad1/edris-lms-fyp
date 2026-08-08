@@ -4,6 +4,7 @@ import { requireAdmin } from "@/app/data/admin/require-admin";
 import { prisma } from "@/lib/db";
 import { ApiResponse } from "@/lib/types";
 import { lessonSchema, LessonSchemaType } from "@/lib/zodSchemas";
+import { scheduleTranscription } from "@/lib/transcription-queue";
 
 export async function updateLesson(
   values: LessonSchemaType,
@@ -21,6 +22,15 @@ export async function updateLesson(
       };
     }
 
+    // Get current lesson to check if video changed
+    const currentLesson = await prisma.lesson.findUnique({
+      where: { id: lessonId },
+      select: { videoKey: true },
+    });
+
+    // Check if video key is being added or changed
+    const videoKeyChanged = result.data.videoKey && result.data.videoKey !== currentLesson?.videoKey;
+
     await prisma.lesson.update({
       where: {
         id: lessonId,
@@ -30,17 +40,24 @@ export async function updateLesson(
         description: result.data.description,
         thumbnailKey: result.data.thumbnailKey,
         videoKey: result.data.videoKey,
+        // Reset transcription status if video changed
+        ...(videoKeyChanged && { transcriptionStatus: "Pending" }),
       },
     });
 
+    // Schedule transcription if video was added/changed
+    if (videoKeyChanged) {
+      await scheduleTranscription(lessonId);
+    }
+
     return {
       status: "success",
-      message: "Course updated successfully",
+      message: "Lesson updated successfully",
     };
   } catch {
     return {
       status: "error",
-      message: "Failed to update course",
+      message: "Failed to update lesson",
     };
   }
 }

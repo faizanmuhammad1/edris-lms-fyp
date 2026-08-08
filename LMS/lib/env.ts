@@ -17,6 +17,7 @@ export const env = createEnv({
     EMAIL_FROM: z.string().min(1).optional(),
     STRIPE_SECRET_KEY: z.string().optional(),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
+    REDIS_URL: z.string().optional(),
   },
 
   client: {
