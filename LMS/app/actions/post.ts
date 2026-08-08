@@ -14,7 +14,13 @@ const postSchema = z.object({
 });
 
 export async function createPost(values: z.infer<typeof postSchema>) {
-    const user = await requireUser();
+    const sessionUser = await requireUser();
+    const user = await prisma.user.findUnique({
+        where: { id: sessionUser.id },
+        select: { role: true, id: true }
+    });
+
+    if (!user) return { status: "error", message: "User not found" };
 
     return await tryCatch((async () => {
 
@@ -63,4 +69,63 @@ export async function getPosts(communityId: string) {
             },
         },
     });
+}
+
+export async function deletePost(postId: string) {
+    const sessionUser = await requireUser();
+    const user = await prisma.user.findUnique({
+        where: { id: sessionUser.id },
+        select: { role: true, id: true }
+    });
+
+    if (!user) return { status: "error", message: "User not found" };
+
+    try {
+        const post = await prisma.post.findUnique({
+            where: { id: postId },
+            select: {
+                userId: true,
+                communityId: true,
+                community: {
+                    select: {
+                        courseId: true,
+                        course: {
+                            select: { userId: true }
+                        }
+                    }
+                }
+            },
+        });
+
+        if (!post) {
+            return { status: "error", message: "Post not found" };
+        }
+
+        const isAuthor = post.userId === user.id;
+        const isTeacher = post.community.course?.userId === user.id;
+        const isAdmin = user.role === "admin";
+
+        if (!isAuthor && !isTeacher && !isAdmin) {
+            return { status: "error", message: "You are not authorized to delete this post" };
+        }
+
+        await prisma.post.delete({
+            where: { id: postId },
+        });
+
+        const community = await prisma.community.findUnique({
+            where: { id: post.communityId },
+            select: { slug: true }
+        });
+
+        if (community) {
+            revalidatePath(`/dashboard/forum/${community.slug}`);
+            revalidatePath(`/dashboard/forum`);
+        }
+
+        return { status: "success", message: "Post deleted successfully" };
+    } catch (error) {
+        console.error("Error deleting post:", error);
+        return { status: "error", message: "Failed to delete post" };
+    }
 }

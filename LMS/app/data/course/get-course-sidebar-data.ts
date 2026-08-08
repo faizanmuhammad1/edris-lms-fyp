@@ -36,6 +36,8 @@ export async function getCourseSidebarData(slug: string) {
               title: true,
               position: true,
               description: true,
+              lessonType: true,
+              videoKey: true,
               lessonProgress: {
                 where: {
                   userId: session.id,
@@ -44,6 +46,33 @@ export async function getCourseSidebarData(slug: string) {
                   completed: true,
                   lessonId: true,
                   id: true,
+                },
+              },
+              quiz: {
+                select: {
+                  passingScore: true,
+                  isPublished: true,
+                  attempts: {
+                    where: {
+                      userId: session.id,
+                      isCompleted: true,
+                    },
+                    select: {
+                      score: true,
+                    },
+                  },
+                },
+              },
+              assignment: {
+                select: {
+                  submissions: {
+                    where: {
+                      userId: session.id,
+                    },
+                    select: {
+                      id: true,
+                    },
+                  },
                 },
               },
             },

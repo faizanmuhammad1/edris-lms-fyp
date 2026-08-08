@@ -1,5 +1,8 @@
 "use server";
 
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/app/data/user/require-user";
 import { revalidatePath } from "next/cache";
@@ -8,7 +11,15 @@ import { env } from "@/lib/env";
 import Stripe from "stripe";
 
 export async function getCart() {
-    const user = await requireUser();
+    const session = await auth.api.getSession({
+        headers: await headers(),
+    });
+
+    if (!session?.user) {
+        return null;
+    }
+
+    const user = session.user;
     const cart = await prisma.cart.findUnique({
         where: { userId: user.id },
         include: {
@@ -28,7 +39,15 @@ export async function getCart() {
 }
 
 export async function addToCart(courseId: string) {
-    const user = await requireUser();
+    const session = await auth.api.getSession({
+        headers: await headers(),
+    });
+
+    if (!session || !session.user) {
+        return { status: "error", message: "Please login before adding to cart" };
+    }
+
+    const user = session.user;
 
     // Create cart if not exists
     let cart = await prisma.cart.findUnique({
@@ -169,7 +188,7 @@ export async function checkoutCart() {
             userId: user.id,
             enrollmentIds: enrollmentIds.join(","), // Limit 500 chars
         },
-        success_url: `${env.BETTER_AUTH_URL}/payment/success`,
+        success_url: `${env.BETTER_AUTH_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${env.BETTER_AUTH_URL}/payment/cancel`,
     });
 

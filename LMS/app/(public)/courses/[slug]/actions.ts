@@ -1,6 +1,7 @@
 "use server";
 
-import { requireUser } from "@/app/data/user/require-user";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import arcjet, { fixedWindow } from "@/lib/arcjet";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -21,7 +22,15 @@ const aj = arcjet.withRule(
 export async function enrollInCourseAction(
   courseId: string
 ): Promise<ApiResponse | never> {
-  const user = await requireUser();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session || !session.user) {
+    return { status: "error", message: "Please login before enrolling" };
+  }
+
+  const user = session.user;
 
   let checkoutUrl: string;
   try {
@@ -112,13 +121,16 @@ export async function enrollInCourseAction(
 
       let enrollment;
 
+      // Store amount in cents (Stripe uses cents; course.price is in dollars)
+      const amountCents = Math.round(Number(course.price) * 100);
+
       if (existingEnrollment) {
         enrollment = await tx.enrollment.update({
           where: {
             id: existingEnrollment.id,
           },
           data: {
-            amount: course.price,
+            amount: amountCents,
             status: "Pending",
             updatedAt: new Date(),
           },
@@ -128,7 +140,7 @@ export async function enrollInCourseAction(
           data: {
             userId: user.id,
             courseId: course.id,
-            amount: course.price,
+            amount: amountCents,
             status: "Pending",
           },
         });
@@ -143,7 +155,7 @@ export async function enrollInCourseAction(
           },
         ],
         mode: "payment",
-        success_url: `${env.BETTER_AUTH_URL}/payment/success`,
+        success_url: `${env.BETTER_AUTH_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${env.BETTER_AUTH_URL}/payment/cancel`,
         metadata: {
           userId: user.id,

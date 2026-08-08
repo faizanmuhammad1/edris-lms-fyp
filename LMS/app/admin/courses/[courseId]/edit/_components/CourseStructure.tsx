@@ -357,9 +357,11 @@ export function CourseStructure({ data }: iAppProps) {
                                       >
                                         <GripVertical className="size-4" />
                                       </Button>
-                                      <FileText className="size-4" />
+                                      <FileText className="size-4 shrink-0" />
                                       <Link
                                         href={`/admin/courses/${data.id}/${item.id}/${lesson.id}`}
+                                        scroll={false}
+                                        className="font-medium text-foreground hover:underline cursor-pointer"
                                       >
                                         {lesson.title}
                                       </Link>

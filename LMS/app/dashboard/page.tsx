@@ -1,46 +1,83 @@
 import { EmptyState } from "@/components/general/EmptyState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAllCourses } from "../data/course/get-all-courses";
-import { getEnrolledCourses } from "../data/user/get-enrolled-courses";
+import {
+  EnrolledCourseType,
+  getEnrolledCourses,
+} from "../data/user/get-enrolled-courses";
 import { getCertificates } from "../data/user/get-certificates";
 import { PublicCourseCard } from "../(public)/_components/PublicCourseCard";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/db";
 
 import { CourseProgressCard } from "./_components/CourseProgressCard";
+import { StudentStatsOverview } from "@/components/dashboard/StudentStatsOverview";
 
 export default async function DashboardPage() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (session) {
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { role: true, teacherStatus: true },
+    });
+
+    if (user?.role === "admin") {
+      redirect("/admin");
+    }
+
+    if (user?.role === "teacher" || user?.teacherStatus === "Approved") {
+      redirect("/teacher");
+    }
+  }
+
   const [courses, enrolledCourses, certificates] = await Promise.all([
     getAllCourses(),
     getEnrolledCourses(),
     getCertificates(),
   ]);
 
+  const primaryCourse: EnrolledCourseType | null =
+    enrolledCourses.length > 0 ? enrolledCourses[0] : null;
+  const otherCourses: EnrolledCourseType[] =
+    primaryCourse && enrolledCourses.length > 1
+      ? enrolledCourses.slice(1)
+      : [];
+
   return (
     <>
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold">Enrolled Courses</h1>
-        <p className="text-muted-foreground">
-          Here you can see all the courses you have access to
-        </p>
-      </div>
-
-      {/* Certificates summary */}
-      <section className="mt-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Certificates</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-3xl font-bold">{certificates.length}</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Total certificates earned
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* You can add more summary cards here if needed */}
+      {/* My learning overview (headline + stats) */}
+      <section className="mb-8">
+        <div className="flex flex-col gap-1 mb-3">
+          <h1 className="text-3xl font-bold">My learning overview</h1>
+          <p className="text-muted-foreground">
+            Track your overall progress and where you&apos;re spending your time.
+          </p>
         </div>
+        <StudentStatsOverview
+          enrolledCourses={enrolledCourses}
+          certificatesCount={certificates.length}
+        />
       </section>
+
+      {/* Continue learning */}
+      {primaryCourse && (
+        <section className="mb-8">
+          <div className="flex flex-col gap-1 mb-4">
+            <h2 className="text-2xl font-semibold">Continue learning</h2>
+            <p className="text-muted-foreground">
+              Jump back into your most recently active course.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)]">
+            <CourseProgressCard data={primaryCourse} />
+          </div>
+        </section>
+      )}
 
       {enrolledCourses.length === 0 ? (
         <EmptyState
@@ -49,12 +86,16 @@ export default async function DashboardPage() {
           buttonText="Browse Courses"
           href="/courses"
         />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {enrolledCourses.map((course) => (
-            <CourseProgressCard key={course.Course.id} data={course} />
-          ))}
-        </div>
+      ) : otherCourses.length === 0 && primaryCourse ? null : (
+        <section className="mt-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {(otherCourses.length > 0 ? otherCourses : enrolledCourses).map(
+              (course) => (
+                <CourseProgressCard key={course.Course.id} data={course} />
+              )
+            )}
+          </div>
+        </section>
       )}
 
       {/* Quick access to recent certificates */}
@@ -80,7 +121,7 @@ export default async function DashboardPage() {
                     Issued {new Date(cert.issuedOn).toLocaleDateString()}
                   </p>
                   <a
-                    href={`/dashboard/${cert.courseSlug}/certificate`}
+                    href={`/dashboard/certificate/${cert.courseSlug}`}
                     className="inline-flex mt-3 text-sm font-medium text-primary hover:underline"
                   >
                     View certificate
@@ -94,9 +135,10 @@ export default async function DashboardPage() {
 
       <section className="mt-10">
         <div className="flex flex-col gap-2 mb-5">
-          <h1 className="text-3xl font-bold">Available Courses</h1>
+          <h2 className="text-2xl font-semibold">Explore more courses</h2>
           <p className="text-muted-foreground">
-            Here you can see all the courses you can purchase
+            Browse other courses you can purchase to continue growing your
+            skills.
           </p>
         </div>
 

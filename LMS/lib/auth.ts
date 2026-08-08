@@ -10,13 +10,8 @@ import { resend } from "./resend";
 export const auth = betterAuth({
   trustedOrigins: ["https://edrislms.com", "https://www.edrislms.com"],
   database: prismaAdapter(prisma, {
-    provider: "mongodb", // or "mysql", "postgresql", ...etc
+    provider: "postgresql",
   }),
-  advanced: {
-    database: {
-      generateId: false, // Let MongoDB auto-generate ObjectIds
-    },
-  },
   socialProviders: {
     google: {
       clientId: env.BETTER_AUTH_GOOGLE_CLIENT_ID,

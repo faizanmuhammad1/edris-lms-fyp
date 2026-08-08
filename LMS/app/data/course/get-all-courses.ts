@@ -19,6 +19,12 @@ export async function getAllCourses(category?: string) {
       level: true,
       duration: true,
       category: true,
+      user: {
+        select: {
+          name: true,
+          image: true,
+        },
+      },
     },
   });
 

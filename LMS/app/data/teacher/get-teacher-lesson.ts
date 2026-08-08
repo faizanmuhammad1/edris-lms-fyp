@@ -22,8 +22,25 @@ export async function getTeacherLesson(lessonId: string) {
       description: true,
       thumbnailKey: true,
       videoKey: true,
+      muxPlaybackId: true,
+      muxStatus: true,
+      transcriptionStatus: true,
       position: true,
       chapterId: true,
+      lessonType: true,
+      pdfKey: true,
+      pdfFileName: true,
+      attachments: {
+        orderBy: { position: "asc" },
+        select: {
+          id: true,
+          fileKey: true,
+          fileName: true,
+          fileSize: true,
+          mimeType: true,
+          position: true,
+        },
+      },
     },
   });
 

@@ -26,15 +26,15 @@ export function NavMain({
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
-        {pathname.startsWith("/admin") && (
+        {pathname.startsWith("/teacher") && (
           <SidebarMenu>
             <SidebarMenuItem className="flex items-center gap-2">
               <SidebarMenuButton
                 asChild
                 tooltip="Quick Create"
-                className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear"
+                className="bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground active:bg-primary-hover active:text-primary-foreground min-w-8 duration-200 ease-linear"
               >
-                <Link href="/admin/courses/create">
+                <Link href="/teacher/courses/create">
                   <IconCirclePlusFilled />
                   <span>Create Course</span>
                 </Link>
@@ -44,9 +44,9 @@ export function NavMain({
               <SidebarMenuButton
                 asChild
                 tooltip="Create Community"
-                className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear"
+                className="bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground active:bg-primary-hover active:text-primary-foreground min-w-8 duration-200 ease-linear"
               >
-                <Link href="/admin/communities/create">
+                <Link href="/teacher/communities/create">
                   <IconCirclePlusFilled />
                   <span>Create Community</span>
                 </Link>
@@ -57,16 +57,23 @@ export function NavMain({
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title} asChild>
+              <SidebarMenuButton
+                tooltip={item.title}
+                asChild
+                isActive={pathname === item.url}
+              >
                 <Link
                   href={item.url}
                   className={cn(
-                    pathname === item.url && "bg-accent text-accent-foreground"
+                    pathname === item.url &&
+                    "bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground"
                   )}
                 >
                   {item.icon && (
                     <item.icon
-                      className={cn(pathname === item.url && "text-primary")}
+                      className={cn(
+                        pathname === item.url && "text-primary-foreground"
+                      )}
                     />
                   )}
                   <span>{item.title}</span>

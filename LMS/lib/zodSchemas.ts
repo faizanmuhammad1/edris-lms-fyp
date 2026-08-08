@@ -60,12 +60,17 @@ export const courseSchema = z.object({
   }),
 });
 
+// UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+const uuidSchema = z.string().uuid({ message: "Invalid ID format" });
+
 export const chapterSchema = z.object({
   name: z
     .string()
     .min(3, { message: "Name must be at least 3 characters long" }),
   courseId: z.string().min(1, { message: "Course ID is required" }),
 });
+
+export const lessonTypes = ["Video", "Reading", "Mixed"] as const;
 
 export const lessonSchema = z.object({
   name: z
@@ -85,3 +90,6 @@ export const lessonSchema = z.object({
 export type CourseSchemaType = z.infer<typeof courseSchema>;
 export type ChapterSchemaType = z.infer<typeof chapterSchema>;
 export type LessonSchemaType = z.infer<typeof lessonSchema>;
+export type AssignmentSchemaType = z.infer<typeof assignmentSchema>;
+export type AssignmentSubmissionSchemaType = z.infer<typeof assignmentSubmissionSchema>;
+export type GradeSubmissionSchemaType = z.infer<typeof gradeSubmissionSchema>;

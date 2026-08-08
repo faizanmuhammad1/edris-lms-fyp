@@ -12,6 +12,7 @@ import {
 import { lessonSchema, LessonSchemaType } from "@/lib/zodSchemas";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -30,6 +31,7 @@ import { tryCatch } from "@/hooks/try-catch";
 import { updateLesson } from "../actions";
 import { toast } from "sonner";
 
+
 interface iAppProps {
   data: AdminLessonType;
   chapterId: string;
@@ -38,6 +40,7 @@ interface iAppProps {
 
 export function LessonForm({ chapterId, data, courseId }: iAppProps) {
   const [pending, startTransition] = useTransition();
+
   const form = useForm<LessonSchemaType>({
     resolver: zodResolver(lessonSchema),
     defaultValues: {
@@ -69,6 +72,8 @@ export function LessonForm({ chapterId, data, courseId }: iAppProps) {
       }
     });
   }
+
+
   return (
     <div>
       <Link
@@ -82,10 +87,16 @@ export function LessonForm({ chapterId, data, courseId }: iAppProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Lesson Configuration</CardTitle>
-          <CardDescription>
-            Configure the video and description for this lesson.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Lesson Configuration</CardTitle>
+              <CardDescription>
+                Configure the video and description for this lesson.
+              </CardDescription>
+            </div>
+
+
+          </div>
         </CardHeader>
         <CardContent>
           <Form {...form}>

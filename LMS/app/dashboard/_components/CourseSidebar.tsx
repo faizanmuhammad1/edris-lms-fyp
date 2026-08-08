@@ -8,10 +8,11 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
-import { ChevronDown, Play } from "lucide-react";
+import { Award, ChevronDown, Play } from "lucide-react";
 import { LessonItem } from "./LessonItem";
 import { usePathname } from "next/navigation";
-import { useCourseProgress } from "@/hooks/use-course-progress";
+import Link from "next/link";
+import { useCourseProgress, isLessonFullyComplete } from "@/hooks/use-course-progress";
 
 interface iAppProps {
   course: CourseSidebarDataType["course"];
@@ -52,6 +53,25 @@ export function CourseSidebar({ course }: iAppProps) {
           <p className="text-xs text-muted-foreground">
             {progressPercentage}% complete
           </p>
+          {totalLessons > 0 &&
+            completedLessons === totalLessons &&
+            progressPercentage === 100 && (
+              <Button
+                asChild
+                className="w-full mt-2"
+                variant="default"
+              >
+                <Link href={`/dashboard/certificate/${course.slug}`}>
+                  <Award className="size-4 mr-2 shrink-0" />
+                  View certificate
+                </Link>
+              </Button>
+            )}
+          {totalLessons > 0 && completedLessons < totalLessons && (
+            <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+              Complete all lessons to unlock your certificate.
+            </p>
+          )}
         </div>
       </div>
 
@@ -61,7 +81,7 @@ export function CourseSidebar({ course }: iAppProps) {
             <CollapsibleTrigger asChild>
               <Button
                 variant="outline"
-                className="w-full p-3 h-auto flex items-center gap-2"
+                className="w-full p-3 h-auto flex items-center gap-2 bg-card hover:bg-accent/50 transition-colors shadow-sm border-border/60"
               >
                 <div className="shrink-0">
                   <ChevronDown className="size-4 text-primary" />
@@ -78,19 +98,22 @@ export function CourseSidebar({ course }: iAppProps) {
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-3 pl-6 border-l-2 space-y-3">
-              {chapter.lessons.map((lesson) => (
-                <LessonItem
-                  key={lesson.id}
-                  lesson={lesson}
-                  slug={course.slug}
-                  isActive={currentLessonId === lesson.id}
-                  completed={
-                    lesson.lessonProgress.find(
-                      (progress) => progress.lessonId === lesson.id
-                    )?.completed || false
-                  }
-                />
-              ))}
+              {chapter.lessons.map((lesson) => {
+                const fullyDone = isLessonFullyComplete(lesson);
+                const markedComplete = lesson.lessonProgress.some(
+                  (p) => p.lessonId === lesson.id && p.completed
+                );
+                return (
+                  <LessonItem
+                    key={lesson.id}
+                    lesson={lesson}
+                    slug={course.slug}
+                    isActive={currentLessonId === lesson.id}
+                    completed={fullyDone}
+                    partiallyComplete={markedComplete && !fullyDone}
+                  />
+                );
+              })}
             </CollapsibleContent>
           </Collapsible>
         ))}

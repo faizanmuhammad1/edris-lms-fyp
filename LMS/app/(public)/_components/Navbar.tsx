@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import Logo from "@/public/bc413ab4-3838-4b3d-ae28-e8f3cd721b33.png";
+import WhiteLogo from "@/public/edriswhitelogo.png";
 import { ThemeToggle } from "@/components/ui/themeToggle";
 import { authClient } from "@/lib/auth-client";
 import { buttonVariants } from "@/components/ui/button";
@@ -18,11 +19,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
+import {
+  verificationPortalLinkProps,
+  verificationPortalUrl,
+} from "@/lib/verification-portal-url";
+
+const verificationHref = verificationPortalUrl();
 
 const navigationItems = [
   { name: "Teach on Edris", href: "/teach" },
   { name: "My Learning", href: "/dashboard" },
-  { name: "Verifications", href: "/verification" },
+  { name: "Verifications", href: verificationHref },
 ];
 
 const categories = [
@@ -44,7 +51,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 transition-all duration-300">
-      <div className="container flex h-16 items-center mx-auto px-4 md:px-6 lg:px-8 gap-4">
+      <div className="container flex h-16 items-center mx-auto px-6 md:px-12 lg:px-24 xl:px-32 2xl:px-40 gap-4">
         {/* Mobile Menu */}
         <Sheet>
           <SheetTrigger asChild className="md:hidden">
@@ -59,6 +66,7 @@ export function Navbar() {
                   key={item.name}
                   href={item.href}
                   className="text-lg font-medium hover:text-primary transition-colors"
+                  {...verificationPortalLinkProps(item.href)}
                 >
                   {item.name}
                 </Link>
@@ -69,6 +77,7 @@ export function Navbar() {
                 <Link
                   key={cat}
                   href={`/courses?category=${cat}`}
+                  onClick={() => window.scrollTo(0, 0)}
                   className="text-base text-muted-foreground hover:text-primary transition-colors"
                 >
                   {cat}
@@ -80,11 +89,12 @@ export function Navbar() {
 
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2 mr-4 shrink-0 group">
-          <div className="relative">
+          <div className="relative flex items-center justify-center">
             <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <Image src={Logo} alt="Logo" className="size-9 relative z-10" />
+            <Image src={Logo} alt="Edris LMS Logo" className="h-12 w-auto relative z-10 dark:hidden" />
+            <Image src={WhiteLogo} alt="Edris LMS Logo" className="h-12 w-auto relative z-10 hidden dark:block" />
           </div>
-          <span className="font-bold text-xl tracking-tight hidden sm:inline-block">Edris LMS</span>
+          <span className="font-bold text-2xl tracking-tight hidden sm:inline-block">Edris LMS</span>
         </Link>
 
         {/* Categories Dropdown */}
@@ -96,7 +106,11 @@ export function Navbar() {
             <DropdownMenuContent align="start" className="w-56 p-2">
               {categories.map((cat) => (
                 <DropdownMenuItem key={cat} asChild>
-                  <Link href={`/courses?category=${encodeURIComponent(cat)}`} className="cursor-pointer w-full">
+                  <Link
+                    href={`/courses?category=${encodeURIComponent(cat)}`}
+                    onClick={() => window.scrollTo(0, 0)}
+                    className="cursor-pointer w-full"
+                  >
                     {cat}
                   </Link>
                 </DropdownMenuItem>
@@ -125,7 +139,12 @@ export function Navbar() {
             Teach on Edris
           </Link>
 
-          <Link href="/verification" className="p-2 hover:bg-accent rounded-full transition-colors relative group" title="Verify Certificate">
+          <Link
+            href={verificationHref}
+            className="p-2 hover:bg-accent rounded-full transition-colors relative group"
+            title="Verify Certificate"
+            {...verificationPortalLinkProps(verificationHref)}
+          >
             <ShieldCheck className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
           </Link>
 
@@ -142,7 +161,7 @@ export function Navbar() {
               email={session.user.email}
               image={
                 session?.user.image ??
-                `https://avatar.vercel.sh/${session?.user.email}`
+                `https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=${session?.user.email}`
               }
               name={
                 session?.user.name && session.user.name.length > 0
@@ -158,7 +177,7 @@ export function Navbar() {
               >
                 Log in
               </Link>
-              <Link href="/signup" className={buttonVariants({ size: "sm", className: "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20" })}>
+              <Link href="/login" className={buttonVariants({ size: "sm", className: "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20" })}>
                 Sign up
               </Link>
             </div>

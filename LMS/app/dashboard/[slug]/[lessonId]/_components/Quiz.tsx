@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { QuizTimer } from "./QuizTimer";
-import { Clock, CheckCircle2, XCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, AlertCircle, Loader2, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { submitQuizAttempt } from "../actions";
 import { toast } from "sonner";
@@ -53,9 +53,11 @@ interface QuizProps {
     rightClickCount: number;
     devToolsAttemptCount: number;
   }>;
+  violationLogRef?: React.MutableRefObject<{ type: string; at: string }[]>;
+  isExiting?: boolean;
 }
 
-export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, onSubmitRef, cheatingCountersRef }: QuizProps) {
+export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, onSubmitRef, cheatingCountersRef, violationLogRef, isExiting }: QuizProps) {
   const router = useRouter();
   const [selectedAnswers, setSelectedAnswers] = useState<
     Record<string, string>
@@ -71,6 +73,18 @@ export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, o
   const [isPending, startTransition] = useTransition();
   const [timeUp, setTimeUp] = useState(false);
   const [startTime] = useState<number>(() => Date.now());
+  const [integritySnapshot, setIntegritySnapshot] = useState<{
+    tabSwitchCount: number;
+    backButtonCount: number;
+    windowBlurCount: number;
+    visibilityChangeCount: number;
+    copyAttemptCount: number;
+    pasteAttemptCount: number;
+    rightClickCount: number;
+    devToolsAttemptCount: number;
+    screenshotCount: number;
+    printCount: number;
+  } | null>(null);
   const submitFnRef = useRef<(() => void) | null>(null);
 
   const handleSubmit = useCallback(() => {
@@ -86,13 +100,39 @@ export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, o
           courseSlug,
           answers: selectedAnswers,
           timeSpent: timeSpent,
-          cheatingCounters: cheatingCountersRef?.current,
+          cheatingCounters: cheatingCountersRef
+            ? { ...cheatingCountersRef.current }
+            : undefined,
+          violationLog:
+            violationLogRef && (violationLogRef.current?.length ?? 0) > 0
+              ? [...violationLogRef.current]
+              : undefined,
         });
 
         if (response.status === "success" && response.data) {
           setResults(response.data);
           setIsSubmitted(true);
-          
+          setIntegritySnapshot(
+            cheatingCountersRef
+              ? {
+                  ...cheatingCountersRef.current,
+                  screenshotCount: violationLogRef?.current?.filter((v) => v.type === "printscreen").length ?? 0,
+                  printCount: violationLogRef?.current?.filter((v) => v.type === "print").length ?? 0,
+                }
+              : {
+                  tabSwitchCount: 0,
+                  backButtonCount: 0,
+                  windowBlurCount: 0,
+                  visibilityChangeCount: 0,
+                  copyAttemptCount: 0,
+                  pasteAttemptCount: 0,
+                  rightClickCount: 0,
+                  devToolsAttemptCount: 0,
+                  screenshotCount: violationLogRef?.current?.filter((v) => v.type === "printscreen").length ?? 0,
+                  printCount: violationLogRef?.current?.filter((v) => v.type === "print").length ?? 0,
+                }
+          );
+
           if (response.data.passed) {
             toast.success(
               `Congratulations! You passed with ${response.data.score}%`
@@ -117,7 +157,7 @@ export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, o
         console.error(error);
       }
     });
-  }, [isSubmitted, isPending, selectedAnswers, quiz.id, lessonId, courseSlug, quiz.passingScore, onComplete, startTime, cheatingCountersRef]);
+  }, [isSubmitted, isPending, selectedAnswers, quiz.id, lessonId, courseSlug, quiz.passingScore, onComplete, startTime, cheatingCountersRef, violationLogRef]);
 
   const handleTimeUp = () => {
     setTimeUp(true);
@@ -278,22 +318,117 @@ export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, o
             })}
           </div>
 
-          <div className="flex gap-4">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSelectedAnswers({});
-                setIsSubmitted(false);
-                setResults(null);
-                setTimeUp(false);
-              }}
-            >
-              Retake Quiz
-            </Button>
-            <Button onClick={() => router.push(`/dashboard/${courseSlug}`)}>
-              Continue to Course
-            </Button>
-          </div>
+          {integritySnapshot && (() => {
+            const totalViolations =
+              integritySnapshot.tabSwitchCount +
+              integritySnapshot.backButtonCount +
+              integritySnapshot.windowBlurCount +
+              integritySnapshot.visibilityChangeCount +
+              integritySnapshot.copyAttemptCount +
+              integritySnapshot.pasteAttemptCount +
+              integritySnapshot.rightClickCount +
+              integritySnapshot.devToolsAttemptCount +
+              integritySnapshot.screenshotCount +
+              integritySnapshot.printCount;
+
+            return (
+              <div
+                className={cn(
+                  "rounded-lg border p-4 flex items-start gap-3",
+                  totalViolations === 0
+                    ? "border-green-200 dark:border-green-900 bg-green-50/50 dark:bg-green-950/10"
+                    : "border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/10"
+                )}
+              >
+                <ShieldCheck
+                  className={cn(
+                    "h-5 w-5 shrink-0 mt-0.5",
+                    totalViolations === 0
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-amber-600 dark:text-amber-400"
+                  )}
+                />
+                <div className="text-sm">
+                  {totalViolations === 0 ? (
+                    <p className="font-medium text-green-800 dark:text-green-300">
+                      Integrity: No issues recorded for this attempt.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="font-medium text-amber-800 dark:text-amber-300">
+                        This attempt had {totalViolations} warning(s) recorded:
+                      </p>
+                      <ul className="mt-1 list-disc list-inside text-muted-foreground space-y-0.5">
+                        {integritySnapshot.tabSwitchCount > 0 && (
+                          <li>Tab switch / visibility change</li>
+                        )}
+                        {integritySnapshot.backButtonCount > 0 && (
+                          <li>Back navigation</li>
+                        )}
+                        {integritySnapshot.windowBlurCount > 0 && (
+                          <li>Window focus lost</li>
+                        )}
+                        {integritySnapshot.visibilityChangeCount > 0 && integritySnapshot.tabSwitchCount === 0 && (
+                          <li>Visibility change</li>
+                        )}
+                        {integritySnapshot.copyAttemptCount > 0 && (
+                          <li>Copy attempt</li>
+                        )}
+                        {integritySnapshot.pasteAttemptCount > 0 && (
+                          <li>Paste attempt</li>
+                        )}
+                        {integritySnapshot.rightClickCount > 0 && (
+                          <li>Right-click</li>
+                        )}
+                        {integritySnapshot.devToolsAttemptCount > 0 && (
+                          <li>Restricted key / DevTools attempt</li>
+                        )}
+                        {integritySnapshot.screenshotCount > 0 && (
+                          <li>Screenshot attempt ({integritySnapshot.screenshotCount})</li>
+                        )}
+                        {integritySnapshot.printCount > 0 && (
+                          <li>Print attempt ({integritySnapshot.printCount})</li>
+                        )}
+                      </ul>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+ 
+           <div className="flex gap-4">
+             <Button
+               variant="outline"
+               onClick={() => {
+                 setSelectedAnswers({});
+                 setIsSubmitted(false);
+                 setResults(null);
+                 setTimeUp(false);
+                 setIntegritySnapshot(null);
+                 if (cheatingCountersRef) {
+                   cheatingCountersRef.current = {
+                     tabSwitchCount: 0,
+                     backButtonCount: 0,
+                     windowBlurCount: 0,
+                     visibilityChangeCount: 0,
+                     copyAttemptCount: 0,
+                     pasteAttemptCount: 0,
+                     rightClickCount: 0,
+                     devToolsAttemptCount: 0,
+                   };
+                 }
+                 if (violationLogRef) {
+                   violationLogRef.current = [];
+                 }
+               }}
+             >
+               Retake Quiz
+             </Button>
+             <Button onClick={() => router.push(`/dashboard/${courseSlug}`)}>
+               Continue to Course
+             </Button>
+           </div>
         </CardContent>
       </Card>
     );
@@ -358,7 +493,7 @@ export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, o
                 <RadioGroup
                   value={selectedAnswers[question.id] || ""}
                   onValueChange={(value) => handleAnswerChangeLocal(question.id, value)}
-                  disabled={isSubmitted || timeUp}
+                  disabled={isSubmitted || timeUp || isExiting}
                 >
                   {question.options
                     .sort((a, b) => a.position - b.position)
@@ -388,7 +523,7 @@ export function Quiz({ quiz, lessonId, courseSlug, onComplete, onAnswerChange, o
           </div>
           <Button
             onClick={handleSubmit}
-            disabled={!allQuestionsAnswered || isSubmitted || isPending || timeUp}
+            disabled={!allQuestionsAnswered || isSubmitted || isPending || timeUp || isExiting}
             size="lg"
           >
             {isPending ? (

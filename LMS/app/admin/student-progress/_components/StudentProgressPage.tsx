@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getStudentProgressData } from "../actions";
+import { getStudentProgressData, getAdminQuizAttemptDetail } from "../actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, XCircle, AlertTriangle, TrendingUp, Users, Award, Ban, Loader2 } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { CheckCircle2, XCircle, AlertTriangle, TrendingUp, Users, Award, Ban, Loader2, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { QuizAttemptDetail } from "@/components/quiz-attempt-detail/QuizAttemptDetail";
+import type { QuizAttemptDetailData } from "@/components/quiz-attempt-detail/QuizAttemptDetail";
 
 type StudentData = Awaited<ReturnType<typeof getStudentProgressData>>[number];
 
@@ -38,6 +42,10 @@ function getCheatingSeverity(totalCheating: number): "low" | "medium" | "high" {
 export function StudentProgressPage() {
   const [mockStudents, setMockStudents] = useState<StudentData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [detailAttemptId, setDetailAttemptId] = useState<string | null>(null);
+  const [detailData, setDetailData] = useState<QuizAttemptDetailData | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -71,6 +79,19 @@ export function StudentProgressPage() {
   const studentsWithCheating = mockStudents.filter((student) =>
     student.quizAttempts.some((a) => getTotalCheatingAttempts(a) > 0)
   ).length;
+
+  const openAttemptDetail = async (attemptId: string) => {
+    setDetailAttemptId(attemptId);
+    setSheetOpen(true);
+    setDetailLoading(true);
+    setDetailData(null);
+    try {
+      const data = await getAdminQuizAttemptDetail(attemptId);
+      setDetailData(data ?? null);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -163,6 +184,7 @@ export function StudentProgressPage() {
                   <TableHead>Time Spent</TableHead>
                   <TableHead>Cheating Attempts</TableHead>
                   <TableHead>Date</TableHead>
+                  <TableHead className="w-[80px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -235,6 +257,12 @@ export function StudentProgressPage() {
                                 {attempt.rightClickCount > 0 && (
                                   <div>Right-click: {attempt.rightClickCount}</div>
                                 )}
+                                {attempt.windowBlurCount > 0 && (
+                                  <div>Blur: {attempt.windowBlurCount}</div>
+                                )}
+                                {attempt.visibilityChangeCount > 0 && (
+                                  <div>Visibility: {attempt.visibilityChangeCount}</div>
+                                )}
                               </div>
                             </div>
                           ) : (
@@ -248,6 +276,16 @@ export function StudentProgressPage() {
                           {attempt.submittedAt?.toLocaleDateString()} at{" "}
                           {attempt.submittedAt?.toLocaleTimeString()}
                         </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openAttemptDetail(attempt.id)}
+                          >
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">View details</span>
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     );
                   })
@@ -257,6 +295,25 @@ export function StudentProgressPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Attempt details</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6">
+            {detailLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : detailData ? (
+              <QuizAttemptDetail attempt={detailData} />
+            ) : detailAttemptId && !detailLoading ? (
+              <p className="text-muted-foreground">Could not load attempt details.</p>
+            ) : null}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

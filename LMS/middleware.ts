@@ -30,10 +30,13 @@ const aj = arcjet({
 async function authMiddleware(request: NextRequest) {
   // Check for better-auth session cookie directly (Edge Runtime compatible)
   // The cookie name is typically "better-auth.session_token" or similar
-  const sessionCookie = 
+  const sessionCookie =
     request.cookies.get("better-auth.session_token") ||
+    request.cookies.get("__Secure-better-auth.session_token") ||
     request.cookies.get("better-auth.session") ||
-    request.cookies.get("session");
+    request.cookies.get("__Secure-better-auth.session") ||
+    request.cookies.get("session") ||
+    request.cookies.get("__Secure-session");
 
   if (!sessionCookie) {
     return NextResponse.redirect(new URL("/login", request.url));
@@ -44,7 +47,7 @@ async function authMiddleware(request: NextRequest) {
 
 export const config = {
   // Run on all routes except static assets, but auth check only on admin routes
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/auth).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/auth|api/certificates|certificates/render|api/webhooks/mux|api/webhooks/transcription).*)"],
 };
 
 // Combine Arcjet with your existing middleware

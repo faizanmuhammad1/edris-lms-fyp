@@ -5,13 +5,14 @@ import {
   IconChartBar,
   IconDashboard,
   IconFileDescription,
-  IconHelp,
   IconListDetails,
-  IconSearch,
+  IconMail,
   IconSettings,
   IconUsers,
   IconMessageCircle,
   IconChartLine,
+  IconSchool,
+  IconHeadset,
   type Icon,
 } from "@tabler/icons-react";
 import Logo from "@/public/bc413ab4-3838-4b3d-ae28-e8f3cd721b33.png";
@@ -31,7 +32,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 
-// Default data for Admin
+// Default data for Admin - Admin-specific power features
 const adminData = {
   navMain: [
     {
@@ -40,29 +41,34 @@ const adminData = {
       icon: IconDashboard,
     },
     {
-      title: "Courses",
+      title: "Mail",
+      url: "/admin/mail",
+      icon: IconMail,
+    },
+    {
+      title: "User Management",
+      url: "/admin/users",
+      icon: IconUsers,
+    },
+    {
+      title: "Teacher Management",
+      url: "/admin/teachers",
+      icon: IconSchool,
+    },
+    {
+      title: "Course Management",
       url: "/admin/courses",
       icon: IconListDetails,
     },
     {
-      title: "Communities",
+      title: "Community Management",
       url: "/admin/communities",
       icon: IconMessageCircle,
     },
     {
-      title: "Analytics",
+      title: "Revenue Earnings",
       url: "/admin/analytics",
       icon: IconChartBar,
-    },
-    {
-      title: "Teachers",
-      url: "/admin/teachers",
-      icon: IconUsers,
-    },
-    {
-      title: "Student Progress",
-      url: "/admin/student-progress",
-      icon: IconChartLine,
     },
   ],
   navSecondary: [
@@ -72,14 +78,9 @@ const adminData = {
       icon: IconSettings,
     },
     {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
+      title: "Support Center",
+      url: "/admin/support",
+      icon: IconHeadset,
     },
   ],
 };
@@ -107,6 +108,11 @@ const teacherData = {
       icon: IconUsers,
     },
     {
+      title: "Student Progress",
+      url: "/teacher/student-progress",
+      icon: IconChartLine,
+    },
+    {
       title: "Communities",
       url: "/teacher/communities",
       icon: IconMessageCircle,
@@ -124,14 +130,9 @@ const teacherData = {
       icon: IconSettings,
     },
     {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
+      title: "Support & Help",
+      url: "/teacher/support",
+      icon: IconHeadset,
     },
   ],
 };
@@ -170,8 +171,8 @@ export function AppSidebar({ role = "admin", navMain, navSecondary, ...props }: 
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
               <Link href="/">
-                <Image src={Logo} alt="Logo" className="size-5" />
-                <span className="text-base font-semibold">Edris LMS</span>
+                <Image src={Logo} alt="Logo" className="size-8" />
+                <span className="text-lg font-semibold">Edris LMS</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

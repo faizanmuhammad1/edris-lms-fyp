@@ -3,7 +3,82 @@
 import { requireUser } from "@/app/data/user/require-user";
 import { prisma } from "@/lib/db";
 import { ApiResponse } from "@/lib/types";
+import {
+  assignmentSubmissionSchema,
+  ASSIGNMENT_MAX_FILE_BYTES_DEFAULT,
+  ASSIGNMENT_MAX_TEXT_LENGTH_DEFAULT,
+  type AssignmentSubmissionSchemaType,
+} from "@/lib/zodSchemas";
+import { sanitizeAssignmentText } from "@/lib/sanitize-text";
+import { runAutoGradeForSubmission } from "@/lib/grade-assignment-ai";
 import { revalidatePath } from "next/cache";
+import { getCourseCompletionStatus } from "@/app/data/course/get-course-completion-status";
+import { sendCourseCompletionEmailIfNeeded } from "@/lib/certificate-emails";
+
+async function maybeSendCourseCompletionEmail(
+  userId: string,
+  courseSlug: string
+): Promise<void> {
+  const course = await prisma.course.findUnique({
+    where: { slug: courseSlug },
+    select: { id: true },
+  });
+  if (!course) return;
+
+  const status = await getCourseCompletionStatus(course.id, userId);
+  if (!status.isEligible) return;
+
+  await sendCourseCompletionEmailIfNeeded({
+    userId,
+    courseId: course.id,
+  });
+}
+
+// ── Video Progress Tracking ──────────────────────────────────────────────────
+
+export async function saveVideoProgress(
+  lessonId: string,
+  data: {
+    lastWatchedPosition: number;
+    watchedDuration: number;
+    videoDuration: number;
+    watchPercentage: number;
+  }
+): Promise<{ success: boolean }> {
+  try {
+    const session = await requireUser();
+
+    await prisma.lessonProgress.upsert({
+      where: {
+        userId_lessonId: {
+          userId: session.id,
+          lessonId: lessonId,
+        },
+      },
+      update: {
+        lastWatchedPosition: data.lastWatchedPosition,
+        watchedDuration: data.watchedDuration,
+        videoDuration: data.videoDuration,
+        watchPercentage: data.watchPercentage,
+      },
+      create: {
+        lessonId: lessonId,
+        userId: session.id,
+        lastWatchedPosition: data.lastWatchedPosition,
+        watchedDuration: data.watchedDuration,
+        videoDuration: data.videoDuration,
+        watchPercentage: data.watchPercentage,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to save video progress:", error);
+    return { success: false };
+  }
+}
+
+// ── Lesson Completion ────────────────────────────────────────────────────────
 
 export async function markLessonComplete(
   lessonId: string,
@@ -29,7 +104,16 @@ export async function markLessonComplete(
       },
     });
 
+    try {
+      await maybeSendCourseCompletionEmail(session.id, slug);
+    } catch (emailError) {
+      console.error("Failed sending completion email:", emailError);
+    }
+
+    revalidatePath("/dashboard");
     revalidatePath(`/dashboard/${slug}`);
+    revalidatePath(`/dashboard/${slug}`, 'layout'); // Force layout revalidation
+    revalidatePath(`/dashboard/${slug}/${lessonId}`);
 
     return {
       status: "success",
@@ -43,6 +127,150 @@ export async function markLessonComplete(
   }
 }
 
+export async function submitAssignment(
+  assignmentId: string,
+  values: AssignmentSubmissionSchemaType,
+  slug: string,
+  lessonId: string
+): Promise<ApiResponse> {
+  const session = await requireUser();
+  try {
+    const assignment = await prisma.assignment.findFirst({
+      where: {
+        id: assignmentId,
+        Lesson: {
+          Chapter: {
+            Course: {
+              enrollment: {
+                some: {
+                  userId: session.id,
+                  status: "Active",
+                },
+              },
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        allowFile: true,
+        allowText: true,
+        autoGradeEnabled: true,
+        allowedFileTypes: true,
+        maxFileSizeBytes: true,
+        maxTextLength: true,
+      },
+    });
+    if (!assignment) {
+      return { status: "error", message: "Assignment not found or you are not enrolled" };
+    }
+    const parsed = assignmentSubmissionSchema.safeParse(values);
+    if (!parsed.success) {
+      return { status: "error", message: parsed.error.errors[0]?.message ?? "Invalid submission data" };
+    }
+    const { fileKey, fileName, fileSize, mimeType, textAnswer: rawTextAnswer } = parsed.data;
+    const maxFileBytes = assignment.maxFileSizeBytes ?? ASSIGNMENT_MAX_FILE_BYTES_DEFAULT;
+    const maxTextLen = assignment.maxTextLength ?? ASSIGNMENT_MAX_TEXT_LENGTH_DEFAULT;
+    if (fileSize != null && fileSize > maxFileBytes) {
+      return { status: "error", message: `File size exceeds the limit (max ${Math.round(maxFileBytes / 1024 / 1024)}MB)` };
+    }
+    // Validate file type against teacher-configured restrictions
+    if (fileKey && mimeType && assignment.allowedFileTypes) {
+      const allowed = assignment.allowedFileTypes.split(",");
+      const mimeMap: Record<string, string[]> = {
+        pdf: ["application/pdf", "application/x-pdf"],
+        image: ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"],
+        word: ["application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+        text: ["text/plain", "text/markdown"],
+        zip: ["application/zip", "application/x-zip-compressed", "application/x-compressed", "multipart/x-zip", "application/x-rar-compressed"],
+      };
+      const allowedMimes = allowed.flatMap((t) => mimeMap[t] ?? []);
+      if (allowedMimes.length > 0 && !allowedMimes.includes(mimeType)) {
+        const typeLabels: Record<string, string> = { pdf: "PDF", image: "images", word: "Word documents", text: "text files", zip: "ZIP archives" };
+        const allowedLabels = allowed.map((t) => typeLabels[t] ?? t).join(", ");
+        return { status: "error", message: `This assignment only accepts: ${allowedLabels}` };
+      }
+    }
+    const textAnswer = sanitizeAssignmentText(rawTextAnswer);
+    if (textAnswer.length > maxTextLen) {
+      return { status: "error", message: `Text answer must be at most ${maxTextLen.toLocaleString()} characters` };
+    }
+    const hasFile = !!fileKey;
+    const hasText = !!textAnswer.trim();
+    if (assignment.allowFile && assignment.allowText && !hasFile && !hasText) {
+      return { status: "error", message: "Please provide a file and/or text answer" };
+    }
+    if (assignment.allowFile && !assignment.allowText && !hasFile) {
+      return { status: "error", message: "Please upload a file" };
+    }
+    if (assignment.allowText && !assignment.allowFile && !hasText) {
+      return { status: "error", message: "Please provide a text answer" };
+    }
+    const existing = await prisma.assignmentSubmission.findUnique({
+      where: { assignmentId_userId: { assignmentId, userId: session.id } },
+    });
+    if (existing?.status === "Graded") {
+      return { status: "error", message: "Already graded; resubmission not allowed" };
+    }
+    const submission = await prisma.assignmentSubmission.upsert({
+      where: { assignmentId_userId: { assignmentId, userId: session.id } },
+      create: {
+        assignmentId,
+        userId: session.id,
+        fileKey: fileKey ?? null,
+        fileName: fileName ?? null,
+        fileSize: fileSize ?? null,
+        mimeType: mimeType ?? null,
+        textAnswer: textAnswer || null,
+        status: "Submitted",
+      },
+      update: {
+        fileKey: fileKey ?? null,
+        fileName: fileName ?? null,
+        fileSize: fileSize ?? null,
+        mimeType: mimeType ?? null,
+        textAnswer: textAnswer || null,
+        status: "Submitted",
+      },
+    });
+
+    // Assignment submission counts as lesson completion for certificate eligibility
+    await prisma.lessonProgress.upsert({
+      where: {
+        userId_lessonId: {
+          userId: session.id,
+          lessonId,
+        },
+      },
+      update: { completed: true },
+      create: {
+        lessonId,
+        userId: session.id,
+        completed: true,
+      },
+    });
+
+    try {
+      await maybeSendCourseCompletionEmail(session.id, slug);
+    } catch (emailError) {
+      console.error("Failed sending completion email:", emailError);
+    }
+
+    if (assignment.autoGradeEnabled && (hasText || hasFile)) {
+      runAutoGradeForSubmission(submission.id).catch(() => {});
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath(`/dashboard/${slug}`);
+    revalidatePath(`/dashboard/${slug}`, "layout");
+    revalidatePath(`/dashboard/${slug}/${lessonId}`);
+    revalidatePath(`/dashboard/certificate/${slug}`);
+    return { status: "success", message: "Submission saved" };
+  } catch {
+    return { status: "error", message: "Failed to submit" };
+  }
+}
+
 export async function submitQuizAttempt({
   quizId,
   lessonId,
@@ -50,6 +278,7 @@ export async function submitQuizAttempt({
   answers,
   timeSpent,
   cheatingCounters,
+  violationLog,
 }: {
   quizId: string;
   lessonId: string;
@@ -66,6 +295,7 @@ export async function submitQuizAttempt({
     rightClickCount: number;
     devToolsAttemptCount: number;
   };
+  violationLog?: { type: string; at: string }[];
 }): Promise<
   ApiResponse<{
     score: number;
@@ -147,6 +377,7 @@ export async function submitQuizAttempt({
         pasteAttemptCount: cheatingCounters?.pasteAttemptCount ?? 0,
         rightClickCount: cheatingCounters?.rightClickCount ?? 0,
         devToolsAttemptCount: cheatingCounters?.devToolsAttemptCount ?? 0,
+        violationLog: violationLog ?? undefined,
         answers: {
           create: Object.entries(answers).map(([questionId, optionId]) => ({
             questionId,
@@ -175,8 +406,16 @@ export async function submitQuizAttempt({
           completed: true,
         },
       });
+
+      try {
+        await maybeSendCourseCompletionEmail(session.id, courseSlug);
+      } catch (emailError) {
+        console.error("Failed sending completion email:", emailError);
+      }
     }
 
+    revalidatePath("/dashboard");
+    revalidatePath(`/dashboard/${courseSlug}`);
     revalidatePath(`/dashboard/${courseSlug}/${lessonId}`);
 
     return {
@@ -197,4 +436,23 @@ export async function submitQuizAttempt({
       message: "Failed to submit quiz",
     };
   }
+}
+
+/**
+ * Poll the current grading status of a submission.
+ * Used by the student UI to show a grading animation while AI grades in background.
+ */
+export async function getSubmissionStatus(submissionId: string) {
+  const session = await requireUser();
+  const submission = await prisma.assignmentSubmission.findFirst({
+    where: { id: submissionId, userId: session.id },
+    select: {
+      status: true,
+      score: true,
+      feedback: true,
+      gradedAt: true,
+      gradingMethod: true,
+    },
+  });
+  return submission;
 }

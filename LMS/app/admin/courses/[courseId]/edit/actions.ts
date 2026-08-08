@@ -3,6 +3,7 @@
 import { requireAdmin } from "@/app/data/admin/require-admin";
 import arcjet, { fixedWindow } from "@/lib/arcjet";
 import { prisma } from "@/lib/db";
+import { normalizeCourseName } from "@/lib/course-name";
 import { ApiResponse } from "@/lib/types";
 import {
   chapterSchema,
@@ -65,6 +66,7 @@ export async function editCourse(
       },
       data: {
         ...result.data,
+        normalizedName: normalizeCourseName(result.data.title),
       },
     });
 

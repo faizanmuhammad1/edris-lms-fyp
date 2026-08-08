@@ -8,6 +8,8 @@ import { prisma } from "@/lib/db";
 import { ApiResponse } from "@/lib/types";
 import { request } from "@arcjet/next";
 import { revalidatePath } from "next/cache";
+import { deleteFilesFromS3 } from "@/lib/s3-helper";
+import { deleteMuxAssets } from "@/lib/mux-trigger";
 
 const aj = arcjet.withRule(
   fixedWindow({
@@ -39,11 +41,87 @@ export async function deleteCourse(courseId: string): Promise<ApiResponse> {
         };
       }
     }
+    // 1. Fetch course + lessons to get S3 keys
+    const courseWithLessons = await prisma.course.findUnique({
+      where: { id: courseId },
+      select: {
+        fileKey: true,
+        chapter: {
+          select: {
+            lessons: {
+              select: {
+                videoKey: true,
+                thumbnailKey: true,
+                muxAssetId: true,
+                pdfKey: true,
+                attachments: {
+                  select: { fileKey: true }
+                },
+                assignment: {
+                  select: {
+                    submissions: {
+                      select: { fileKey: true }
+                    }
+                  }
+                }
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!courseWithLessons) {
+      return {
+        status: "error",
+        message: "Course not found",
+      };
+    }
+
+    // 2. Collect all keys
+    const keysToDelete: string[] = [];
+
+    // Course image
+    if (courseWithLessons.fileKey) {
+      keysToDelete.push(courseWithLessons.fileKey);
+    }
+
+    // Lesson assets
+    const muxAssetIds: string[] = [];
+    courseWithLessons.chapter.forEach((chapter) => {
+      chapter.lessons.forEach((lesson) => {
+        if (lesson.videoKey) keysToDelete.push(lesson.videoKey);
+        if (lesson.thumbnailKey) keysToDelete.push(lesson.thumbnailKey);
+        if (lesson.pdfKey) keysToDelete.push(lesson.pdfKey);
+
+        lesson.attachments?.forEach((att) => {
+          if (att.fileKey) keysToDelete.push(att.fileKey);
+        });
+
+        lesson.assignment?.submissions?.forEach((sub) => {
+          if (sub.fileKey) keysToDelete.push(sub.fileKey);
+        });
+
+        if (lesson.muxAssetId) muxAssetIds.push(lesson.muxAssetId);
+      });
+    });
+
+    // 3. Delete from Utils/DB
     await prisma.course.delete({
       where: {
         id: courseId,
       },
     });
+
+    // 4. Delete from S3
+    if (keysToDelete.length > 0) {
+      await deleteFilesFromS3(keysToDelete);
+    }
+
+    // 5. Delete Mux assets
+    if (muxAssetIds.length > 0) {
+      await deleteMuxAssets(muxAssetIds);
+    }
 
     revalidatePath("/admin/courses");
 
@@ -51,8 +129,8 @@ export async function deleteCourse(courseId: string): Promise<ApiResponse> {
       status: "success",
       message: "Course deleted successfully",
     };
-  } catch {
-
+  } catch (err) {
+    console.error("[deleteCourse] Error deleting course:", err);
     return {
       status: "error",
       message: "Failed to delete Course!",

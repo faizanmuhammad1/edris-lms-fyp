@@ -3,6 +3,9 @@
 import { requireTeacher } from "@/app/data/teacher/require-teacher";
 import arcjet, { fixedWindow } from "@/lib/arcjet";
 import { prisma } from "@/lib/db";
+import { triggerMuxAssetCreation } from "@/lib/mux-trigger";
+import { triggerTranscriptionForLesson } from "@/lib/transcription";
+import { normalizeCourseName } from "@/lib/course-name";
 import { ApiResponse } from "@/lib/types";
 import {
   chapterSchema,
@@ -78,6 +81,7 @@ export async function editTeacherCourse(
     // Prepare update data
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = { ...result.data };
+    updateData.normalizedName = normalizeCourseName(result.data.title);
 
     // Sync with Stripe
     if (result.data.title !== course.title || result.data.price !== course.price) {
@@ -356,6 +360,9 @@ export async function createTeacherLesson(
           description: result.data.description,
           videoKey: result.data.videoKey,
           thumbnailKey: result.data.thumbnailKey,
+          lessonType: result.data.lessonType ?? "Video",
+          pdfKey: result.data.pdfKey ?? null,
+          pdfFileName: result.data.pdfFileName ?? null,
           chapterId: result.data.chapterId,
           position: (maxPos?.position ?? 0) + 1,
         },
@@ -373,7 +380,8 @@ export async function createTeacherLesson(
       status: "success",
       message: "Lesson created successfully",
     };
-  } catch {
+  } catch (err) {
+    console.error("[deleteTeacherLesson] Error creating lesson:", err);
     return {
       status: "error",
       message: "Failed to create lesson",
@@ -421,6 +429,20 @@ export async function deleteTeacherLesson({
           select: {
             id: true,
             position: true,
+            videoKey: true,
+            thumbnailKey: true,
+            muxAssetId: true,
+            pdfKey: true,
+            attachments: {
+              select: { fileKey: true }
+            },
+            assignment: {
+              select: {
+                submissions: {
+                  select: { fileKey: true }
+                }
+              }
+            }
           },
         },
       },
@@ -444,6 +466,20 @@ export async function deleteTeacherLesson({
       };
     }
 
+    // Capture keys for S3 deletion
+    const keysToDelete: string[] = [];
+    if (lessonToDelete.videoKey) keysToDelete.push(lessonToDelete.videoKey);
+    if (lessonToDelete.thumbnailKey) keysToDelete.push(lessonToDelete.thumbnailKey);
+    if (lessonToDelete.pdfKey) keysToDelete.push(lessonToDelete.pdfKey);
+
+    lessonToDelete.attachments?.forEach((att) => {
+      if (att.fileKey) keysToDelete.push(att.fileKey);
+    });
+
+    lessonToDelete.assignment?.submissions?.forEach((sub) => {
+      if (sub.fileKey) keysToDelete.push(sub.fileKey);
+    });
+
     const remainingLessons = lessons.filter((lesson) => lesson.id !== lessonId);
 
     const updates = remainingLessons.map((lesson, index) => {
@@ -462,13 +498,24 @@ export async function deleteTeacherLesson({
         },
       }),
     ]);
+
+    // Delete files from S3 after successful DB transaction
+    if (keysToDelete.length > 0) {
+      await deleteFilesFromS3(keysToDelete);
+    }
+
+    // Delete Mux assets
+    if (lessonToDelete.muxAssetId) {
+      await deleteMuxAssets([lessonToDelete.muxAssetId]);
+    }
     revalidatePath(`/teacher/courses/${courseId}/edit`);
 
     return {
       status: "success",
       message: "Lesson deleted and positions reordered successfully",
     };
-  } catch {
+  } catch (err) {
+    console.error("[deleteTeacherLesson] Error deleting lesson:", err);
     return {
       status: "error",
       message: "Failed to delete lesson",
@@ -535,6 +582,44 @@ export async function deleteTeacherChapter({
       };
     }
 
+    // Find all lessons in this chapter to get their keys
+    const lessonsInChapter = await prisma.lesson.findMany({
+      where: {
+        chapterId: chapterId,
+      },
+      select: {
+        videoKey: true,
+        thumbnailKey: true,
+        muxAssetId: true,
+        pdfKey: true,
+        attachments: {
+          select: { fileKey: true }
+        },
+        assignment: {
+          select: {
+            submissions: {
+              select: { fileKey: true }
+            }
+          }
+        }
+      },
+    });
+
+    const keysToDelete: string[] = [];
+    lessonsInChapter.forEach((lesson) => {
+      if (lesson.videoKey) keysToDelete.push(lesson.videoKey);
+      if (lesson.thumbnailKey) keysToDelete.push(lesson.thumbnailKey);
+      if (lesson.pdfKey) keysToDelete.push(lesson.pdfKey);
+
+      lesson.attachments?.forEach((att) => {
+        if (att.fileKey) keysToDelete.push(att.fileKey);
+      });
+
+      lesson.assignment?.submissions?.forEach((sub) => {
+        if (sub.fileKey) keysToDelete.push(sub.fileKey);
+      });
+    });
+
     const remainingChapters = chapters.filter((chap) => chap.id !== chapterId);
 
     const updates = remainingChapters.map((chap, index) => {
@@ -552,13 +637,27 @@ export async function deleteTeacherChapter({
         },
       }),
     ]);
+
+    // Delete files from S3 after successful DB transaction
+    if (keysToDelete.length > 0) {
+      await deleteFilesFromS3(keysToDelete);
+    }
+
+    // Delete Mux assets
+    const muxAssetIds = lessonsInChapter
+      .map((l) => l.muxAssetId)
+      .filter(Boolean) as string[];
+    if (muxAssetIds.length > 0) {
+      await deleteMuxAssets(muxAssetIds);
+    }
     revalidatePath(`/teacher/courses/${courseId}/edit`);
 
     return {
       status: "success",
       message: "Chapter deleted and positions reordered successfully",
     };
-  } catch {
+  } catch (err) {
+    console.error("[deleteTeacherChapter] Error deleting chapter:", err);
     return {
       status: "error",
       message: "Failed to delete chapter",

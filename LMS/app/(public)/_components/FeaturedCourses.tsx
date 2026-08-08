@@ -1,211 +1,141 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Clock, ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { PublicCourseType } from "@/app/data/course/get-all-courses";
-import { motion } from "framer-motion";
+import { LandingStats } from "@/app/data/landing/get-landing-stats";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
+import { useRef } from "react";
+import { PublicCourseCard } from "./PublicCourseCard";
+
+if (typeof window !== "undefined") {
+    gsap.registerPlugin(ScrollTrigger, useGSAP);
+}
 
 interface FeaturedCoursesProps {
     courses: PublicCourseType[];
+    courseStats: LandingStats["courseStats"];
 }
 
-export function FeaturedCourses({ courses }: FeaturedCoursesProps) {
-    // Show up to 8 featured courses
+export function FeaturedCourses({ courses, courseStats }: FeaturedCoursesProps) {
     const featuredCourses = courses.slice(0, 8);
+    const sectionRef = useRef<HTMLElement>(null);
+
+    useGSAP(() => {
+        const tl = gsap.timeline({
+            scrollTrigger: {
+                trigger: sectionRef.current,
+                start: "top 75%",
+            }
+        });
+
+        // Intro Text Header Sequence
+        tl.from(".gsap-featured-header-text", {
+            y: 50,
+            opacity: 0,
+            rotationX: -20,
+            duration: 0.8,
+            stagger: 0.15,
+            ease: "back.out(1.2)",
+            transformOrigin: "bottom center"
+        });
+
+        tl.from(".gsap-featured-btn-top", {
+            scale: 0.9,
+            opacity: 0,
+            duration: 0.6,
+            ease: "back.out(1.5)",
+        }, "-=0.4");
+
+        // 3D Staggered Cards Reveal
+        tl.from(".gsap-featured-card", {
+            y: 80,
+            z: -100,
+            rotationX: -15,
+            rotationY: 10,
+            opacity: 0,
+            duration: 0.8,
+            stagger: 0.1,
+            ease: "power3.out",
+        }, "-=0.2");
+
+        gsap.from(".gsap-featured-btn-bottom", {
+            y: 30,
+            opacity: 0,
+            duration: 0.6,
+            ease: "power2.out",
+            scrollTrigger: {
+                trigger: ".gsap-featured-btn-bottom",
+                start: "top 95%",
+            }
+        });
+    }, { scope: sectionRef });
 
     return (
-        <section className="py-24 bg-gradient-to-b from-background via-muted/20 to-background relative overflow-hidden">
-            {/* Animated Background Elements */}
-            <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-br from-primary/10 to-emerald-500/5 rounded-full blur-3xl -z-10 animate-pulse" />
-            <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-violet-500/5 to-primary/10 rounded-full blur-3xl -z-10 animate-pulse" />
+        <section ref={sectionRef} className="relative py-24 md:py-32 bg-background overflow-hidden perspective-1000">
+            {/* Dramatic Ambient Background Glows */}
+            <div className="pointer-events-none absolute -top-40 right-[-10%] h-[600px] w-[600px] bg-primary/[0.04] rounded-full blur-[150px]" />
+            <div className="pointer-events-none absolute bottom-10 left-[-10%] h-[500px] w-[500px] bg-accent/[0.03] rounded-full blur-[120px]" />
+            <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.015] mix-blend-overlay pointer-events-none z-0" />
 
-            {/* Floating Particles */}
-            <div className="absolute inset-0 overflow-hidden -z-10">
-                {[...Array(6)].map((_, i) => (
-                    <motion.div
-                        key={i}
-                        className="absolute w-2 h-2 rounded-full bg-primary/20"
-                        style={{
-                            left: `${15 + i * 15}%`,
-                            top: `${20 + (i % 3) * 25}%`,
-                        }}
-                        animate={{
-                            y: [0, -20, 0],
-                            opacity: [0.3, 0.7, 0.3],
-                        }}
-                        transition={{
-                            duration: 3 + i * 0.5,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                        }}
-                    />
-                ))}
-            </div>
-
-            <div className="container mx-auto px-4 md:px-6 lg:px-8 relative z-10">
+            <div className="container relative z-10 mx-auto px-6 md:px-12 lg:px-24 xl:px-32 2xl:px-40">
                 {/* Section Header */}
-                <motion.div
-                    className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6"
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.6 }}
-                >
-                    <div className="space-y-3">
-                        <Badge
-                            variant="outline"
-                            className="text-primary border-primary/30 bg-gradient-to-r from-primary/10 to-emerald-500/10 backdrop-blur-sm px-4 py-1.5 text-sm font-medium"
-                        >
-                            <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                            Top Rated Content
-                        </Badge>
-                        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
-                            Featured <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-500">Courses</span>
+                <div className="mb-14 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
+                    <div className="max-w-2xl" style={{ perspective: '1000px' }}>
+                        <p className="gsap-featured-header-text inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-primary mb-4 bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                            Featured
+                        </p>
+                        <h2 className="gsap-featured-header-text text-4xl md:text-5xl font-black tracking-tight text-foreground leading-tight">
+                            Popular <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent relative inline-block">Courses</span>
                         </h2>
-                        <p className="text-muted-foreground max-w-2xl text-lg leading-relaxed">
-                            Hand-picked courses to help you master new skills. Start learning today.
+                        <p className="gsap-featured-header-text mt-4 text-muted-foreground text-lg font-medium leading-relaxed">
+                            Start learning today with courses carefully hand-picked by our curated team of experts.
                         </p>
                     </div>
-                    <Link href="/courses">
+                    <Link href="/courses" className="gsap-featured-btn-top">
                         <Button
                             variant="outline"
-                            className="group shrink-0 border-primary/30 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-300 px-6"
+                            className="group shrink-0 h-12 px-6 rounded-full border-primary/30 hover:bg-primary/5 hover:text-primary hover:border-primary/60 transition-all duration-300 font-bold bg-card backdrop-blur-md shadow-sm"
                         >
                             View All Courses
                             <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                         </Button>
                     </Link>
-                </motion.div>
+                </div>
 
                 {/* Course Grid */}
                 {featuredCourses.length === 0 ? (
-                    <motion.div
-                        className="text-center py-16"
-                        initial={{ opacity: 0 }}
-                        whileInView={{ opacity: 1 }}
-                        viewport={{ once: true }}
-                    >
-                        <div className="mx-auto w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-4">
-                            <Sparkles className="h-10 w-10 text-muted-foreground" />
-                        </div>
-                        <h3 className="text-xl font-semibold mb-2">No Courses Yet</h3>
-                        <p className="text-muted-foreground">Check back soon for amazing courses!</p>
-                    </motion.div>
+                    <div className="text-center py-20 bg-card/30 rounded-3xl border border-border backdrop-blur-sm">
+                        <h3 className="text-xl font-bold mb-2 text-foreground">No Courses Yet</h3>
+                        <p className="text-muted-foreground font-medium">Check back soon for new courses.</p>
+                    </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {featuredCourses.map((course, index) => (
-                            <motion.div
-                                key={course.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ duration: 0.5, delay: index * 0.1 }}
-                            >
-                                <Link href={`/courses/${course.slug}`}>
-                                    <Card className="group relative h-full overflow-hidden border-border/50 bg-gradient-to-b from-card to-card/80 backdrop-blur-sm hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 hover:-translate-y-2 flex flex-col">
-                                        {/* Course Image */}
-                                        <div className="relative aspect-video overflow-hidden">
-                                            <Image
-                                                src={course.fileKey
-                                                    ? `${process.env.NEXT_PUBLIC_S3_DEV_URL}/${course.fileKey}`
-                                                    : "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80"
-                                                }
-                                                alt={course.title}
-                                                fill
-                                                className="object-cover transition-transform duration-700 group-hover:scale-110"
-                                            />
-                                            {/* Gradient Overlay */}
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
-
-                                            {/* Category Badge */}
-                                            {course.category && (
-                                                <Badge className="absolute top-3 left-3 bg-gradient-to-r from-primary to-emerald-500 text-white border-none shadow-lg font-medium px-3 py-1 text-xs">
-                                                    {course.category}
-                                                </Badge>
-                                            )}
-
-                                            {/* Hover Play Button */}
-                                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500">
-                                                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 transform scale-75 group-hover:scale-100 transition-transform duration-500">
-                                                    <div className="w-0 h-0 border-l-[16px] border-l-white border-t-[10px] border-t-transparent border-b-[10px] border-b-transparent ml-1" />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <CardContent className="p-5 flex-1 flex flex-col gap-3">
-                                            {/* Course Meta */}
-                                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                                <span className="flex items-center gap-1 bg-muted/50 px-2 py-1 rounded-full">
-                                                    <Clock className="w-3 h-3" />
-                                                    {course.duration}h
-                                                </span>
-                                                <span className="flex items-center gap-1 bg-muted/50 px-2 py-1 rounded-full">
-                                                    {course.level}
-                                                </span>
-                                            </div>
-
-                                            {/* Course Title */}
-                                            <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2 flex-1">
-                                                {course.title}
-                                            </h3>
-
-                                            {/* Course Description */}
-                                            {course.smallDescription && (
-                                                <p className="text-sm text-muted-foreground line-clamp-2">
-                                                    {course.smallDescription}
-                                                </p>
-                                            )}
-
-                                            {/* Price & CTA */}
-                                            <div className="mt-auto pt-4 border-t border-border/50 flex items-center justify-between">
-                                                <div className="flex flex-col">
-                                                    <span className="font-bold text-2xl text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-500">
-                                                        {course.price === 0 ? (
-                                                            "Free"
-                                                        ) : (
-                                                            `$${course.price}`
-                                                        )}
-                                                    </span>
-                                                </div>
-                                                <Button
-                                                    size="sm"
-                                                    className="bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white shadow-md group-hover:shadow-lg transition-all"
-                                                >
-                                                    Enroll
-                                                    <ArrowRight className="ml-1 h-3 w-3" />
-                                                </Button>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </Link>
-                            </motion.div>
+                    <div className="gsap-featured-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 xl:gap-10 min-h-[400px]">
+                        {featuredCourses.map((course) => (
+                            <div key={course.id} className="gsap-featured-card h-full" style={{ transformStyle: 'preserve-3d' }}>
+                                <PublicCourseCard data={course} courseStats={courseStats[course.id]} />
+                            </div>
                         ))}
                     </div>
                 )}
 
-                {/* View More CTA */}
+                {/* View More Bottom */}
                 {courses.length > 8 && (
-                    <motion.div
-                        className="flex justify-center mt-12"
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: 0.3 }}
-                    >
+                    <div className="gsap-featured-btn-bottom flex justify-center mt-16 relative z-20">
                         <Link href="/courses">
                             <Button
                                 size="lg"
-                                className="bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white shadow-xl px-8"
+                                className="group h-14 px-10 rounded-full font-bold shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 hover:-translate-y-1 transition-all duration-300 bg-primary text-primary-foreground text-lg"
                             >
                                 Explore All {courses.length} Courses
-                                <ArrowRight className="ml-2 h-5 w-5" />
+                                <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1.5" />
                             </Button>
                         </Link>
-                    </motion.div>
+                    </div>
                 )}
             </div>
         </section>

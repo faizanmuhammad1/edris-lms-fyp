@@ -22,6 +22,11 @@ export async function getTeacherQuiz(lessonId: string) {
         return notFound();
     }
 
+    // Quizzes are only available for video lessons (lecture content)
+    if (lesson.lessonType !== "Video") {
+        return notFound();
+    }
+
     const quiz = await prisma.quiz.findUnique({
         where: {
             lessonId: lessonId,
@@ -44,6 +49,7 @@ export async function getTeacherQuiz(lessonId: string) {
                     title: true,
                     id: true,
                     chapterId: true,
+                    transcriptionStatus: true,
                     Chapter: {
                         select: {
                             courseId: true

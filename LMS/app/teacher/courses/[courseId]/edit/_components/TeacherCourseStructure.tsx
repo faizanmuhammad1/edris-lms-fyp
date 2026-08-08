@@ -31,8 +31,9 @@ import {
 import {
   ChevronDown,
   ChevronRight,
-  FileText,
   GripVertical,
+  BookOpen,
+  Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -42,6 +43,11 @@ import { TeacherNewChapterModal } from "./TeacherNewChapterModal";
 import { TeacherNewLessonModal } from "./TeacherNewLessonModal";
 import { TeacherDeleteLesson } from "./TeacherDeleteLesson";
 import { TeacherDeleteChapter } from "./TeacherDeleteChapter";
+import { TranscribeCourseButton } from "./TranscribeCourseButton";
+import { RefreshCw } from "lucide-react";
+import { transcribeLesson } from "../../_actions/transcribe-lesson";
+import { env } from "@/lib/env";
+import Image from "next/image";
 
 interface iAppProps {
   data: TeacherCourseSingularType;
@@ -68,6 +74,9 @@ export function TeacherCourseStructure({ data }: iAppProps) {
         id: lesson.id,
         title: lesson.title,
         order: lesson.position,
+        transcriptionStatus: lesson.transcriptionStatus,
+        thumbnailKey: lesson.thumbnailKey ?? null,
+        lessonType: lesson.lessonType ?? "Video",
       })),
     })) || [];
 
@@ -86,6 +95,9 @@ export function TeacherCourseStructure({ data }: iAppProps) {
             id: lesson.id,
             title: lesson.title,
             order: lesson.position,
+            transcriptionStatus: lesson.transcriptionStatus,
+            thumbnailKey: lesson.thumbnailKey ?? null,
+            lessonType: lesson.lessonType ?? "Video",
           })),
         })) || [];
 
@@ -281,6 +293,22 @@ export function TeacherCourseStructure({ data }: iAppProps) {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  async function handleRetryTranscription(lessonId: string) {
+    toast.promise(transcribeLesson(lessonId, data.id), {
+      loading: "Retrying transcription...",
+      success: "Transcription queued",
+      error: "Failed to retry transcription",
+    });
+  }
+
+  // Check if there are any lessons that have a video but are NOT completed
+  const hasUntranscribedLessons = data.chapter.some((chapter) =>
+    chapter.lessons.some(
+      (lesson) => lesson.videoKey && lesson.transcriptionStatus !== "COMPLETED"
+    )
+  );
+
   return (
     <DndContext
       collisionDetection={rectIntersection}
@@ -290,7 +318,13 @@ export function TeacherCourseStructure({ data }: iAppProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between border-b border-border">
           <CardTitle>Chapters</CardTitle>
-          <TeacherNewChapterModal courseId={data.id} />
+          <div className="flex items-center gap-2">
+            <TranscribeCourseButton
+              courseId={data.id}
+              hasUntranscribedLessons={hasUntranscribedLessons}
+            />
+            <TeacherNewChapterModal courseId={data.id} />
+          </div>
         </CardHeader>
         <CardContent className="space-y-8">
           <SortableContext items={items} strategy={verticalListSortingStrategy}>
@@ -345,31 +379,80 @@ export function TeacherCourseStructure({ data }: iAppProps) {
                                 id={lesson.id}
                                 data={{ type: "lesson", chapterId: item.id }}
                               >
-                                {(lessonListeners) => (
-                                  <div className="flex items-center justify-between p-2 hover:bg-accent rounded-sm">
-                                    <div className="flex items-center gap-2">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        {...lessonListeners}
-                                      >
-                                        <GripVertical className="size-4" />
-                                      </Button>
-                                      <FileText className="size-4" />
-                                      <Link
-                                        href={`/teacher/courses/${data.id}/${item.id}/${lesson.id}`}
-                                      >
-                                        {lesson.title}
-                                      </Link>
-                                    </div>
+                                {(lessonListeners) => {
+                                  const thumbUrl = lesson.thumbnailKey
+                                    ? `https://${env.NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES}.fly.storage.tigris.dev/${lesson.thumbnailKey}`
+                                    : null;
+                                  return (
+                                    <div className="group/lesson relative flex items-center justify-between p-2 hover:bg-accent rounded-sm cursor-pointer">
+                                      {thumbUrl && (
+                                        <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-10 hidden group-hover/lesson:block w-24 aspect-video rounded-md overflow-hidden border bg-muted shadow-lg">
+                                          <Image
+                                            src={thumbUrl}
+                                            alt=""
+                                            fill
+                                            className="object-cover"
+                                            sizes="96px"
+                                          />
+                                        </div>
+                                      )}
+                                      <div className="flex items-center gap-2">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          {...lessonListeners}
+                                        >
+                                          <GripVertical className="size-4" />
+                                        </Button>
+                                        {lesson.lessonType === "Reading" ? (
+                                          <BookOpen className="size-4 shrink-0 text-muted-foreground" />
+                                        ) : (
+                                          <Play className="size-4 shrink-0 text-muted-foreground" />
+                                        )}
+                                        <Link
+                                          href={`/teacher/courses/${data.id}/${item.id}/${lesson.id}`}
+                                          scroll={false}
+                                          className="font-medium text-foreground hover:underline cursor-pointer"
+                                        >
+                                          {lesson.title}
+                                        </Link>
+                                        {lesson.transcriptionStatus === "QUEUED" && (
+                                          <div className="flex items-center gap-1">
+                                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">Queued</span>
+                                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRetryTranscription(lesson.id)}>
+                                              <RefreshCw className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        )}
+                                        {lesson.transcriptionStatus === "PROCESSING" && (
+                                          <div className="flex items-center gap-1">
+                                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full animate-pulse">Processing</span>
+                                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRetryTranscription(lesson.id)}>
+                                              <RefreshCw className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        )}
+                                        {lesson.transcriptionStatus === "COMPLETED" && (
+                                          <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Transcribed</span>
+                                        )}
+                                        {lesson.transcriptionStatus === "FAILED" && (
+                                          <div className="flex items-center gap-1">
+                                            <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full">Failed</span>
+                                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRetryTranscription(lesson.id)}>
+                                              <RefreshCw className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        )}
+                                      </div>
 
-                                    <TeacherDeleteLesson
-                                      chapterId={item.id}
-                                      courseId={data.id}
-                                      lessonId={lesson.id}
-                                    />
-                                  </div>
-                                )}
+                                      <TeacherDeleteLesson
+                                        chapterId={item.id}
+                                        courseId={data.id}
+                                        lessonId={lesson.id}
+                                      />
+                                    </div>
+                                  );
+                                }}
                               </SortableItem>
                             ))}
                           </SortableContext>

@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { prisma } from "@/lib/db";
+
 // import { requireAdmin } from "@/app/data/admin/require-admin"; // Removed unused import
 import arcjet, { fixedWindow } from "@/lib/arcjet";
 
@@ -13,7 +13,7 @@ const aj = arcjet.withRule(
   fixedWindow({
     mode: "LIVE",
     window: "1m",
-    max: 5,
+    max: 50,
   })
 );
 
@@ -26,14 +26,12 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { role: true },
-  });
+  // const user = await prisma.user.findUnique({
+  //   where: { email: session.user.email },
+  //   select: { role: true },
+  // });
 
-  if (user?.role !== "admin" && user?.role !== "teacher") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  // Role check removed to allow students to delete their own uploads
   try {
     const decision = await aj.protect(request, {
       fingerprint: session?.user.id as string,

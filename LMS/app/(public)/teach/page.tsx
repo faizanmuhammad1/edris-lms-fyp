@@ -157,9 +157,9 @@ export default function TeachPage() {
                 {/* Hero Section */}
                 <section className="relative py-20 md:py-32 overflow-hidden">
                     <div className="absolute inset-0 bg-primary/5 -z-10" />
-                    <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
+                    <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] -z-10" />
 
-                    <div className="container px-4 md:px-6 mx-auto text-center">
+                    <div className="container px-4 md:px-6 mx-auto text-center relative z-10">
                         <Badge variant="outline" className="text-primary border-primary/20 bg-primary/5 mb-6">
                             <Sparkles className="h-3 w-3 mr-1" />
                             Join Our Teaching Community
@@ -174,17 +174,26 @@ export default function TeachPage() {
                         </p>
 
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <Link href="/login">
-                                <Button size="lg" className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
+                            <Button
+                                size="lg"
+                                className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all duration-300 hover:scale-105 hover:shadow-xl active:scale-95"
+                                asChild
+                            >
+                                <Link href="/login?callbackURL=/teach">
                                     Sign In to Apply
                                     <ArrowRight className="ml-2 h-4 w-4" />
-                                </Button>
-                            </Link>
-                            <Link href="/signup">
-                                <Button size="lg" variant="outline">
+                                </Link>
+                            </Button>
+                            <Button
+                                size="lg"
+                                variant="outline"
+                                className="transition-all duration-300 hover:scale-105 hover:bg-primary/5 active:scale-95 border-primary/20 hover:border-primary/50"
+                                asChild
+                            >
+                                <Link href="/signup?callbackURL=/teach">
                                     Create Account
-                                </Button>
-                            </Link>
+                                </Link>
+                            </Button>
                         </div>
                     </div>
                 </section>

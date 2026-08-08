@@ -19,10 +19,13 @@ export async function getEnrolledCourses() {
           level: true,
           slug: true,
           duration: true,
+          category: true,
           chapter: {
+            orderBy: { position: "asc" },
             select: {
               id: true,
               lessons: {
+                orderBy: { position: "asc" },
                 select: {
                   id: true,
                   lessonProgress: {
@@ -33,6 +36,33 @@ export async function getEnrolledCourses() {
                       id: true,
                       completed: true,
                       lessonId: true,
+                    },
+                  },
+                  quiz: {
+                    select: {
+                      passingScore: true,
+                      isPublished: true,
+                      attempts: {
+                        where: {
+                          userId: user.id,
+                          isCompleted: true,
+                        },
+                        select: {
+                          score: true,
+                        },
+                      },
+                    },
+                  },
+                  assignment: {
+                    select: {
+                      submissions: {
+                        where: {
+                          userId: user.id,
+                        },
+                        select: {
+                          id: true,
+                        },
+                      },
                     },
                   },
                 },

@@ -18,7 +18,7 @@ export async function getTeacherDashboardStats() {
             Course: {
                 userId: teacherId,
             },
-            status: "Active", // Only active students?
+            status: "Active",
         },
     });
 

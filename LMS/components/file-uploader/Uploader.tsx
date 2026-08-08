@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { FileRejection, useDropzone } from "react-dropzone";
+import { Accept, FileRejection, useDropzone } from "react-dropzone";
 import { Card, CardContent } from "../ui/card";
 import { cn } from "@/lib/utils";
 import {
@@ -14,6 +14,21 @@ import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { useConstructUrl } from "@/hooks/use-construct-url";
 
+const DOCUMENT_ACCEPT = {
+  "application/pdf": [".pdf"],
+  "application/x-pdf": [".pdf"],
+  "application/msword": [".doc"],
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+  "application/zip": [".zip"],
+  "application/x-zip-compressed": [".zip"],
+  "application/x-compressed": [".zip"],
+  "multipart/x-zip": [".zip"],
+  "application/x-rar-compressed": [".rar"],
+  "application/octet-stream": [".zip", ".pdf", ".rar"],
+};
+
+const DOCUMENT_MAX_SIZE = 50 * 1024 * 1024; // 50MB
+
 interface UploaderState {
   id: string | null;
   file: File | null;
@@ -23,16 +38,21 @@ interface UploaderState {
   isDeleting: boolean;
   error: boolean;
   objectUrl?: string;
-  fileType: "image" | "video";
+  fileType: "image" | "video" | "document";
 }
 
 interface iAppProps {
   value?: string;
   onChange?: (value: string) => void;
-  fileTypeAccepted: "image" | "video";
+  fileTypeAccepted: "image" | "video" | "document";
+  className?: string; // Allow custom styling
+  onUploadSuccess?: (data: { key: string; name: string; size: number; type: string }) => void;
+  fileName?: string;
+  endpoint?: string;
+  useDirectUpload?: boolean;
 }
 
-export function Uploader({ onChange, value, fileTypeAccepted }: iAppProps) {
+export function Uploader({ onChange, value, fileTypeAccepted, className, onUploadSuccess, fileName, endpoint, useDirectUpload }: iAppProps) {
   const fileUrl = useConstructUrl(value || "");
   const [fileState, setFileState] = useState<UploaderState>({
     error: false,
@@ -55,9 +75,114 @@ export function Uploader({ onChange, value, fileTypeAccepted }: iAppProps) {
       }));
 
       try {
-        const formData = new FormData();
-        formData.append("file", file);
+        if (useDirectUpload) {
+          const formData = new FormData();
+          formData.append("file", file);
 
+          const xhr = new XMLHttpRequest();
+
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percentageCompleted = (event.loaded / event.total) * 100;
+              setFileState((prev) => ({
+                ...prev,
+                progress: Math.round(percentageCompleted),
+              }));
+            }
+          };
+
+          xhr.onload = () => {
+            if (xhr.status === 200) {
+              try {
+                const response = JSON.parse(xhr.responseText);
+                setFileState((prev) => ({
+                  ...prev,
+                  progress: 100,
+                  uploading: false,
+                  key: response.key,
+                  error: false,
+                }));
+
+                onChange?.(response.key);
+                onUploadSuccess?.({
+                  key: response.key,
+                  name: file.name,
+                  size: file.size,
+                  type: file.type,
+                });
+                toast.success("File uploaded successfully");
+              } catch {
+                setFileState((prev) => ({
+                  ...prev,
+                  uploading: false,
+                  progress: 0,
+                  error: true,
+                }));
+                toast.error("Invalid response from server");
+              }
+            } else {
+              console.error("Direct Upload Failed:", xhr.responseText);
+              setFileState((prev) => ({
+                ...prev,
+                uploading: false,
+                progress: 0,
+                error: true,
+              }));
+              try {
+                const response = JSON.parse(xhr.responseText);
+                toast.error(response.error || "Upload failed");
+              } catch {
+                toast.error("Upload failed");
+              }
+            }
+          };
+
+          xhr.onerror = () => {
+            setFileState((prev) => ({
+              ...prev,
+              uploading: false,
+              progress: 0,
+              error: true,
+            }));
+            toast.error("Network error. Please try again");
+          };
+
+          xhr.onabort = () => {
+            setFileState((prev) => ({
+              ...prev,
+              uploading: false,
+              progress: 0,
+              error: true,
+            }));
+            toast.error("Upload cancelled");
+          };
+
+          xhr.open("POST", endpoint || "/api/s3/upload-direct");
+          xhr.send(formData);
+          return;
+        }
+
+        // 1. Get Presigned URL
+        const presignedRes = await fetch(endpoint || "/api/s3/upload", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fileName: file.name,
+            contentType: file.type,
+            size: file.size,
+            isImage: file.type.startsWith("image/"),
+          }),
+        });
+
+        if (!presignedRes.ok) {
+          throw new Error("Failed to get upload URL");
+        }
+
+        const { presignedUrl, key } = await presignedRes.json();
+
+        // 2. Upload directly to S3 via PUT
         const xhr = new XMLHttpRequest();
 
         xhr.upload.onprogress = (event) => {
@@ -71,46 +196,33 @@ export function Uploader({ onChange, value, fileTypeAccepted }: iAppProps) {
         };
 
         xhr.onload = () => {
+          // S3 responds with 200 OK on successful PUT
           if (xhr.status === 200) {
-            try {
-              const response = JSON.parse(xhr.responseText);
-              const { key } = response;
+            setFileState((prev) => ({
+              ...prev,
+              progress: 100,
+              uploading: false,
+              key: key,
+              error: false,
+            }));
 
-              // Keep the objectUrl from the file (blob URL) for preview
-              setFileState((prev) => ({
-                ...prev,
-                progress: 100,
-                uploading: false,
-                key: key,
-                error: false,
-              }));
-
-              onChange?.(key);
-              toast.success("File uploaded successfully");
-            } catch (parseError) {
-              console.error("Failed to parse response:", parseError);
-              setFileState((prev) => ({
-                ...prev,
-                uploading: false,
-                progress: 0,
-                error: true,
-              }));
-              toast.error("Something went wrong");
-            }
+            onChange?.(key);
+            onUploadSuccess?.({
+              key,
+              name: file.name,
+              size: file.size,
+              type: file.type,
+            });
+            toast.success("File uploaded successfully");
           } else {
+            console.error("S3 Upload Failed:", xhr.responseText);
             setFileState((prev) => ({
               ...prev,
               uploading: false,
               progress: 0,
               error: true,
             }));
-            
-            try {
-              const errorResponse = JSON.parse(xhr.responseText);
-              toast.error(errorResponse.error || "Upload failed");
-            } catch {
-              toast.error("Upload failed");
-            }
+            toast.error("Upload failed");
           }
         };
 
@@ -134,8 +246,9 @@ export function Uploader({ onChange, value, fileTypeAccepted }: iAppProps) {
           toast.error("Upload cancelled");
         };
 
-        xhr.open("POST", "/api/s3/upload-direct");
-        xhr.send(formData);
+        xhr.open("PUT", presignedUrl);
+        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.send(file);
       } catch (error) {
         console.error("Upload error:", error);
         setFileState((prev) => ({
@@ -147,7 +260,7 @@ export function Uploader({ onChange, value, fileTypeAccepted }: iAppProps) {
         toast.error("Something went wrong");
       }
     },
-    [onChange]
+    [onChange, onUploadSuccess, useDirectUpload, endpoint]
   );
 
   const onDrop = useCallback(
@@ -283,6 +396,7 @@ export function Uploader({ onChange, value, fileTypeAccepted }: iAppProps) {
           previewUrl={fileState.objectUrl}
           isDeleting={fileState.isDeleting}
           fileType={fileState.fileType}
+          fileName={fileState.file?.name || fileName}
         />
       );
     }
@@ -298,14 +412,28 @@ export function Uploader({ onChange, value, fileTypeAccepted }: iAppProps) {
     };
   }, [fileState.objectUrl]);
 
+  const acceptConfig =
+    fileTypeAccepted === "video"
+      ? { "video/*": [] }
+      : fileTypeAccepted === "document"
+        ? DOCUMENT_ACCEPT
+        : { "image/*": [] };
+
+  const finalAcceptConfig = acceptConfig as Accept;
+
+  const maxSize =
+    fileTypeAccepted === "image"
+      ? 5 * 1024 * 1024
+      : fileTypeAccepted === "document"
+        ? DOCUMENT_MAX_SIZE
+        : 5000 * 1024 * 1024;
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept:
-      fileTypeAccepted === "video" ? { "video/*": [] } : { "image/*": [] },
+    accept: finalAcceptConfig,
     maxFiles: 1,
     multiple: false,
-    maxSize:
-      fileTypeAccepted === "image" ? 5 * 1024 * 1024 : 5000 * 1024 * 1024,
+    maxSize,
     onDropRejected: rejectedFiles,
     disabled: fileState.uploading || (!!fileState.objectUrl && !fileState.error),
   });
@@ -316,7 +444,8 @@ export function Uploader({ onChange, value, fileTypeAccepted }: iAppProps) {
         "relative border-2 border-dashed transition-colors duration-200 ease-in-out w-full h-64",
         isDragActive
           ? "border-primary bg-primary/10 border-solid"
-          : "border-border hover:border-primary"
+          : "border-border hover:border-primary",
+        className
       )}
     >
       <CardContent className="flex items-center justify-center h-full w-full p-4">

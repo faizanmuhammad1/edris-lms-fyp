@@ -39,6 +39,36 @@ export async function createReview(courseId: string, rating: number, text: strin
     }
 }
 
+export async function deleteReview(reviewId: string) {
+    const session = await requireUser();
+
+    try {
+        const review = await prisma.review.findUnique({
+            where: { id: reviewId },
+            select: { userId: true, courseId: true },
+        });
+
+        if (!review) {
+            return { status: "error", message: "Review not found" };
+        }
+
+        if (review.userId !== session.id) {
+            return { status: "error", message: "You are not authorized to delete this review" };
+        }
+
+        await prisma.review.delete({
+            where: { id: reviewId },
+        });
+
+        revalidatePath(`/dashboard`); // Revalidate generally
+        // Also revalidate the specific course page if needed, normally layout or dashboard covers it
+        return { status: "success", message: "Review deleted successfully!" };
+    } catch (error) {
+        console.error("Error deleting review:", error);
+        return { status: "error", message: "Failed to delete review." };
+    }
+}
+
 export async function getCourseReviews(courseId: string) {
     return await prisma.review.findMany({
         where: {

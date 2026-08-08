@@ -1,6 +1,6 @@
 import { getCommunity } from "@/app/actions/community";
 import { notFound } from "next/navigation";
-import { EditCommunityForm } from "./edit-community-form";
+import { CommunityDashboard } from "@/components/community/CommunityDashboard";
 
 export default async function ManageCommunityPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
@@ -10,5 +10,5 @@ export default async function ManageCommunityPage({ params }: { params: Promise<
         notFound();
     }
 
-    return <EditCommunityForm initialData={community} role="admin" />;
+    return <CommunityDashboard community={community} role="admin" />;
 }

@@ -13,6 +13,27 @@ interface CourseProgressResult {
   progressPercentage: number;
 }
 
+export function isLessonFullyComplete(lesson: iAppProps["courseData"]["chapter"][number]["lessons"][number]) {
+  const lessonMarkedComplete = lesson.lessonProgress.some(
+    (progress) => progress.lessonId === lesson.id && progress.completed
+  );
+
+  const requiresQuiz = !!lesson.quiz && lesson.quiz.isPublished;
+  const quizPassed =
+    !requiresQuiz ||
+    lesson.quiz!.attempts.some(
+      (attempt) =>
+        typeof attempt.score === "number" &&
+        attempt.score >= lesson.quiz!.passingScore
+    );
+
+  const requiresAssignment = !!lesson.assignment;
+  const assignmentSubmitted =
+    !requiresAssignment || lesson.assignment!.submissions.length > 0;
+
+  return lessonMarkedComplete && quizPassed && assignmentSubmitted;
+}
+
 export function useCourseProgress({
   courseData,
 }: iAppProps): CourseProgressResult {
@@ -24,12 +45,7 @@ export function useCourseProgress({
       chapter.lessons.forEach((lesson) => {
         totalLessons++;
 
-        //check if this lesson is completed
-        const isCompleted = lesson.lessonProgress.some(
-          (progress) => progress.lessonId === lesson.id && progress.completed
-        );
-
-        if (isCompleted) {
+        if (isLessonFullyComplete(lesson)) {
           completedLessons++;
         }
       });

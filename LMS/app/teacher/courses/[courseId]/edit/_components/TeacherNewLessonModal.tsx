@@ -9,7 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { lessonSchema, LessonSchemaType } from "@/lib/zodSchemas";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -43,8 +43,11 @@ export function TeacherNewLessonModal({
       courseId: courseId,
       chapterId: chapterId,
       description: "",
+      lessonType: "Video",
       videoKey: "",
       thumbnailKey: "",
+      pdfKey: "",
+      pdfFileName: "",
     },
   });
 
@@ -107,7 +110,12 @@ export function TeacherNewLessonModal({
 
             <DialogFooter>
               <Button disabled={pending} type="submit">
-                {pending ? "Saving..." : " Save Change"}
+                {pending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : "Save"}
               </Button>
             </DialogFooter>
           </form>

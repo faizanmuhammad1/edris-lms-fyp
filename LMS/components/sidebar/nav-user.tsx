@@ -25,9 +25,14 @@ import {
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
-import { HomeIcon, Tv2 } from "lucide-react";
+import { Tv2 } from "lucide-react";
 import Image from "next/image";
 import { useSignOut } from "@/hooks/use-singout";
+
+interface UserWithRole {
+  role?: string;
+  teacherStatus?: string;
+}
 
 export function NavUser() {
   const { isMobile } = useSidebar();
@@ -116,24 +121,54 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
-                <Link href="/">
-                  <HomeIcon />
-                  Homepage
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/admin">
-                  <IconDashboard />
-                  Dashboard
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/admin/courses">
-                  <Tv2 />
-                  Courses
-                </Link>
-              </DropdownMenuItem>
+
+              {/* Role based links */}
+              {(session?.user as UserWithRole)?.role === "admin" ? (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin">
+                      <IconDashboard />
+                      Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/courses">
+                      <Tv2 />
+                      Courses
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              ) : (session?.user as UserWithRole)?.role === "teacher" || (session?.user as UserWithRole)?.teacherStatus === "Approved" ? (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link href="/teacher">
+                      <IconDashboard />
+                      Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/teacher/courses">
+                      <Tv2 />
+                      Courses
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard">
+                      <IconDashboard />
+                      Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/courses">
+                      <Tv2 />
+                      Courses
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut}>

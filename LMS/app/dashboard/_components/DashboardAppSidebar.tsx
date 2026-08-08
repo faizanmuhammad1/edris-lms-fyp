@@ -6,11 +6,10 @@ import {
   IconDashboard,
   IconFileAi,
   IconFileDescription,
-  IconHelp,
-  IconSearch,
   IconSettings,
   IconCertificate,
   IconMessageCircle,
+  IconHeadset,
 } from "@tabler/icons-react";
 import Logo from "@/public/bc413ab4-3838-4b3d-ae28-e8f3cd721b33.png";
 
@@ -35,6 +34,11 @@ const data = {
       title: "Dashboard",
       url: "/dashboard",
       icon: IconDashboard,
+    },
+    {
+      title: "My Courses",
+      url: "/dashboard/courses",
+      icon: IconFileDescription,
     },
     {
       title: "Certificates",
@@ -98,18 +102,13 @@ const data = {
   navSecondary: [
     {
       title: "Settings",
-      url: "#",
+      url: "/dashboard/settings",
       icon: IconSettings,
     },
     {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
+      title: "Support & Help",
+      url: "/dashboard/support",
+      icon: IconHeadset,
     },
   ],
 };
@@ -125,8 +124,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
               <Link href="/">
-                <Image src={Logo} alt="Logo" className="size-5" />
-                <span className="text-base font-semibold">Edris LMS</span>
+                <Image src={Logo} alt="Logo" className="size-8" />
+                <span className="text-lg font-semibold">Edris LMS</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

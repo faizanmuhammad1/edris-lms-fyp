@@ -13,12 +13,14 @@ import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 
 import { Loader2, Send } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackURL = searchParams.get("callbackURL");
   const [emailPending, startEmailTransition] = useTransition();
   const [googlePending, startGoogleTransition] = useTransition();
   const [email, setEmail] = useState("");
@@ -31,7 +33,11 @@ export function LoginForm() {
         fetchOptions: {
           onSuccess: () => {
             toast.success("Email sent");
-            router.push(`/verify-request?email=${email}`);
+            // Pass callbackURL to verify-request page so it can be preserved
+            const redirectUrl = callbackURL
+              ? `/verify-request?email=${email}&callbackURL=${encodeURIComponent(callbackURL)}`
+              : `/verify-request?email=${email}`;
+            router.push(redirectUrl);
           },
           onError: (ctx) => {
             console.error("Login error:", ctx);
@@ -46,11 +52,11 @@ export function LoginForm() {
     startGoogleTransition(async () => {
       await authClient.signIn.social({
         provider: "google",
+        callbackURL: callbackURL || "/dashboard",
         fetchOptions: {
           onSuccess: () => {
             toast.success("Signing in with Google...");
-            router.push("/");
-            router.refresh();
+            // The callbackURL in signIn.social handles the redirect for social login
           },
           onError: () => {
             toast.error("Error signing in with Google");
@@ -62,9 +68,9 @@ export function LoginForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Welcome Back!</CardTitle>
+        <CardTitle className="text-xl">Welcome to Edris LMS</CardTitle>
         <CardDescription>
-          Login with your Email Account
+          Sign in or create an account to get started
         </CardDescription>
       </CardHeader>
 
