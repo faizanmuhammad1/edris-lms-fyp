@@ -1,5 +1,0 @@
-﻿app/data/user/get-recommendations.ts(5,15): error TS2305: Module '"@prisma/client"' has no exported member 'Course'.
-app/teacher/courses/[courseId]/[chapterId]/[lessonId]/actions.ts(288,27): error TS2339: Property 'title' does not exist on type '{ id: string; Course: { id: string; title: string; }; }'.
-app/teacher/courses/[courseId]/[chapterId]/[lessonId]/actions.ts(344,7): error TS2322: Type '{ quizId: string; }' is not assignable to type 'undefined'.
-
-

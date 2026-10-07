@@ -38,9 +38,13 @@ export function MemberManagement({ communityId }: MemberManagementProps) {
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await getCommunityMembers(communityId);
-            setMembers(data.members);
-            setBannedUsers(data.bans);
+            const result = await getCommunityMembers(communityId);
+            if (!result.success) {
+                toast.error(result.error || "Failed to load members");
+                return;
+            }
+            setMembers(result.data.members);
+            setBannedUsers(result.data.bans);
         } catch {
             toast.error("Failed to load members");
         } finally {
@@ -59,8 +63,8 @@ export function MemberManagement({ communityId }: MemberManagementProps) {
 
         try {
             const res = await banMember(communityId, userId);
-            if (res.error) {
-                toast.error((res.error as Error).message || "Failed to ban user");
+            if (!res.success) {
+                toast.error(res.error || "Failed to ban user");
             } else {
                 toast.success("User banned successfully");
                 fetchData();
@@ -73,8 +77,8 @@ export function MemberManagement({ communityId }: MemberManagementProps) {
     const handleUnban = async (userId: string) => {
         try {
             const res = await unbanMember(communityId, userId);
-            if (res.error) {
-                toast.error((res.error as Error).message || "Failed to unban user");
+            if (!res.success) {
+                toast.error(res.error || "Failed to unban user");
             } else {
                 toast.success("User unbanned successfully");
                 fetchData();
@@ -89,8 +93,8 @@ export function MemberManagement({ communityId }: MemberManagementProps) {
 
         try {
             const res = await removeMember(communityId, userId);
-            if (res.error) {
-                toast.error((res.error as Error).message || "Failed to remove user");
+            if (!res.success) {
+                toast.error(res.error || "Failed to remove user");
             } else {
                 toast.success("User removed and data cleaned up successfully");
                 fetchData();

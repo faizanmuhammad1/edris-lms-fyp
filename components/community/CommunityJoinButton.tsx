@@ -32,9 +32,9 @@ export function CommunityJoinButton({
 
         startTransition(async () => {
             try {
-                const { error } = await joinCommunity(communityId);
-                if (error) {
-                    toast.error(error.message || "Failed to join community");
+                const result = await joinCommunity(communityId);
+                if (!result.success) {
+                    toast.error(result.error || "Failed to join community");
                 } else {
                     toast.success("Joined community");
                 }
@@ -50,9 +50,9 @@ export function CommunityJoinButton({
 
         startTransition(async () => {
             try {
-                const { error } = await leaveCommunity(communityId);
-                if (error) {
-                    toast.error(error.message || "Failed to leave community");
+                const result = await leaveCommunity(communityId);
+                if (!result.success) {
+                    toast.error(result.error || "Failed to leave community");
                 } else {
                     toast.success("Left community");
                 }

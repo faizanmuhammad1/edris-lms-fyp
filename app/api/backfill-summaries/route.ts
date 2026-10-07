@@ -1,9 +1,22 @@
 
 import { NextResponse } from "next/server";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
+import { auth } from "@/lib/auth";
 import { generateLessonSummary } from "@/lib/generate-summary";
 
+export const maxDuration = 120;
+
+// Admin-only maintenance endpoint: generates missing AI summaries (costs OpenAI credits).
 export async function GET() {
+    const session = await auth.api.getSession({ headers: await headers() });
+    const user = session
+        ? await prisma.user.findUnique({ where: { id: session.user.id }, select: { role: true } })
+        : null;
+    if (user?.role !== "admin") {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     try {
         const lessonsWithoutSummary = await prisma.lesson.findMany({
             where: {

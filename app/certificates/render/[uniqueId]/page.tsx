@@ -57,6 +57,7 @@ export default async function RenderCertificatePage({
       uniqueId: true,
       issuedAt: true,
       recipientName: true,
+      courseName: true,
       blockchainStatus: true,
       txHash: true,
       blockNumber: true,
@@ -101,7 +102,7 @@ export default async function RenderCertificatePage({
     >
       <CertificateTemplate
         userName={certificate.recipientName || certificate.User.name || "Learner"}
-        courseTitle={certificate.Course.title}
+        courseTitle={certificate.courseName ?? certificate.Course.title}
         courseHours={certificate.Course.duration}
         instructorName={certificate.Course.user.name}
         certDisplayId={certDisplayId}

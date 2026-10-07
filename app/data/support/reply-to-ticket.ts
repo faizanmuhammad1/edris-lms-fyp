@@ -49,8 +49,13 @@ export async function replyToTicket(
     throw new Error("You don't have permission to reply to this ticket");
   }
 
-  // Only staff can add internal notes
-  const isInternal = isStaff ? (validated.isInternal || false) : false;
+  // Only staff handling the ticket (not its creator) can add internal notes;
+  // mirrors the visibility rule in get-ticket-details.ts.
+  const isTeacher =
+    dbUser?.role === "teacher" || dbUser?.teacherStatus === "Approved";
+  const canAddInternal =
+    isAdmin || (isTeacher && !isCreator && (isAssignee || isCourseTeacher));
+  const isInternal = canAddInternal ? (validated.isInternal || false) : false;
 
   // Create the reply
   await prisma.ticketMessage.create({

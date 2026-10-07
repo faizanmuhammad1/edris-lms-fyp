@@ -12,11 +12,6 @@ export async function getTicketDetails(ticketId: string) {
     select: { role: true, teacherStatus: true },
   });
 
-  const isStaff =
-    dbUser?.role === "admin" ||
-    dbUser?.role === "teacher" ||
-    dbUser?.teacherStatus === "Approved";
-
   const ticket = await prisma.supportTicket.findUnique({
     where: { id: ticketId },
     include: {
@@ -65,8 +60,13 @@ export async function getTicketDetails(ticketId: string) {
     return null;
   }
 
-  // Filter out internal messages for non-staff users
-  if (!isStaff) {
+  // Internal notes are visible to admins, and to teachers handling a ticket
+  // (assigned to it or teaching its course) that they did not create
+  // themselves. A teacher who opened the ticket is treated as the requester.
+  const canSeeInternal =
+    isAdmin || (isTeacher && !isCreator && (isAssignee || isCourseTeacher));
+
+  if (!canSeeInternal) {
     ticket.messages = ticket.messages.filter((msg) => !msg.isInternal);
   }
 
@@ -77,6 +77,6 @@ export async function getTicketDetails(ticketId: string) {
     canAssign: isAdmin,
     canResolve: isAdmin || isAssignee || isCourseTeacher,
     canReopen: isCreator && (ticket.status === "Resolved" || ticket.status === "Closed"),
-    canAddInternalNote: isStaff,
+    canAddInternalNote: canSeeInternal,
   };
 }

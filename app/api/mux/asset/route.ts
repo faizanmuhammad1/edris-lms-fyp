@@ -55,6 +55,14 @@ export async function POST(request: Request) {
             );
         }
 
+        // Only the lesson's own saved video may be presigned and sent to Mux
+        if (lesson.videoKey !== videoKey) {
+            return NextResponse.json(
+                { error: "videoKey does not match the lesson's video" },
+                { status: 400 }
+            );
+        }
+
         // Generate a presigned URL so Mux can fetch the video from Tigris S3
         const command = new GetObjectCommand({
             Bucket: env.NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES,
@@ -66,6 +74,8 @@ export async function POST(request: Request) {
         const asset = await mux.video.assets.create({
             inputs: [{ url: presignedUrl }],
             playback_policy: ["signed"],
+            // Lets the Mux webhook map the asset to this lesson
+            passthrough: lessonId,
         });
 
         const playbackId = asset.playback_ids?.[0]?.id || null;

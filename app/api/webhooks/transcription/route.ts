@@ -1,7 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyTranscriptionSignature } from "@/lib/transcription";
 import { generateLessonSummary } from "@/lib/generate-summary";
+
+// Summary generation (OpenAI) runs via after() once the response is sent.
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
     const signature = req.headers.get("X-Signature");
@@ -67,8 +70,10 @@ export async function POST(req: NextRequest) {
             });
 
             if (hasValidTranscript) {
-                generateLessonSummary(lessonId).catch((err) =>
-                    console.error(`Failed to generate summary for lesson ${lessonId}:`, err)
+                after(() =>
+                    generateLessonSummary(lessonId).catch((err) =>
+                        console.error(`Failed to generate summary for lesson ${lessonId}:`, err)
+                    )
                 );
             }
         }

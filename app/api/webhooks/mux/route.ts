@@ -46,12 +46,25 @@ export async function POST(request: Request) {
         const type = event.type as string;
         const data = event.data;
 
+        // If no lesson references this asset yet, check whether the lesson that created it
+        // (asset passthrough = lessonId) is still waiting for triggerMuxAssetCreation to store
+        // muxAssetId. In that case respond non-2xx so Mux retries the webhook later.
+        const isAwaitingAssetId = async (): Promise<boolean> => {
+            const lessonId = typeof data?.passthrough === "string" ? data.passthrough : null;
+            if (!lessonId) return false;
+            const lesson = await prisma.lesson.findUnique({
+                where: { id: lessonId },
+                select: { muxAssetId: true, videoKey: true, muxStatus: true },
+            });
+            return !!lesson && !!lesson.videoKey && !lesson.muxAssetId && lesson.muxStatus !== "errored";
+        };
+
         switch (type) {
             case "video.asset.ready": {
                 const assetId = data.id as string;
                 const playbackId = data.playback_ids?.[0]?.id as string | undefined;
 
-                await prisma.lesson.updateMany({
+                const result = await prisma.lesson.updateMany({
                     where: { muxAssetId: assetId },
                     data: {
                         muxStatus: "ready",
@@ -59,6 +72,9 @@ export async function POST(request: Request) {
                     },
                 });
 
+                if (result.count === 0 && (await isAwaitingAssetId())) {
+                    return NextResponse.json({ error: "Lesson not linked to asset yet" }, { status: 409 });
+                }
 
                 break;
             }
@@ -66,12 +82,16 @@ export async function POST(request: Request) {
             case "video.asset.errored": {
                 const assetId = data.id as string;
 
-                await prisma.lesson.updateMany({
+                const result = await prisma.lesson.updateMany({
                     where: { muxAssetId: assetId },
                     data: { muxStatus: "errored" },
                 });
 
                 console.error(`Mux asset ${assetId} errored:`, data.errors);
+
+                if (result.count === 0 && (await isAwaitingAssetId())) {
+                    return NextResponse.json({ error: "Lesson not linked to asset yet" }, { status: 409 });
+                }
                 break;
             }
 
