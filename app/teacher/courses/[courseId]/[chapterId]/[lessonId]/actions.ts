@@ -51,7 +51,7 @@ export async function updateTeacherLesson(
     if (!result.success) {
       return {
         status: "error",
-        message: "Invalid data",
+        message: "Some lesson details are invalid. Please review the form and try again.",
       };
     }
 
@@ -128,12 +128,13 @@ export async function updateTeacherLesson(
 
     return {
       status: "success",
-      message: "Lesson updated successfully",
+      message: "Lesson saved",
     };
-  } catch {
+  } catch (err) {
+    console.error("[updateTeacherLesson] Error updating lesson:", err);
     return {
       status: "error",
-      message: "Failed to update lesson",
+      message: "We couldn't save the lesson. Please try again.",
     };
   }
 }
@@ -155,7 +156,7 @@ export async function createLessonAttachment(
       },
     });
     if (!lesson) {
-      return { status: "error", message: "Lesson not found" };
+      return { status: "error", message: "Lesson not found or you don't have permission to edit it" };
     }
     const position = (lesson.attachments[0]?.position ?? 0) + 1;
     const attachment = await prisma.lessonAttachment.create({
@@ -171,8 +172,9 @@ export async function createLessonAttachment(
     revalidatePath(`/teacher/courses/${lesson.Chapter.courseId}/edit`);
     revalidatePath(`/teacher/courses/${lesson.Chapter.courseId}/${lesson.chapterId}/${lessonId}`);
     return { status: "success", message: "Attachment added", data: { id: attachment.id } };
-  } catch {
-    return { status: "error", message: "Failed to add attachment" };
+  } catch (err) {
+    console.error("[createLessonAttachment] Error adding attachment:", err);
+    return { status: "error", message: "We couldn't add the attachment. Please try again." };
   }
 }
 
@@ -187,16 +189,27 @@ export async function deleteLessonAttachment(attachmentId: string): Promise<ApiR
       include: { Lesson: { include: { Chapter: { select: { courseId: true } } } } },
     });
     if (!attachment) {
-      return { status: "error", message: "Attachment not found" };
+      return { status: "error", message: "Attachment not found. Refresh the page and try again." };
     }
     await prisma.lessonAttachment.delete({ where: { id: attachmentId } });
+
+    // Remove the file from storage once nothing references it any more
+    const fileKey = attachment.fileKey;
+    if (fileKey) {
+      after(async () => {
+        const stillUsed = await prisma.lessonAttachment.count({ where: { fileKey } });
+        if (stillUsed === 0) await deleteFilesFromS3([fileKey]);
+      });
+    }
+
     const courseId = attachment.Lesson.Chapter.courseId;
     const lessonId = attachment.lessonId;
     revalidatePath(`/teacher/courses/${courseId}/edit`);
     revalidatePath(`/teacher/courses/${courseId}/${attachment.Lesson.chapterId}/${lessonId}`);
     return { status: "success", message: "Attachment removed" };
-  } catch {
-    return { status: "error", message: "Failed to remove attachment" };
+  } catch (err) {
+    console.error("[deleteLessonAttachment] Error removing attachment:", err);
+    return { status: "error", message: "We couldn't remove the attachment. Please try again." };
   }
 }
 
@@ -210,7 +223,7 @@ export async function regenerateSummary(lessonId: string): Promise<ApiResponse> 
         id: lessonId,
         Chapter: { Course: { userId: session.user.id } },
       },
-      select: { id: true },
+      select: { id: true, transcript: true },
     });
 
     if (!lesson) {
@@ -220,18 +233,26 @@ export async function regenerateSummary(lessonId: string): Promise<ApiResponse> 
       };
     }
 
+    if (!lesson.transcript || lesson.transcript.trim().length === 0) {
+      return {
+        status: "error",
+        message:
+          "This lesson does not have a transcript yet. Transcribe the video before generating a summary.",
+      };
+    }
+
     const { generateLessonSummary } = await import("@/lib/generate-summary");
     await generateLessonSummary(lessonId);
 
     return {
       status: "success",
-      message: "Summary generated successfully",
+      message: "Summary regenerated. Students will see the new summary on the lesson page.",
     };
   } catch (error) {
     console.error("Failed to generate summary:", error);
     return {
       status: "error",
-      message: "Failed to generate summary",
+      message: "We couldn't generate a summary right now. Please try again in a moment.",
     };
   }
 }
@@ -420,7 +441,7 @@ ${transcript}`,
     console.error("Failed to generate quiz from transcript:", error);
     return {
       status: "error",
-      message: "Failed to generate quiz from transcript",
+      message: "We couldn't generate a quiz right now. Please try again in a moment.",
     };
   }
 }
@@ -535,14 +556,14 @@ ${transcript}`,
     return {
       status: "success",
       message:
-        "Flashcard and summary preview generated successfully. You can use these to build lesson resources.",
+        "Flashcards and key takeaways are ready to review.",
       data: parsed,
     };
   } catch (error) {
     console.error("Failed to generate flashcards preview:", error);
     return {
       status: "error",
-      message: "Failed to generate flashcards and summary",
+      message: "We couldn't generate flashcards right now. Please try again in a moment.",
     };
   }
 }

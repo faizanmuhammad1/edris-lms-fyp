@@ -6,6 +6,7 @@ export interface PurchaseDetailRow {
   id: string;
   createdAt: Date;
   status: string;
+  /** In CENTS (`Enrollment.amount`); format with `formatCents`. */
   amount: number;
   studentName: string;
   studentEmail: string;
@@ -15,6 +16,7 @@ export interface PurchaseDetailRow {
   teacherEmail: string;
 }
 
+/** Most recent enrollments of every status, newest first. */
 export async function adminGetPurchaseDetails(limit = 300): Promise<PurchaseDetailRow[]> {
   await requireAdmin();
 

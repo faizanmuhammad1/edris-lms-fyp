@@ -1,52 +1,33 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-
-import {
-  courseCategories,
-  courseLevels,
-  courseSchema,
-  CourseSchemaType,
-  courseStatus,
-} from "@/lib/zodSchemas";
-import { Loader2, PlusIcon, SparkleIcon } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import slugify from "slugify";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { RichTextEditor } from "@/components/rich-text-editor/Editor";
-import { Uploader } from "@/components/file-uploader/Uploader";
-import { useTransition } from "react";
-import { tryCatch } from "@/hooks/try-catch";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import { editTeacherCourse } from "../actions";
 import { TeacherCourseSingularType } from "@/app/data/teacher/get-teacher-course";
+import {
+  CourseFormActions,
+  CourseFormFields,
+  isSlugError,
+  useUnsavedChangesWarning,
+} from "@/components/dashboard/forms/course-form-fields";
+import { Form } from "@/components/ui/form";
+import { tryCatch } from "@/hooks/try-catch";
+import { courseSchema, CourseSchemaType } from "@/lib/zodSchemas";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Save } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { editTeacherCourse } from "../actions";
 
-interface iAppProps {
+interface EditTeacherCourseFormProps {
   data: TeacherCourseSingularType;
 }
 
-export function EditTeacherCourseForm({ data }: iAppProps) {
+export function EditTeacherCourseForm({ data }: EditTeacherCourseFormProps) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
-  // 1. Define your form.
+  // The thumbnail saved in the database; the uploader must never delete it from storage.
+  const [savedFileKey, setSavedFileKey] = useState(data.fileKey);
+
   const form = useForm<CourseSchemaType>({
     resolver: zodResolver(courseSchema),
     defaultValues: {
@@ -63,252 +44,52 @@ export function EditTeacherCourseForm({ data }: iAppProps) {
     },
   });
 
-  // 2. Define a submit handler.
+  const { isDirty } = form.formState;
+  useUnsavedChangesWarning(isDirty && !pending);
+
   function onSubmit(values: CourseSchemaType) {
     startTransition(async () => {
-      const { data: result, error } = await tryCatch(
-        editTeacherCourse(values, data.id)
-      );
+      const { data: result, error } = await tryCatch(editTeacherCourse(values, data.id));
 
-      if (error) {
-        toast.error("An unexpected error occurred. Please try again.");
+      if (error || !result) {
+        toast.error("We couldn't save your changes. Please try again.");
         return;
       }
 
-      if (result.status === "success") {
-        toast.success(result.message);
-        form.reset();
-        router.push("/teacher/courses");
-      } else if (result.status === "error") {
+      if (result.status === "error") {
+        if (isSlugError(result.message)) {
+          form.setError("slug", { message: result.message }, { shouldFocus: true });
+        }
         toast.error(result.message);
+        return;
       }
+
+      toast.success(result.message);
+      // Keep the teacher here; the saved values become the new baseline for "unsaved changes".
+      form.reset(values);
+      setSavedFileKey(values.fileKey);
+      router.refresh();
     });
   }
+
   return (
     <Form {...form}>
-      <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Title</FormLabel>
-              <FormControl>
-                <Input placeholder="Title" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+      <form
+        className="space-y-8"
+        noValidate
+        onSubmit={form.handleSubmit(onSubmit, () => toast.error("Please fix the highlighted fields."))}
+      >
+        <CourseFormFields form={form} persistedFileKey={savedFileKey} />
+        <CourseFormActions
+          cancelHref="/teacher/courses"
+          isDirty={isDirty}
+          pending={pending}
+          submitDisabled={!isDirty}
+          submitLabel="Save changes"
+          pendingLabel="Saving…"
+          submitIcon={<Save aria-hidden="true" />}
         />
-
-        <div className="flex gap-4 items-end">
-          <FormField
-            control={form.control}
-            name="slug"
-            render={({ field }) => (
-              <FormItem className="w-full">
-                <FormLabel>Slug</FormLabel>
-                <FormControl>
-                  <Input placeholder="Slug" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <Button
-            type="button"
-            className="w-fit"
-            onClick={() => {
-              const titleValue = form.getValues("title");
-
-              const slug = slugify(titleValue);
-
-              form.setValue("slug", slug, { shouldValidate: true });
-            }}
-          >
-            Generate Slug <SparkleIcon className="ml-1" size={16} />
-          </Button>
-        </div>
-
-        <FormField
-          control={form.control}
-          name="smallDescription"
-          render={({ field }) => (
-            <FormItem className="w-full">
-              <FormLabel>Small Description</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Small Description"
-                  className="min-h-[120px]"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem className="w-full">
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <RichTextEditor field={field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="fileKey"
-          render={({ field }) => (
-            <FormItem className="w-full">
-              <FormLabel>Thumbnail image</FormLabel>
-              <FormControl>
-                <Uploader
-                  fileTypeAccepted="image"
-                  onChange={field.onChange}
-                  value={field.value}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="category"
-            render={({ field }) => (
-              <FormItem className="w-full">
-                <FormLabel>Category</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select Category" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {courseCategories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="level"
-            render={({ field }) => (
-              <FormItem className="w-full">
-                <FormLabel>Level</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select Value" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {courseLevels.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="duration"
-            render={({ field }) => (
-              <FormItem className="w-full">
-                <FormLabel>Duration (hours)</FormLabel>
-                <FormControl>
-                  <Input placeholder="Duration" type="number" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="price"
-            render={({ field }) => (
-              <FormItem className="w-full">
-                <FormLabel>Price ($)</FormLabel>
-                <FormControl>
-                  <Input placeholder="Price" type="number" min="1" step="1" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem className="w-full">
-              <FormLabel>Status</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select Status" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {courseStatus.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <Button type="submit" disabled={pending}>
-          {pending ? (
-            <>
-              Updating...
-              <Loader2 className="animate-spin ml-1" />
-            </>
-          ) : (
-            <>
-              Update Course <PlusIcon className="ml-1" size={16} />
-            </>
-          )}
-        </Button>
       </form>
     </Form>
   );
 }
-

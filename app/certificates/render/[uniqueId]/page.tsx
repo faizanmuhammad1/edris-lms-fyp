@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { CertificateTemplate } from "@/app/dashboard/certificate/[slug]/CertificateTemplate";
@@ -28,6 +29,10 @@ const montserrat = Montserrat({
   weight: ["300", "400", "500", "600", "700"],
   variable: "--font-montserrat",
 });
+
+export const metadata: Metadata = {
+  title: "Certificate",
+};
 
 function formatCertId(uniqueId: string, issuedAt: string) {
   const year = new Date(issuedAt).getFullYear();
@@ -100,6 +105,10 @@ export default async function RenderCertificatePage({
     <div
       className={`min-h-dvh w-full bg-background p-4 md:p-8 ${cinzel.variable} ${greatVibes.variable} ${garamond.variable} ${montserrat.variable}`}
     >
+      {/* Page heading for assistive tech; the certificate itself is unchanged. */}
+      <h1 className="sr-only">
+        Certificate of achievement: {certificate.courseName ?? certificate.Course.title}
+      </h1>
       <CertificateTemplate
         userName={certificate.recipientName || certificate.User.name || "Learner"}
         courseTitle={certificate.courseName ?? certificate.Course.title}

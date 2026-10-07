@@ -108,12 +108,21 @@ export async function getIndividualCourse(slug: string) {
     }
   }
 
-  // Average over all reviews (the reviews list above is limited to the latest 10).
-  const ratingAggregate = await prisma.review.aggregate({
-    where: { courseId: course.id },
-    _avg: { rating: true },
-  });
+  // Average and per-star counts over all reviews (the reviews list above is limited to the latest 10).
+  const [ratingAggregate, ratingGroups] = await Promise.all([
+    prisma.review.aggregate({
+      where: { courseId: course.id },
+      _avg: { rating: true },
+    }),
+    prisma.review.groupBy({
+      by: ["rating"],
+      where: { courseId: course.id },
+      _count: { _all: true },
+    }),
+  ]);
   const avgRating = ratingAggregate._avg.rating ?? 0;
+  const ratingCounts: Record<number, number> = {};
+  for (const group of ratingGroups) ratingCounts[group.rating] = group._count._all;
 
   // Use first lesson by position (first chapter, first lesson) for preview.
   // If it has no video, we still show course thumbnail and no play button (no error).
@@ -145,6 +154,7 @@ export async function getIndividualCourse(slug: string) {
   return {
     ...course,
     avgRating: Math.round(avgRating * 10) / 10,
+    ratingCounts,
     studentCount: course._count.enrollment,
     reviewCount: course._count.reviews,
     previewVideoKey: previewLesson?.videoKey ?? null,

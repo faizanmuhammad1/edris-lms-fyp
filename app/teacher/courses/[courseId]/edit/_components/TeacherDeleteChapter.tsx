@@ -1,19 +1,8 @@
 "use client";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/general/ConfirmDialog";
 import { Button } from "@/components/ui/button";
-import { Trash2, Loader2 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { Trash2 } from "lucide-react";
 import { tryCatch } from "@/hooks/try-catch";
 import { deleteTeacherChapter } from "../actions";
 import { toast } from "sonner";
@@ -21,60 +10,72 @@ import { toast } from "sonner";
 export function TeacherDeleteChapter({
   chapterId,
   courseId,
+  chapterTitle,
+  lessonCount,
 }: {
   chapterId: string;
   courseId: string;
+  chapterTitle?: string;
+  lessonCount?: number;
 }) {
-  const [open, setOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
+  const name = chapterTitle ? `"${chapterTitle}"` : "this chapter";
 
-  async function onSubmit() {
-    startTransition(async () => {
-      const { data: result, error } = await tryCatch(
-        deleteTeacherChapter({ chapterId, courseId })
-      );
+  async function onConfirm() {
+    const { data: result, error } = await tryCatch(
+      deleteTeacherChapter({ chapterId, courseId })
+    );
 
-      if (error) {
-        toast.error("An unexpected error occurred. Please try again.");
-        return;
-      }
+    if (error || !result) {
+      toast.error("We couldn't delete the chapter. Please try again.");
+      return false;
+    }
 
-      if (result.status === "success") {
-        toast.success(result.message);
-        setOpen(false);
-      } else if (result.status === "error") {
-        toast.error(result.message);
-      }
-    });
+    if (result.status === "error") {
+      toast.error(result.message);
+      return false;
+    }
+
+    toast.success(result.message);
   }
+
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Trash2 className="size-4 text-destructive" />
+    <ConfirmDialog
+      title="Delete this chapter?"
+      description={
+        <div className="space-y-2 break-words">
+          <p>
+            This permanently deletes {name}
+            {lessonCount === undefined
+              ? " and all of its lessons"
+              : lessonCount === 0
+                ? ""
+                : ` and its ${lessonCount} lesson${lessonCount === 1 ? "" : "s"}`}
+            .
+          </p>
+          {lessonCount !== 0 && (
+            <p>
+              Lesson videos, thumbnails, PDFs and attachments, quizzes and quiz attempts,
+              assignments and student submissions, comments and student progress are
+              deleted too. This can&apos;t be undone.
+            </p>
+          )}
+          {lessonCount === 0 && <p>This can&apos;t be undone.</p>}
+        </div>
+      }
+      confirmLabel="Delete chapter"
+      destructive
+      onConfirm={onConfirm}
+      trigger={
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-10 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive md:size-9"
+          aria-label={chapterTitle ? `Delete chapter ${chapterTitle}` : "Delete chapter"}
+        >
+          <Trash2 className="size-4" aria-hidden="true" />
         </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete this
-            chapter and all its lessons.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onSubmit} disabled={pending}>
-            {pending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Deleting...
-              </>
-            ) : "Delete"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      }
+    />
   );
 }
-

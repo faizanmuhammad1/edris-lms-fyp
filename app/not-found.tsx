@@ -1,70 +1,69 @@
-"use client";
-
-import { Button } from "@/components/ui/button";
-import { Home, ArrowLeft, Search } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { BookOpen, Compass, Home, Search } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+export const metadata: Metadata = {
+    title: "Page not found",
+    description: "The page you're looking for doesn't exist or has moved.",
+    robots: { index: false, follow: true },
+};
 
 export default function NotFound() {
-    const router = useRouter();
-
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/20 p-4">
-            <div className="text-center space-y-8 max-w-md">
-                {/* 404 Number with Gradient */}
-                <div className="relative">
-                    <h1 className="text-[150px] font-bold leading-none bg-gradient-to-r from-primary via-primary/70 to-primary/40 bg-clip-text text-transparent select-none">
-                        404
-                    </h1>
-                    <div className="absolute inset-0 blur-3xl bg-primary/20 -z-10" />
-                </div>
+        <main className="flex min-h-svh items-center justify-center bg-background px-4 py-16">
+            <div className="w-full max-w-lg text-center">
+                <p className="font-mono text-sm font-medium text-primary">Error 404</p>
+                <h1 className="mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">Page not found</h1>
+                <p className="mt-4 text-base text-muted-foreground">
+                    Sorry, we couldn&apos;t find the page you&apos;re looking for. It may have been moved, renamed or
+                    removed.
+                </p>
 
-                {/* Error Message */}
-                <div className="space-y-3">
-                    <h2 className="text-2xl font-semibold tracking-tight">
-                        Page Not Found
-                    </h2>
-                    <p className="text-muted-foreground max-w-sm mx-auto">
-                        Sorry, the page you&apos;re looking for doesn&apos;t exist or has been moved.
-                    </p>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-4">
-                    <Button
-                        variant="default"
-                        size="lg"
-                        asChild
-                        className="gap-2 min-w-[160px]"
-                    >
-                        <Link href="/">
-                            <Home className="size-4" />
-                            Go Home
-                        </Link>
+                <form role="search" action="/courses" method="get" className="mx-auto mt-8 flex max-w-md gap-2">
+                    <label htmlFor="not-found-search" className="sr-only">
+                        Search courses
+                    </label>
+                    <div className="relative min-w-0 flex-1">
+                        <Search
+                            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                            aria-hidden="true"
+                        />
+                        <Input
+                            id="not-found-search"
+                            name="search"
+                            type="search"
+                            maxLength={100}
+                            placeholder="Search courses"
+                            className="h-11 pl-9"
+                        />
+                    </div>
+                    <Button type="submit" className="h-11 shrink-0">
+                        Search
                     </Button>
+                </form>
 
-                    <Button
-                        variant="outline"
-                        size="lg"
-                        onClick={() => router.back()}
-                        className="gap-2 min-w-[160px]"
-                    >
-                        <ArrowLeft className="size-4" />
-                        Go Back
-                    </Button>
+                <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+                    <Link href="/" className={buttonVariants({ size: "lg", className: "h-11" })}>
+                        <Home aria-hidden="true" />
+                        Go to homepage
+                    </Link>
+                    <Link href="/courses" className={buttonVariants({ size: "lg", variant: "outline", className: "h-11" })}>
+                        <BookOpen aria-hidden="true" />
+                        Browse courses
+                    </Link>
                 </div>
 
-                {/* Search Suggestion */}
-                <div className="pt-8 border-t border-border/50">
-                    <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
-                        <Search className="size-4" />
-                        Try searching or browse our courses
-                    </p>
-                    <Button variant="link" asChild className="mt-2">
-                        <Link href="/courses">Browse Courses</Link>
-                    </Button>
-                </div>
+                <p className="mt-10 inline-flex items-center gap-2 text-sm text-muted-foreground">
+                    <Compass className="size-4" aria-hidden="true" />
+                    Think this is a mistake?{" "}
+                    <Link href="/contact" className="font-medium text-primary hover:underline">
+                        Let us know
+                    </Link>
+                </p>
             </div>
-        </div>
+        </main>
     );
 }

@@ -1,352 +1,363 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Download, Sparkles, Loader2, MessageSquare, ChevronDown, ChevronUp, RotateCcw, Zap } from "lucide-react";
-import { GradeSubmissionDialog } from "./GradeSubmissionDialog";
-import { formatDistanceToNow } from "date-fns";
-import { gradeSubmissionWithAI } from "../actions";
+import type { ColumnDef } from "@tanstack/react-table";
+import { format, formatDistanceToNow } from "date-fns";
+import { CheckCircle2, Clock, Inbox, Loader2, Zap } from "lucide-react";
 import { toast } from "sonner";
+import { DataTable, SortableHeader } from "@/components/general/DataTable";
+import { EmptyState } from "@/components/general/EmptyState";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { gradeSubmissionWithAI } from "../actions";
+import { GradeSubmissionDialog, type AssignmentSubmissionRow } from "./GradeSubmissionDialog";
 
-interface Submission {
-  id: string;
-  userId: string;
-  fileKey: string | null;
-  fileName: string | null;
-  fileSize: number | null;
-  mimeType: string | null;
-  textAnswer: string | null;
-  submittedAt: Date;
-  status: string;
-  score: number | null;
-  feedback: string | null;
-  teacherFeedback: string | null;
-  gradedAt: Date | null;
-  gradingMethod: string | null;
-  gradedByAiAt: Date | null;
-  User: { name: string | null; email: string | null };
-}
+type StatusFilter = "all" | "pending" | "graded";
 
 interface SubmissionsListProps {
   assignmentId: string;
   maxScore: number | null;
   autoGradeEnabled: boolean;
-  submissions: Submission[];
+  submissions: AssignmentSubmissionRow[];
 }
 
-export function SubmissionsList({
-  maxScore,
-  autoGradeEnabled,
-  submissions,
-}: SubmissionsListProps) {
+function studentLabel(sub: AssignmentSubmissionRow) {
+  return sub.User.name || sub.User.email || "Student";
+}
+
+function submissionTypeLabel(sub: AssignmentSubmissionRow): string | null {
+  const hasFile = !!sub.fileKey;
+  const hasText = !!sub.textAnswer?.trim();
+  if (hasFile && hasText) return "File + text";
+  if (hasFile) {
+    const mime = sub.mimeType || "";
+    if (mime.startsWith("image/")) return "Image";
+    if (mime === "application/pdf") return "PDF";
+    if (mime.includes("word")) return "Word";
+    return "File";
+  }
+  if (hasText) return "Text";
+  return null;
+}
+
+function StatusBadge({ sub, grading }: { sub: AssignmentSubmissionRow; grading: boolean }) {
+  if (grading) {
+    return (
+      <Badge variant="outline">
+        <Loader2 className="animate-spin" aria-hidden="true" />
+        Grading…
+      </Badge>
+    );
+  }
+  if (sub.status === "Graded") {
+    return (
+      <Badge>
+        <CheckCircle2 aria-hidden="true" />
+        {sub.gradingMethod === "AI" ? "Graded by AI" : "Graded"}
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="secondary">
+      <Clock aria-hidden="true" />
+      Needs grading
+    </Badge>
+  );
+}
+
+function ScoreText({ sub, maxScore }: { sub: AssignmentSubmissionRow; maxScore: number | null }) {
+  if (sub.status !== "Graded" || sub.score == null) {
+    return (
+      <span className="text-muted-foreground">
+        <span aria-hidden="true">—</span>
+        <span className="sr-only">No score</span>
+      </span>
+    );
+  }
+  return <span className="font-medium tabular-nums">{maxScore != null ? `${sub.score} / ${maxScore}` : sub.score}</span>;
+}
+
+function SubmittedTime({ date }: { date: Date }) {
+  const d = new Date(date);
+  return (
+    <time dateTime={d.toISOString()} title={format(d, "PPpp")} className="whitespace-nowrap">
+      {formatDistanceToNow(d, { addSuffix: true })}
+    </time>
+  );
+}
+
+export function SubmissionsList({ maxScore, autoGradeEnabled, submissions }: SubmissionsListProps) {
   const router = useRouter();
   const [gradingId, setGradingId] = useState<string | null>(null);
   const [aiGradingId, setAiGradingId] = useState<string | null>(null);
-  const [bulkGrading, setBulkGrading] = useState(false);
-  const [expandedFeedback, setExpandedFeedback] = useState<Set<string>>(new Set());
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
-  const selectedSubmission = gradingId ? submissions.find((s) => s.id === gradingId) : null;
+  const selectedSubmission = gradingId ? submissions.find((s) => s.id === gradingId) ?? null : null;
 
   const graded = submissions.filter((s) => s.status === "Graded");
   const autoGraded = graded.filter((s) => s.gradingMethod === "AI").length;
   const manualGraded = graded.filter((s) => s.gradingMethod === "Manual").length;
   const pendingSubmissions = submissions.filter((s) => s.status === "Submitted");
-  const pending = pendingSubmissions.length;
+  const pendingCount = pendingSubmissions.length;
+  const bulkGrading = bulkProgress !== null;
 
-  function toggleFeedback(id: string) {
-    setExpandedFeedback((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }
-
-  async function handleDownload(submissionId: string) {
-    try {
-      const res = await fetch("/api/assignment-submissions/signed-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ submissionId }),
-      });
-      if (!res.ok) throw new Error("Failed to get link");
-      const { url } = await res.json();
-      window.open(url, "_blank");
-    } catch {
-      // ignore
-    }
-  }
-
-  async function runGradeWithAI(subId: string) {
-    setAiGradingId(subId);
-    const result = await gradeSubmissionWithAI(subId);
-    setAiGradingId(null);
-    if (result.status === "success") {
-      toast.success(result.message);
-      router.refresh();
-    } else {
-      toast.error(result.message ?? "Auto-grading failed. Please grade manually.");
-    }
-  }
+  const filtered = useMemo(
+    () =>
+      statusFilter === "all"
+        ? submissions
+        : submissions.filter((s) => (statusFilter === "graded" ? s.status === "Graded" : s.status !== "Graded")),
+    [submissions, statusFilter]
+  );
 
   async function runBulkGradeWithAI() {
-    if (pending === 0) return;
-    setBulkGrading(true);
+    if (pendingCount === 0) return;
+    const queue = [...pendingSubmissions];
+    setBulkProgress({ done: 0, total: queue.length });
     let successCount = 0;
     let failCount = 0;
 
-    for (const sub of pendingSubmissions) {
+    for (const sub of queue) {
       setAiGradingId(sub.id);
       try {
         const result = await gradeSubmissionWithAI(sub.id);
-        if (result.status === "success") {
-          successCount++;
-        } else {
-          failCount++;
-        }
+        if (result.status === "success") successCount++;
+        else failCount++;
       } catch {
         failCount++;
       }
+      setBulkProgress({ done: successCount + failCount, total: queue.length });
     }
 
     setAiGradingId(null);
-    setBulkGrading(false);
+    setBulkProgress(null);
 
     if (successCount > 0) {
-      toast.success(`AI graded ${successCount} submission${successCount !== 1 ? "s" : ""} successfully${failCount > 0 ? `. ${failCount} failed.` : "."}`);
+      toast.success(
+        `AI graded ${successCount} submission${successCount === 1 ? "" : "s"}${
+          failCount > 0 ? `. ${failCount} couldn't be graded by AI; grade them manually.` : "."
+        }`
+      );
     } else if (failCount > 0) {
-      toast.error(`All ${failCount} submissions failed to grade. Please grade manually.`);
+      toast.error("AI grading is unavailable right now. Grade the submissions manually.");
     }
     router.refresh();
   }
 
-  /** Determines what submission type badge to show */
-  function getSubmissionTypeBadge(sub: Submission) {
-    const hasFile = !!sub.fileKey;
-    const hasText = !!sub.textAnswer?.trim();
-    if (hasFile && hasText) return <Badge variant="outline" className="text-xs">File + Text</Badge>;
-    if (hasFile) {
-      const mime = sub.mimeType || "";
-      if (mime.startsWith("image/")) return <Badge variant="outline" className="text-xs">📷 Image</Badge>;
-      if (mime === "application/pdf") return <Badge variant="outline" className="text-xs">📄 PDF</Badge>;
-      if (mime.includes("word")) return <Badge variant="outline" className="text-xs">📝 Word</Badge>;
-      return <Badge variant="outline" className="text-xs">📎 File</Badge>;
-    }
-    if (hasText) return <Badge variant="outline" className="text-xs">✏️ Text</Badge>;
-    return null;
-  }
+  const columns = useMemo<ColumnDef<AssignmentSubmissionRow>[]>(
+    () => [
+      {
+        id: "student",
+        accessorFn: (row) => studentLabel(row).toLowerCase(),
+        header: ({ column }) => <SortableHeader column={column} title="Student" />,
+        cell: ({ row }) => {
+          const sub = row.original;
+          return (
+            <div className="max-w-56 min-w-0">
+              <p className="truncate font-medium" title={studentLabel(sub)}>
+                {studentLabel(sub)}
+              </p>
+              {sub.User.name && sub.User.email && (
+                <p className="truncate text-xs text-muted-foreground" title={sub.User.email}>
+                  {sub.User.email}
+                </p>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        id: "submittedAt",
+        accessorFn: (row) => new Date(row.submittedAt).getTime(),
+        header: ({ column }) => <SortableHeader column={column} title="Submitted" />,
+        cell: ({ row }) => <SubmittedTime date={row.original.submittedAt} />,
+      },
+      {
+        id: "type",
+        header: "Submission",
+        cell: ({ row }) => {
+          const label = submissionTypeLabel(row.original);
+          return (
+            <div className="flex max-w-48 min-w-0 flex-col gap-1">
+              {label ? <Badge variant="outline">{label}</Badge> : <span className="text-muted-foreground">Empty</span>}
+              {row.original.fileName && (
+                <span className="truncate text-xs text-muted-foreground" title={row.original.fileName}>
+                  {row.original.fileName}
+                </span>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        id: "status",
+        accessorFn: (row) => (row.status === "Graded" ? 1 : 0),
+        header: ({ column }) => <SortableHeader column={column} title="Status" />,
+        cell: ({ row }) => <StatusBadge sub={row.original} grading={aiGradingId === row.original.id} />,
+      },
+      {
+        id: "score",
+        accessorFn: (row) => (row.status === "Graded" && row.score != null ? row.score : -1),
+        header: ({ column }) => <SortableHeader column={column} title="Score" />,
+        cell: ({ row }) => <ScoreText sub={row.original} maxScore={maxScore} />,
+      },
+      {
+        id: "actions",
+        header: () => <span className="sr-only">Actions</span>,
+        cell: ({ row }) => {
+          const sub = row.original;
+          const isGraded = sub.status === "Graded";
+          return (
+            <div className="flex justify-end">
+              <Button
+                variant={isGraded ? "outline" : "default"}
+                size="sm"
+                onClick={() => setGradingId(sub.id)}
+                aria-label={`${isGraded ? "Review grade for" : "Grade"} ${studentLabel(sub)}`}
+              >
+                {isGraded ? "Review" : "Grade"}
+              </Button>
+            </div>
+          );
+        },
+      },
+    ],
+    [aiGradingId, maxScore]
+  );
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <CardTitle>Submissions</CardTitle>
+    <section aria-labelledby="submissions-heading" className="min-w-0">
+      <Card className="min-w-0">
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 space-y-1.5">
+            <h2 id="submissions-heading" className="text-lg font-semibold leading-none">
+              Submissions
+            </h2>
             <CardDescription>
-              View and grade student submissions. AI supports text, images, PDFs, and Word docs.
+              Review and grade student work. AI grading supports text, images, PDFs and Word documents.
             </CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            {autoGradeEnabled && (
-              <Badge variant="secondary" className="shrink-0">
-                Auto-grading on
-              </Badge>
+            {submissions.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                {graded.length} graded ({autoGraded} by AI, {manualGraded} manually) · {pendingCount} need
+                {pendingCount === 1 ? "s" : ""} grading
+              </p>
             )}
-            {pending > 0 && (
+          </div>
+          <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end">
+            {autoGradeEnabled && <Badge variant="secondary">Auto-grading on</Badge>}
+            {pendingCount > 0 && (
               <Button
-                variant="default"
-                size="sm"
+                className="h-10 w-full sm:w-auto"
                 disabled={bulkGrading || !!aiGradingId}
                 onClick={runBulkGradeWithAI}
+                aria-busy={bulkGrading}
               >
-                {bulkGrading ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin mr-1" />
-                    Grading {pending}…
-                  </>
+                {bulkProgress ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
                 ) : (
-                  <>
-                    <Zap className="size-4 mr-1" />
-                    Grade All Pending ({pending})
-                  </>
+                  <Zap className="size-4" aria-hidden="true" />
                 )}
+                {bulkProgress
+                  ? `Grading ${Math.min(bulkProgress.done + 1, bulkProgress.total)} of ${bulkProgress.total}…`
+                  : `Grade ${pendingCount} pending with AI`}
               </Button>
             )}
           </div>
-        </div>
-        {submissions.length > 0 && (
-          <p className="text-sm text-muted-foreground mt-2">
-            {graded.length} graded ({autoGraded} auto, {manualGraded} manual), {pending} pending
-          </p>
-        )}
-      </CardHeader>
-      <CardContent>
-        {submissions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No submissions yet.</p>
-        ) : (
-          <div className="space-y-4">
-            {submissions.map((sub) => (
-              <div
-                key={sub.id}
-                className="rounded-lg border p-4 space-y-3"
-              >
-                {/* Header row */}
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="min-w-0 space-y-1">
-                    <p className="font-medium">
-                      {sub.User.name ?? sub.User.email ?? "Student"}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-xs text-muted-foreground">
-                        Submitted {formatDistanceToNow(new Date(sub.submittedAt), { addSuffix: true })}
-                      </p>
-                      {getSubmissionTypeBadge(sub)}
-                    </div>
-                    {sub.fileName && (
-                      <Button
-                        variant="link"
-                        className="h-auto p-0 text-xs"
-                        onClick={() => handleDownload(sub.id)}
-                      >
-                        <Download className="size-3 mr-1" />
-                        {sub.fileName}
-                        {sub.fileSize && (
-                          <span className="text-muted-foreground ml-1">
-                            ({(sub.fileSize / 1024 / 1024).toFixed(1)} MB)
-                          </span>
-                        )}
-                      </Button>
-                    )}
-                    {sub.textAnswer && (
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                        {sub.textAnswer}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={sub.status === "Graded" ? "default" : "secondary"}>
-                      {sub.status}
-                    </Badge>
-                    {sub.status === "Graded" && sub.gradingMethod === "AI" && (
-                      <Badge variant="outline" className="text-xs">
-                        AI
-                      </Badge>
-                    )}
-                    {sub.status === "Graded" && sub.gradingMethod === "Manual" && (
-                      <Badge variant="outline" className="text-xs">
-                        Manual
-                      </Badge>
-                    )}
-                    {sub.status === "Graded" && sub.score != null && (
-                      <span className="text-sm font-medium">
-                        {maxScore != null ? `${sub.score} / ${maxScore}` : sub.score}
-                      </span>
-                    )}
-                    {sub.status === "Submitted" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={!!aiGradingId || bulkGrading}
-                        onClick={() => runGradeWithAI(sub.id)}
-                      >
-                        {aiGradingId === sub.id ? (
-                          <>
-                            <Loader2 className="size-4 animate-spin mr-1" />
-                            Grading…
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="size-4 mr-1" />
-                            Grade with AI
-                          </>
-                        )}
-                      </Button>
-                    )}
-                    {/* Re-grade button for already graded submissions */}
-                    {sub.status === "Graded" && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={!!aiGradingId || bulkGrading}
-                        onClick={() => runGradeWithAI(sub.id)}
-                        title="Re-grade this submission with AI"
-                      >
-                        {aiGradingId === sub.id ? (
-                          <>
-                            <Loader2 className="size-4 animate-spin mr-1" />
-                            Re-grading…
-                          </>
-                        ) : (
-                          <>
-                            <RotateCcw className="size-4 mr-1" />
-                            Re-grade AI
-                          </>
-                        )}
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setGradingId(sub.id)}
-                    >
-                      {sub.status === "Graded" ? "View / Edit grade" : "Grade"}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Feedback section (collapsible) */}
-                {sub.status === "Graded" && (sub.feedback || sub.teacherFeedback) && (
-                  <div className="border-t pt-2">
-                    <button
-                      onClick={() => toggleFeedback(sub.id)}
-                      className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <MessageSquare className="size-3.5" />
-                      Feedback
-                      {expandedFeedback.has(sub.id) ? (
-                        <ChevronUp className="size-3.5" />
-                      ) : (
-                        <ChevronDown className="size-3.5" />
-                      )}
-                    </button>
-                    {expandedFeedback.has(sub.id) && (
-                      <div className="mt-2 space-y-3">
-                        {sub.teacherFeedback && (
-                          <div className="rounded-lg bg-blue-500/5 border border-blue-500/20 p-3">
-                            <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Teacher Notes (only you see this)</span>
-                            <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed mt-1">{sub.teacherFeedback}</p>
-                          </div>
-                        )}
-                        {sub.feedback && (
-                          <div className="rounded-lg bg-muted/30 p-3">
-                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Student Feedback (visible to student)</span>
-                            <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed mt-1">{sub.feedback}</p>
-                          </div>
+        </CardHeader>
+        <CardContent>
+          {submissions.length === 0 ? (
+            <EmptyState
+              icon={Inbox}
+              titleAs="h3"
+              title="No submissions yet"
+              description="When students hand in work for this assignment, it shows up here for grading."
+            />
+          ) : (
+            <DataTable
+              columns={columns}
+              data={filtered}
+              getRowId={(row) => row.id}
+              getSearchText={(row) => `${row.User.name ?? ""} ${row.User.email ?? ""}`}
+              searchPlaceholder="Search by student name or email"
+              noResultsText="No submissions match your search or filter."
+              caption="Assignment submissions"
+              toolbar={
+                <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+                  <SelectTrigger className="h-9 w-full sm:w-44" aria-label="Filter by status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All submissions</SelectItem>
+                    <SelectItem value="pending">Needs grading</SelectItem>
+                    <SelectItem value="graded">Graded</SelectItem>
+                  </SelectContent>
+                </Select>
+              }
+              renderMobileCard={(sub) => {
+                const label = submissionTypeLabel(sub);
+                const isGraded = sub.status === "Graded";
+                return (
+                  <div className="space-y-3 rounded-xl border bg-card p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium" title={studentLabel(sub)}>
+                          {studentLabel(sub)}
+                        </p>
+                        {sub.User.name && sub.User.email && (
+                          <p className="truncate text-sm text-muted-foreground" title={sub.User.email}>
+                            {sub.User.email}
+                          </p>
                         )}
                       </div>
-                    )}
+                      <StatusBadge sub={sub} grading={aiGradingId === sub.id} />
+                    </div>
+                    <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                      <div className="min-w-0">
+                        <dt className="text-xs text-muted-foreground">Submitted</dt>
+                        <dd>
+                          <SubmittedTime date={sub.submittedAt} />
+                        </dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="text-xs text-muted-foreground">Score</dt>
+                        <dd>
+                          <ScoreText sub={sub} maxScore={maxScore} />
+                        </dd>
+                      </div>
+                      <div className="col-span-2 min-w-0">
+                        <dt className="text-xs text-muted-foreground">Submission</dt>
+                        <dd className="truncate" title={sub.fileName ?? undefined}>
+                          {label ?? "Empty"}
+                          {sub.fileName && <span className="text-muted-foreground"> · {sub.fileName}</span>}
+                        </dd>
+                      </div>
+                    </dl>
+                    <Button
+                      variant={isGraded ? "outline" : "default"}
+                      className="h-10 w-full"
+                      onClick={() => setGradingId(sub.id)}
+                      aria-label={`${isGraded ? "Review grade for" : "Grade submission from"} ${studentLabel(sub)}`}
+                    >
+                      {isGraded ? "Review grade" : "Grade submission"}
+                    </Button>
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-      {gradingId && (
-        <GradeSubmissionDialog
-          submissionId={gradingId}
-          onClose={() => setGradingId(null)}
-          maxScore={maxScore}
-          initialScore={selectedSubmission?.score ?? undefined}
-          initialFeedback={selectedSubmission?.feedback ?? undefined}
-        />
-      )}
-    </Card>
+                );
+              }}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      <GradeSubmissionDialog
+        submissionId={gradingId}
+        onClose={() => setGradingId(null)}
+        maxScore={maxScore}
+        submission={selectedSubmission}
+        aiBusy={bulkGrading}
+      />
+    </section>
   );
 }

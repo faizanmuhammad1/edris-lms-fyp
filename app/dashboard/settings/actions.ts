@@ -6,6 +6,9 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { ApiResponse } from "@/lib/types";
 
+const NAME_MIN = 2;
+const NAME_MAX = 100;
+
 export async function updateStudentProfile(formData: { name: string }): Promise<ApiResponse> {
     try {
         const session = await auth.api.getSession({
@@ -15,16 +18,23 @@ export async function updateStudentProfile(formData: { name: string }): Promise<
         if (!session) {
             return {
                 status: "error",
-                message: "Unauthorized",
+                message: "Your session has expired. Please sign in again.",
             };
         }
 
-        const { name } = formData;
+        const name = typeof formData?.name === "string" ? formData.name.trim().replace(/\s+/g, " ") : "";
 
-        if (!name || name.trim().length === 0) {
+        if (name.length < NAME_MIN) {
             return {
                 status: "error",
-                message: "Name is required",
+                message: `Name must be at least ${NAME_MIN} characters.`,
+            };
+        }
+
+        if (name.length > NAME_MAX) {
+            return {
+                status: "error",
+                message: `Name must be ${NAME_MAX} characters or fewer.`,
             };
         }
 
@@ -33,17 +43,17 @@ export async function updateStudentProfile(formData: { name: string }): Promise<
             data: { name },
         });
 
-        revalidatePath("/dashboard/settings");
+        revalidatePath("/dashboard", "layout");
 
         return {
             status: "success",
-            message: "Profile updated successfully",
+            message: "Profile updated",
         };
     } catch (error) {
         console.error("Error updating profile:", error);
         return {
             status: "error",
-            message: "Failed to update profile",
+            message: "We couldn't update your profile. Please try again.",
         };
     }
 }

@@ -1,16 +1,25 @@
 import { getPost } from "@/app/actions/community";
-import { notFound } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageSquare } from "lucide-react";
-import Link from "next/link";
-import { CreateCommentForm } from "@/app/dashboard/forum/_components/create-comment-form";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/general/PageHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
-import { DeleteButton } from "@/components/general/DeleteButton";
-import { deletePost } from "@/app/actions/post";
+import { CornerDownRight, MessageSquare } from "lucide-react";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { CommentForm } from "../_components/comment-form";
+import { DeleteCommentButton } from "../_components/delete-comment-button";
+import { DeletePostButton } from "../_components/delete-post-button";
+
+export const metadata: Metadata = { title: "Forum post" };
 
 export const dynamic = "force-dynamic";
+
+function initial(name: string | null) {
+  return name?.trim()?.[0]?.toUpperCase() ?? "?";
+}
+
+function RelativeTime({ date }: { date: Date }) {
+  return <time dateTime={new Date(date).toISOString()}>{formatDistanceToNow(date, { addSuffix: true })}</time>;
+}
 
 export default async function TeacherCommunityPostPage({
   params,
@@ -21,84 +30,100 @@ export default async function TeacherCommunityPostPage({
   const post = await getPost(postId);
 
   // Only moderators (course owner / admin) use the teacher forum view
-  if (!post || !post.canModerate) {
+  if (!post || !post.canModerate || post.community.slug !== slug) {
     notFound();
   }
 
-  const backLink = `/teacher/communities/${slug}/forum`;
+  const forumHref = `/teacher/communities/${slug}/forum`;
+  const author = post.user.name?.trim() || "Unknown user";
+  const commentCount = post.comments.length;
+  const authorById = new Map(post.comments.map((c) => [c.id, c.User.name?.trim() || "Unknown user"]));
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href={backLink}>
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <span className="text-sm text-muted-foreground uppercase tracking-wider font-semibold">
-              {post.community.name}
-            </span>
-          </div>
-        </div>
-        <DeleteButton id={post.id} deleteAction={deletePost} variant="outline" size="sm" />
-      </div>
+      <PageHeader
+        title={<span className="break-words">{post.title}</span>}
+        description={
+          <span className="break-words">
+            Posted in <span className="font-medium text-foreground">{post.community.name}</span>
+          </span>
+        }
+        backHref={forumHref}
+        backLabel="Back to forum"
+        actions={
+          <DeletePostButton
+            postId={post.id}
+            postTitle={post.title}
+            commentCount={commentCount}
+            redirectTo={forumHref}
+          />
+        }
+      />
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-4 mb-4">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={post.user.image ?? ""} />
-              <AvatarFallback>{post.user.name?.[0] ?? "?"}</AvatarFallback>
+      <div className="max-w-3xl space-y-8">
+        <article aria-label="Post" className="space-y-4 rounded-xl border bg-card p-4 shadow-xs sm:p-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <Avatar className="size-10 shrink-0">
+              <AvatarImage src={post.user.image ?? undefined} alt="" />
+              <AvatarFallback>{initial(post.user.name)}</AvatarFallback>
             </Avatar>
-            <div>
-              <p className="font-medium">{post.user.name ?? "Unknown"}</p>
+            <div className="min-w-0">
+              <p className="font-medium break-words">{author}</p>
               <p className="text-xs text-muted-foreground">
-                {formatDistanceToNow(post.createdAt, { addSuffix: true })}
+                <RelativeTime date={post.createdAt} />
               </p>
             </div>
           </div>
-          <CardTitle className="text-2xl">{post.title}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="prose dark:prose-invert max-w-none">
-            <p className="whitespace-pre-wrap">{post.content}</p>
-          </div>
-        </CardContent>
-      </Card>
+          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words sm:text-base">{post.content}</p>
+        </article>
 
-      <div className="space-y-6">
-        <h3 className="text-xl font-semibold flex items-center gap-2">
-          <MessageSquare className="h-5 w-5" />
-          Comments ({post.comments.length})
-        </h3>
+        <section aria-labelledby="comments-heading" className="space-y-4">
+          <h2 id="comments-heading" className="flex items-center gap-2 text-lg font-semibold">
+            <MessageSquare className="size-5 text-muted-foreground" aria-hidden="true" />
+            Comments ({commentCount})
+          </h2>
 
-        <CreateCommentForm postId={post.id} />
+          <CommentForm postId={post.id} />
 
-        <div className="space-y-4">
-          {post.comments.map((comment) => (
-            <Card key={comment.id}>
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={comment.User.image ?? ""} />
-                      <AvatarFallback>{comment.User.name?.[0] ?? "?"}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <span className="font-medium text-sm block">{comment.User.name ?? "Unknown"}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(comment.createdAt, { addSuffix: true })}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-sm">{comment.text}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+          {commentCount === 0 ? (
+            <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground" role="status">
+              No comments yet. Be the first to reply.
+            </p>
+          ) : (
+            <ul className="space-y-3" aria-label="Comments, newest first">
+              {post.comments.map((comment) => {
+                const commenter = comment.User.name?.trim() || "Unknown user";
+                const replyTo = comment.parentId ? authorById.get(comment.parentId) : undefined;
+                return (
+                  <li key={comment.id}>
+                    <article className="space-y-2 rounded-xl border bg-card p-4">
+                      <div className="flex items-start gap-3">
+                        <Avatar className="size-8 shrink-0">
+                          <AvatarImage src={comment.User.image ?? undefined} alt="" />
+                          <AvatarFallback className="text-xs">{initial(comment.User.name)}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium break-words">{commenter}</p>
+                          <p className="text-xs text-muted-foreground">
+                            <RelativeTime date={comment.createdAt} />
+                          </p>
+                        </div>
+                        <DeleteCommentButton commentId={comment.id} authorName={commenter} />
+                      </div>
+                      {replyTo && (
+                        <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <CornerDownRight className="size-3.5 shrink-0" aria-hidden="true" />
+                          <span className="min-w-0 break-words">Replying to {replyTo}</span>
+                        </p>
+                      )}
+                      <p className="text-sm whitespace-pre-wrap break-words">{comment.text}</p>
+                    </article>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
       </div>
     </div>
   );

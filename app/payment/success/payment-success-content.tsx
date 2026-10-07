@@ -3,9 +3,9 @@
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useConfetti } from "@/hooks/use-confetti";
-import { ArrowLeft, CheckIcon, Loader2 } from "lucide-react";
+import { ArrowRight, CheckIcon, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface PaymentSuccessContentProps {
   reconciled: boolean;
@@ -14,8 +14,13 @@ interface PaymentSuccessContentProps {
 export function PaymentSuccessContent({ reconciled }: PaymentSuccessContentProps) {
   const { triggerConfetti } = useConfetti();
   const router = useRouter();
+  const celebrated = useRef(false);
 
   useEffect(() => {
+    // Celebrate once, and skip the animation for people who prefer reduced motion.
+    if (celebrated.current) return;
+    celebrated.current = true;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     triggerConfetti();
   }, [triggerConfetti]);
 
@@ -25,42 +30,43 @@ export function PaymentSuccessContent({ reconciled }: PaymentSuccessContentProps
   };
 
   return (
-    <div className="w-full min-h-screen flex flex-1 justify-center items-center">
-      <Card className="w-[380px]">
-        <CardContent>
-          <div className="w-full flex justify-center">
-            <CheckIcon className="size-12 p-2 bg-green-500/30 text-green-500 rounded-full" />
+    <main className="flex min-h-svh w-full items-center justify-center bg-background px-4 py-12">
+      <Card className="w-full max-w-sm">
+        <CardContent className="text-center">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-green-500/15">
+            <CheckIcon className="size-7 text-green-600 dark:text-green-400" aria-hidden="true" />
           </div>
-          <div className="mt-3 text-center sm:mt-5 w-full">
-            <h2 className="text-xl font-semibold">Payment Successful</h2>
-            <p className="text-sm mt-2 text-muted-foreground tracking-tight text-balance">
-              {reconciled
-                ? "Payment confirmed and course access is now active."
-                : "Payment was successful. If access is delayed, refresh dashboard in a few seconds."}
-            </p>
+          <h1 className="mt-5 text-2xl font-semibold tracking-tight">Payment successful</h1>
+          <p className="mt-2 text-sm text-muted-foreground text-balance">
+            {reconciled
+              ? "Payment confirmed — your course access is now active."
+              : "Your payment went through. If a course doesn't appear right away, refresh your dashboard in a few seconds."}
+          </p>
 
-            <div className="mt-4 w-full text-xs text-muted-foreground inline-flex items-center justify-center gap-2">
-              {reconciled ? (
-                <span>Enrollment synced</span>
-              ) : (
-                <>
-                  <Loader2 className="size-3 animate-spin" />
-                  <span>Waiting for confirmation</span>
-                </>
-              )}
-            </div>
+          <p
+            role="status"
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 text-xs text-muted-foreground"
+          >
+            {reconciled ? (
+              <span>Enrollment synced</span>
+            ) : (
+              <>
+                <Loader2 className="size-3 animate-spin" aria-hidden="true" />
+                <span>Waiting for confirmation</span>
+              </>
+            )}
+          </p>
 
-            <button
-              type="button"
-              onClick={goToDashboard}
-              className={buttonVariants({ className: "w-full mt-5" })}
-            >
-              <ArrowLeft className="size-4" />
-              Go to Dashboard
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={goToDashboard}
+            className={buttonVariants({ className: "mt-6 h-11 w-full" })}
+          >
+            Go to my dashboard
+            <ArrowRight aria-hidden="true" />
+          </button>
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }

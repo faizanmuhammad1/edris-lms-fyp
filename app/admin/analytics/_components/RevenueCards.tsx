@@ -1,104 +1,86 @@
-"use client";
-
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import {
-    IconCurrencyDollar,
-    IconTrendingUp,
-    IconTrendingDown,
-    IconShoppingCart,
-    IconReceipt,
-} from "@tabler/icons-react";
+import { DollarSign, Minus, Receipt, ShoppingCart, TrendingDown, TrendingUp, type LucideIcon } from "lucide-react";
+import { StatCard, StatGrid, type StatTone } from "@/app/admin/_components/StatCard";
+import { formatCents, formatNumber } from "@/app/admin/_lib/format";
 import type { RevenueStats } from "@/app/data/admin/admin-get-revenue-stats";
+import { cn } from "@/lib/utils";
 
-interface RevenueCardsProps {
-    stats: RevenueStats;
+const percentFormatter = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 1,
+  signDisplay: "exceptZero",
+});
+
+interface Trend {
+  icon: LucideIcon;
+  text: string;
+  direction: "up" | "down" | "flat";
 }
 
-function formatCurrency(cents: number): string {
-    return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-    }).format(cents / 100);
+/** Compares the last 30 days with the 30 days before; the wording carries the meaning, not the colour. */
+function getTrend(current: number, previous: number, growth: number): Trend {
+  if (previous === 0) {
+    return current > 0
+      ? { icon: TrendingUp, text: "No sales in the prior 30 days", direction: "up" }
+      : { icon: Minus, text: "No sales in the last 60 days", direction: "flat" };
+  }
+  const rounded = Math.round(growth * 10) / 10;
+  if (rounded === 0) {
+    return { icon: Minus, text: "No change vs prior 30 days", direction: "flat" };
+  }
+  return {
+    icon: rounded > 0 ? TrendingUp : TrendingDown,
+    text: `${percentFormatter.format(rounded)}% vs prior 30 days`,
+    direction: rounded > 0 ? "up" : "down",
+  };
 }
 
-export function RevenueCards({ stats }: RevenueCardsProps) {
-    const isPositiveGrowth = stats.revenueGrowth >= 0;
+const trendClasses: Record<Trend["direction"], string> = {
+  up: "text-emerald-700 dark:text-emerald-400",
+  down: "text-red-700 dark:text-red-400",
+  flat: "text-muted-foreground",
+};
 
-    return (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {/* Total Revenue */}
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardDescription>Total Revenue</CardDescription>
-                    <IconCurrencyDollar className="h-5 w-5 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <CardTitle className="text-2xl font-bold">
-                        {formatCurrency(stats.totalRevenue)}
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground mt-1">
-                        Lifetime earnings from all enrollments
-                    </p>
-                </CardContent>
-            </Card>
+const trendTones: Record<Trend["direction"], StatTone> = {
+  up: "success",
+  down: "danger",
+  flat: "default",
+};
 
-            {/* This Month Revenue */}
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardDescription>This Month</CardDescription>
-                    {isPositiveGrowth ? (
-                        <IconTrendingUp className="h-5 w-5 text-green-500" />
-                    ) : (
-                        <IconTrendingDown className="h-5 w-5 text-red-500" />
-                    )}
-                </CardHeader>
-                <CardContent>
-                    <CardTitle className="text-2xl font-bold">
-                        {formatCurrency(stats.thisMonthRevenue)}
-                    </CardTitle>
-                    <p className={`text-xs mt-1 ${isPositiveGrowth ? "text-green-600" : "text-red-600"}`}>
-                        {isPositiveGrowth ? "+" : ""}{stats.revenueGrowth.toFixed(1)}% from last month
-                    </p>
-                </CardContent>
-            </Card>
+export function RevenueCards({ stats }: { stats: RevenueStats }) {
+  const trend = getTrend(stats.thisMonthRevenue, stats.lastMonthRevenue, stats.revenueGrowth);
+  const TrendIcon = trend.icon;
 
-            {/* Total Enrollments */}
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardDescription>Total Enrollments</CardDescription>
-                    <IconShoppingCart className="h-5 w-5 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <CardTitle className="text-2xl font-bold">
-                        {stats.totalEnrollments}
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground mt-1">
-                        {stats.activeEnrollments} active enrollments
-                    </p>
-                </CardContent>
-            </Card>
-
-            {/* Average Order Value */}
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardDescription>Avg. Order Value</CardDescription>
-                    <IconReceipt className="h-5 w-5 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <CardTitle className="text-2xl font-bold">
-                        {formatCurrency(stats.averageOrderValue)}
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground mt-1">
-                        Per enrollment average
-                    </p>
-                </CardContent>
-            </Card>
-        </div>
-    );
+  return (
+    <StatGrid columns={4}>
+      <StatCard
+        label="Total revenue"
+        value={formatCents(stats.totalRevenue)}
+        icon={DollarSign}
+        description="Lifetime, from active enrollments"
+      />
+      <StatCard
+        label="Last 30 days"
+        value={formatCents(stats.thisMonthRevenue)}
+        icon={TrendIcon}
+        tone={trendTones[trend.direction]}
+        description={
+          <span className={cn("inline-flex items-center gap-1 font-medium", trendClasses[trend.direction])}>
+            <TrendIcon className="size-3.5 shrink-0" aria-hidden="true" />
+            {trend.text}
+          </span>
+        }
+      />
+      <StatCard
+        label="Total enrollments"
+        value={formatNumber(stats.totalEnrollments)}
+        icon={ShoppingCart}
+        description={`${formatNumber(stats.activeEnrollments)} active`}
+      />
+      <StatCard
+        label="Avg. order value"
+        value={formatCents(stats.averageOrderValue)}
+        icon={Receipt}
+        description="Per active enrollment"
+      />
+    </StatGrid>
+  );
 }

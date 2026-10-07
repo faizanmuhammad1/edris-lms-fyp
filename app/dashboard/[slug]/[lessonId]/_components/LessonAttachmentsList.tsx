@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useId, useState } from "react";
+import { toast } from "sonner";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Loader2 } from "lucide-react";
+import { FileText, Download, Loader2, Paperclip } from "lucide-react";
 
 interface Attachment {
   id: string;
@@ -19,10 +20,17 @@ interface LessonAttachmentsListProps {
   attachments: Attachment[];
 }
 
+function formatBytes(bytes: number) {
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
 export function LessonAttachmentsList({ lessonId, attachments }: LessonAttachmentsListProps) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const headingId = useId();
 
   async function handleDownload(att: Attachment) {
+    if (loadingId) return;
     setLoadingId(att.id);
     try {
       const res = await fetch("/api/lesson-files/signed-url", {
@@ -32,14 +40,10 @@ export function LessonAttachmentsList({ lessonId, attachments }: LessonAttachmen
       });
       if (!res.ok) throw new Error("Failed to get download link");
       const { url } = await res.json();
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = att.fileName;
-      a.target = "_blank";
-      a.rel = "noopener";
-      a.click();
+      // Served as an attachment: downloads in place without a pop-up (works on iOS/Android too).
+      window.location.assign(url);
     } catch {
-      // ignore
+      toast.error(`We couldn't download “${att.fileName}”. Please try again.`);
     } finally {
       setLoadingId(null);
     }
@@ -48,38 +52,40 @@ export function LessonAttachmentsList({ lessonId, attachments }: LessonAttachmen
   if (attachments.length === 0) return null;
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <FileText className="size-5 text-primary" />
-          Resources
+    <Card role="region" aria-labelledby={headingId}>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Paperclip className="size-5 text-primary" aria-hidden="true" />
+          <h2 id={headingId} className="text-lg font-semibold">
+            Resources
+          </h2>
         </CardTitle>
-        <p className="text-sm text-muted-foreground">Download lesson attachments</p>
+        <CardDescription>Download the files for this lesson.</CardDescription>
       </CardHeader>
       <CardContent>
         <ul className="space-y-2">
           {attachments.map((att) => (
-            <li
-              key={att.id}
-              className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
-            >
-              <span className="flex items-center gap-2 truncate min-w-0">
-                <FileText className="size-4 shrink-0 text-muted-foreground" />
-                <span className="truncate">{att.fileName}</span>
-                <span className="text-muted-foreground shrink-0">
-                  ({(att.fileSize / 1024).toFixed(1)} KB)
+            <li key={att.id} className="flex items-center gap-3 rounded-lg border px-3 py-2 text-sm">
+              <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium" title={att.fileName}>
+                  {att.fileName}
                 </span>
+                <span className="block text-xs text-muted-foreground">{formatBytes(att.fileSize)}</span>
               </span>
               <Button
-                variant="ghost"
-                size="sm"
+                variant="outline"
+                size="icon"
+                className="size-10 shrink-0"
                 disabled={loadingId === att.id}
+                aria-busy={loadingId === att.id}
                 onClick={() => handleDownload(att)}
+                aria-label={`Download ${att.fileName}`}
               >
                 {loadingId === att.id ? (
-                  <Loader2 className="size-4 animate-spin" />
+                  <Loader2 className="animate-spin" aria-hidden="true" />
                 ) : (
-                  <Download className="size-4" />
+                  <Download aria-hidden="true" />
                 )}
               </Button>
             </li>

@@ -1,135 +1,139 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { Ban, Mail, MoreHorizontal, Trash2, UserCheck } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Mail, MoreHorizontal, Ban, Trash2 } from "lucide-react";
-import { toast } from "sonner";
-import { banEnrollment, removeEnrollment } from "../actions";
+import { ConfirmDialog } from "@/components/general/ConfirmDialog";
+import type { ApiResponse } from "@/lib/types";
+import { banEnrollment, removeEnrollment, unbanEnrollment } from "../actions";
+import type { EnrollmentRowStatus } from "./types";
 
 type Props = {
     enrollmentId: string;
+    status: EnrollmentRowStatus;
     studentName: string;
+    studentEmail: string;
     courseTitle: string;
 };
 
-export function EnrollmentActions({ enrollmentId, studentName, courseTitle }: Props) {
-    const [isPending, startTransition] = useTransition();
-    const [banDialogOpen, setBanDialogOpen] = useState(false);
-    const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+type PendingAction = "ban" | "unban" | "remove" | null;
 
-    const handleBan = () => {
-        startTransition(async () => {
-            const result = await banEnrollment(enrollmentId);
-            if (result.ok) {
-                toast.success(`${studentName} has been banned from ${courseTitle}. Their access is revoked.`);
-                setBanDialogOpen(false);
-            } else {
-                toast.error(result.error);
-            }
-        });
-    };
+/** Row actions for an enrollment: email, ban / restore access, remove with all course data. */
+export function EnrollmentActions({ enrollmentId, status, studentName, studentEmail, courseTitle }: Props) {
+    const [dialog, setDialog] = useState<PendingAction>(null);
 
-    const handleRemove = () => {
-        startTransition(async () => {
-            const result = await removeEnrollment(enrollmentId);
-            if (result.ok) {
-                toast.success(`${studentName} has been removed from ${courseTitle}. All related data was deleted.`);
-                setRemoveDialogOpen(false);
-            } else {
-                toast.error(result.error);
+    async function run(action: (id: string) => Promise<ApiResponse>) {
+        try {
+            const result = await action(enrollmentId);
+            if (result.status === "error") {
+                toast.error(result.message);
+                return false;
             }
-        });
+            toast.success(result.message);
+            // The action revalidates /teacher/students, so the list updates with its response.
+            return true;
+        } catch {
+            toast.error("Something went wrong. Please try again.");
+            return false;
+        }
+    }
+
+    const onOpenChange = (open: boolean) => {
+        if (!open) setDialog(null);
     };
 
     return (
         <>
-            <div className="flex items-center justify-end gap-1">
-                <Button variant="ghost" size="icon" title="Contact Student">
-                    <Mail className="h-4 w-4" />
-                    <span className="sr-only">Contact</span>
-                </Button>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" disabled={isPending} title="Actions">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Actions</span>
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                            onClick={() => setBanDialogOpen(true)}
-                            className="text-amber-600 focus:text-amber-600"
-                        >
-                            <Ban className="mr-2 h-4 w-4" />
+            <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="size-10" aria-label={`Actions for ${studentName}`}>
+                        <MoreHorizontal aria-hidden="true" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel className="truncate" title={studentName}>
+                        {studentName}
+                    </DropdownMenuLabel>
+                    <DropdownMenuItem asChild>
+                        <a href={`mailto:${studentEmail}`}>
+                            <Mail aria-hidden="true" />
+                            Email student
+                        </a>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {status === "Active" ? (
+                        <DropdownMenuItem onSelect={() => setDialog("ban")}>
+                            <Ban aria-hidden="true" />
                             Ban access
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                            onClick={() => setRemoveDialogOpen(true)}
-                            className="text-destructive focus:text-destructive"
-                        >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Remove & delete all data
+                    ) : (
+                        <DropdownMenuItem onSelect={() => setDialog("unban")}>
+                            <UserCheck aria-hidden="true" />
+                            Restore access
                         </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
+                    )}
+                    <DropdownMenuItem variant="destructive" onSelect={() => setDialog("remove")}>
+                        <Trash2 aria-hidden="true" />
+                        Remove enrollment
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
 
-            <AlertDialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Ban access</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Ban <strong>{studentName}</strong> from <strong>{courseTitle}</strong>? They will lose
-                            access to the course immediately. No progress or data will be deleted.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleBan} disabled={isPending} className="bg-amber-600 hover:bg-amber-700">
-                            Ban access
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmDialog
+                open={dialog === "ban"}
+                onOpenChange={onOpenChange}
+                title={`Ban ${studentName}?`}
+                description={
+                    <>
+                        <strong className="text-foreground">{studentName}</strong> will immediately lose access to{" "}
+                        <strong className="text-foreground">{courseTitle}</strong>. Their progress, quiz attempts and
+                        submissions are kept, and you can restore access at any time.
+                    </>
+                }
+                confirmLabel="Ban access"
+                destructive
+                onConfirm={() => run(banEnrollment)}
+            />
 
-            <AlertDialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Remove student and delete all data</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Permanently remove <strong>{studentName}</strong> from <strong>{courseTitle}</strong>?
-                            This will delete their enrollment, progress, quiz attempts, assignment submissions, and
-                            certificate for this course. This cannot be undone.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={handleRemove}
-                            disabled={isPending}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                            Remove & delete all
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmDialog
+                open={dialog === "unban"}
+                onOpenChange={onOpenChange}
+                title={`Restore access for ${studentName}?`}
+                description={
+                    <>
+                        <strong className="text-foreground">{studentName}</strong> will be able to open{" "}
+                        <strong className="text-foreground">{courseTitle}</strong> again, with their previous progress
+                        intact.
+                    </>
+                }
+                confirmLabel="Restore access"
+                onConfirm={() => run(unbanEnrollment)}
+            />
+
+            <ConfirmDialog
+                open={dialog === "remove"}
+                onOpenChange={onOpenChange}
+                title={`Remove ${studentName} from this course?`}
+                description={
+                    <>
+                        This revokes access to <strong className="text-foreground">{courseTitle}</strong> and
+                        permanently deletes {studentName}&apos;s enrollment, lesson progress, quiz attempts, assignment
+                        submissions and certificate for this course. This can&apos;t be undone.
+                    </>
+                }
+                confirmLabel="Remove and delete data"
+                destructive
+                onConfirm={() => run(removeEnrollment)}
+            />
         </>
     );
 }

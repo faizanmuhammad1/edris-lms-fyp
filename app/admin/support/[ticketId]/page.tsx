@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { requireAdmin } from "@/app/data/admin/require-admin";
 import { getTicketDetails } from "@/app/data/support/get-ticket-details";
-import { notFound } from "next/navigation";
 import { AdminTicketDetail } from "./_components/AdminTicketDetail";
+
+export const metadata: Metadata = {
+  title: "Admin · Support ticket",
+};
 
 export default async function AdminTicketDetailPage({
   params,
@@ -16,12 +21,5 @@ export default async function AdminTicketDetailPage({
     notFound();
   }
 
-  return (
-    <div className="p-6">
-      <AdminTicketDetail
-        ticket={ticket}
-        currentUserId={session.user.id}
-      />
-    </div>
-  );
+  return <AdminTicketDetail ticket={ticket} currentUserId={session.user.id} />;
 }

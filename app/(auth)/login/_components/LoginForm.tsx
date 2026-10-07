@@ -6,17 +6,18 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 import { safeCallbackPath } from "@/lib/safe-redirect";
 
-import { Loader2, Send } from "lucide-react";
+import { AlertCircle, Loader2, Send } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function LoginForm() {
   const router = useRouter();
@@ -24,29 +25,39 @@ export function LoginForm() {
   const callbackURL = safeCallbackPath(searchParams.get("callbackURL"));
   const [emailPending, startEmailTransition] = useTransition();
   const [googlePending, startGoogleTransition] = useTransition();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(searchParams.get("email") ?? "");
+  const [error, setError] = useState<string | null>(null);
 
-  function signInWithEmail() {
+  function signInWithEmail(e?: React.FormEvent) {
+    e?.preventDefault();
+    const value = email.trim();
+    if (!EMAIL_PATTERN.test(value)) {
+      setError("Enter a valid email address, like name@example.com.");
+      return;
+    }
+    setError(null);
+
     startEmailTransition(async () => {
       await authClient.emailOtp.sendVerificationOtp({
-        email: email,
+        email: value,
         type: "sign-in",
         fetchOptions: {
           onSuccess: () => {
-            toast.success("Email sent");
+            toast.success("We've emailed you a sign-in code");
             // Pass callbackURL to verify-request page so it can be preserved.
             // Encode the email: a raw "+" would otherwise be read back as a space.
-            const query = new URLSearchParams({ email });
+            const query = new URLSearchParams({ email: value });
             if (callbackURL) query.set("callbackURL", callbackURL);
             router.push(`/verify-request?${query.toString()}`);
           },
           onError: (ctx) => {
             console.error("Login error:", ctx);
-            toast.error(
+            const message =
               ctx.response?.status === 429
                 ? "Too many attempts. Please wait a few minutes and try again."
-                : `Error sending email: ${ctx.error.message || "please try again."}`
-            );
+                : `We couldn't send the email: ${ctx.error.message || "please try again."}`;
+            setError(message);
+            toast.error(message);
           },
         },
       });
@@ -54,6 +65,7 @@ export function LoginForm() {
   }
 
   function signInWithGoogle() {
+    setError(null);
     startGoogleTransition(async () => {
       await authClient.signIn.social({
         provider: "google",
@@ -65,70 +77,93 @@ export function LoginForm() {
             // The callbackURL in signIn.social handles the redirect for social login
           },
           onError: () => {
+            setError("Google sign-in failed. Please try again or use your email.");
             toast.error("Error signing in with Google");
           },
         },
       });
     });
   }
+
+  const busy = emailPending || googlePending;
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Welcome to Edris LMS</CardTitle>
-        <CardDescription>
-          Sign in or create an account to get started
+        <h1 className="text-2xl font-semibold tracking-tight">Welcome to Edris LMS</h1>
+        <CardDescription className="text-base">
+          Sign in or create an account — we&apos;ll email you a one-time code.
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-5">
+        <form onSubmit={signInWithEmail} noValidate className="flex flex-col gap-3">
           <div className="grid gap-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Email address</Label>
             <Input
+              id="email"
+              name="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (error) setError(null);
+              }}
               type="email"
-              placeholder="m@example.com"
+              inputMode="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              placeholder="you@example.com"
               required
+              disabled={emailPending}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? "login-error" : undefined}
+              className="h-11"
             />
           </div>
 
-          <Button onClick={signInWithEmail} disabled={emailPending}>
+          {error && (
+            <p id="login-error" role="alert" className="flex items-start gap-2 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              {error}
+            </p>
+          )}
+
+          <Button type="submit" disabled={busy} className="h-11">
             {emailPending ? (
               <>
-                <Loader2 className="size-4 animate-spin" />
-                <span>Loading...</span>
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                <span>Sending code…</span>
               </>
             ) : (
               <>
-                <Send className="size-4" />
-                <span>Continue with Email</span>
+                <Send className="size-4" aria-hidden="true" />
+                <span>Continue with email</span>
               </>
             )}
           </Button>
-        </div>
+        </form>
 
         <div className="relative">
-          <div className="absolute inset-0 flex items-center">
+          <div className="absolute inset-0 flex items-center" aria-hidden="true">
             <span className="w-full border-t" />
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">
-              Or continue with
-            </span>
-          </div>
+          <p className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+          </p>
         </div>
 
         <Button
+          type="button"
           onClick={signInWithGoogle}
-          disabled={googlePending || emailPending}
+          disabled={busy}
           variant="outline"
-          className="w-full"
+          className="h-11 w-full"
         >
           {googlePending ? (
             <>
-              <Loader2 className="size-4 animate-spin" />
-              <span>Loading...</span>
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              <span>Redirecting to Google…</span>
             </>
           ) : (
             <>

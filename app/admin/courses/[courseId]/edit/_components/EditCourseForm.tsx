@@ -1,28 +1,26 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-
-import {
-  courseCategories,
-  courseLevels,
-  courseSchema,
-  CourseSchemaType,
-  courseStatus,
-} from "@/lib/zodSchemas";
-import { Loader2, PlusIcon, SparkleIcon } from "lucide-react";
+import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import slugify from "slugify";
+import { toast } from "sonner";
+import { Loader2, Save, SparkleIcon } from "lucide-react";
+import { AdminCourseSingularType } from "@/app/data/admin/admin-get-course";
+import { Uploader } from "@/components/file-uploader/Uploader";
+import { RichTextEditor } from "@/components/rich-text-editor/Editor";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import slugify from "slugify";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -30,24 +28,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RichTextEditor } from "@/components/rich-text-editor/Editor";
-import { Uploader } from "@/components/file-uploader/Uploader";
-import { useTransition } from "react";
+import { Textarea } from "@/components/ui/textarea";
 import { tryCatch } from "@/hooks/try-catch";
-//import { CreateCourse } from "./actions";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import {
+  courseCategories,
+  courseLevels,
+  courseSchema,
+  CourseSchemaType,
+  courseStatus,
+} from "@/lib/zodSchemas";
 import { editCourse } from "../actions";
-import { AdminCourseSingularType } from "@/app/data/admin/admin-get-course";
 
-interface iAppProps {
+interface EditCourseFormProps {
   data: AdminCourseSingularType;
 }
 
-export function EditCourseForm({ data }: iAppProps) {
+const SMALL_DESCRIPTION_MAX = 200;
+
+export function EditCourseForm({ data }: EditCourseFormProps) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
-  // 1. Define your form.
+
   const form = useForm<CourseSchemaType>({
     resolver: zodResolver(courseSchema),
     defaultValues: {
@@ -64,30 +65,47 @@ export function EditCourseForm({ data }: iAppProps) {
     },
   });
 
-  // 2. Define a submit handler.
   function onSubmit(values: CourseSchemaType) {
     startTransition(async () => {
-      const { data: result, error } = await tryCatch(
-        editCourse(values, data.id)
-      );
+      const { data: result, error } = await tryCatch(editCourse(values, data.id));
 
       if (error) {
-        toast.error("An unexpected error occurred. Please try again.");
+        toast.error("Couldn't reach the server. Check your connection and try again.");
         return;
       }
 
       if (result.status === "success") {
         toast.success(result.message);
-        form.reset();
-        router.push("/admin/courses");
-      } else if (result.status === "error") {
+        // Keep the saved values as the new baseline and pull fresh server data
+        form.reset(values);
+        router.refresh();
+      } else {
         toast.error(result.message);
       }
     });
   }
+
+  function onInvalid() {
+    toast.error("Some fields need attention. Check the highlighted fields and try again.");
+  }
+
+  function generateSlug() {
+    const title = form.getValues("title");
+    if (!title?.trim()) {
+      form.setError("slug", { message: "Enter a title first to generate a slug." });
+      return;
+    }
+    form.setValue("slug", slugify(title), { shouldValidate: true, shouldDirty: true });
+  }
+
   return (
     <Form {...form}>
-      <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
+      <form
+        className="space-y-6"
+        onSubmit={form.handleSubmit(onSubmit, onInvalid)}
+        aria-busy={pending}
+        noValidate
+      >
         <FormField
           control={form.control}
           name="title"
@@ -95,56 +113,57 @@ export function EditCourseForm({ data }: iAppProps) {
             <FormItem>
               <FormLabel>Title</FormLabel>
               <FormControl>
-                <Input placeholder="Title" {...field} />
+                <Input placeholder="e.g. Introduction to Web Development" maxLength={100} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="flex gap-4 items-end">
-          <FormField
-            control={form.control}
-            name="slug"
-            render={({ field }) => (
-              <FormItem className="w-full">
-                <FormLabel>Slug</FormLabel>
+        <FormField
+          control={form.control}
+          name="slug"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Slug</FormLabel>
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <FormControl>
-                  <Input placeholder="Slug" {...field} />
+                  <Input placeholder="introduction-to-web-development" className="min-w-0" {...field} />
                 </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <Button
-            type="button"
-            className="w-fit"
-            onClick={() => {
-              const titleValue = form.getValues("title");
-
-              const slug = slugify(titleValue);
-
-              form.setValue("slug", slug, { shouldValidate: true });
-            }}
-          >
-            Generate Slug <SparkleIcon className="ml-1" size={16} />
-          </Button>
-        </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={generateSlug}
+                >
+                  <SparkleIcon aria-hidden="true" />
+                  Generate from title
+                </Button>
+              </div>
+              <FormDescription className="break-all">
+                Used in the course URL: /courses/{field.value || "your-slug"}
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
           name="smallDescription"
           render={({ field }) => (
-            <FormItem className="w-full">
-              <FormLabel>Small Description</FormLabel>
+            <FormItem>
+              <FormLabel>Short description</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Small Description"
+                  placeholder="A one or two sentence summary shown on course cards"
                   className="min-h-[120px]"
                   {...field}
                 />
               </FormControl>
+              <FormDescription>
+                {field.value?.length ?? 0}/{SMALL_DESCRIPTION_MAX} characters
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -154,10 +173,12 @@ export function EditCourseForm({ data }: iAppProps) {
           control={form.control}
           name="description"
           render={({ field }) => (
-            <FormItem className="w-full">
-              <FormLabel>Description</FormLabel>
+            <FormItem>
+              <FormLabel id="course-description-label">Description</FormLabel>
               <FormControl>
-                <RichTextEditor field={field} />
+                <div role="group" aria-labelledby="course-description-label" className="min-w-0">
+                  <RichTextEditor field={field} />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -168,34 +189,34 @@ export function EditCourseForm({ data }: iAppProps) {
           control={form.control}
           name="fileKey"
           render={({ field }) => (
-            <FormItem className="w-full">
-              <FormLabel>Thumbnail image</FormLabel>
+            <FormItem>
+              <FormLabel id="course-thumbnail-label">Thumbnail image</FormLabel>
               <FormControl>
-                <Uploader
-                  fileTypeAccepted="image"
-                  onChange={field.onChange}
-                  value={field.value}
-                />
+                <div role="group" aria-labelledby="course-thumbnail-label" className="w-full min-w-0">
+                  <Uploader
+                    fileTypeAccepted="image"
+                    onChange={field.onChange}
+                    value={field.value}
+                    persistedKey={data.fileKey}
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField
             control={form.control}
             name="category"
             render={({ field }) => (
-              <FormItem className="w-full">
+              <FormItem>
                 <FormLabel>Category</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select Category" />
+                      <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -206,7 +227,6 @@ export function EditCourseForm({ data }: iAppProps) {
                     ))}
                   </SelectContent>
                 </Select>
-
                 <FormMessage />
               </FormItem>
             )}
@@ -216,26 +236,22 @@ export function EditCourseForm({ data }: iAppProps) {
             control={form.control}
             name="level"
             render={({ field }) => (
-              <FormItem className="w-full">
+              <FormItem>
                 <FormLabel>Level</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select Value" />
+                      <SelectValue placeholder="Select a level" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {courseLevels.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
+                    {courseLevels.map((level) => (
+                      <SelectItem key={level} value={level}>
+                        {level}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-
                 <FormMessage />
               </FormItem>
             )}
@@ -245,10 +261,18 @@ export function EditCourseForm({ data }: iAppProps) {
             control={form.control}
             name="duration"
             render={({ field }) => (
-              <FormItem className="w-full">
+              <FormItem>
                 <FormLabel>Duration (hours)</FormLabel>
                 <FormControl>
-                  <Input placeholder="Duration" type="number" {...field} />
+                  <Input
+                    placeholder="e.g. 12"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={500}
+                    step={1}
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -259,11 +283,19 @@ export function EditCourseForm({ data }: iAppProps) {
             control={form.control}
             name="price"
             render={({ field }) => (
-              <FormItem className="w-full">
-                <FormLabel>Price ($)</FormLabel>
+              <FormItem>
+                <FormLabel>Price (USD)</FormLabel>
                 <FormControl>
-                  <Input placeholder="Price" type="number" min="1" step="1" {...field} />
+                  <Input
+                    placeholder="e.g. 49"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    step={1}
+                    {...field}
+                  />
                 </FormControl>
+                <FormDescription>Whole dollars, no cents.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -274,40 +306,45 @@ export function EditCourseForm({ data }: iAppProps) {
           control={form.control}
           name="status"
           render={({ field }) => (
-            <FormItem className="w-full">
+            <FormItem>
               <FormLabel>Status</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select Status" />
+                  <SelectTrigger className="w-full sm:max-w-xs">
+                    <SelectValue placeholder="Select a status" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {courseStatus.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
+                  {courseStatus.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {status}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-
+              <FormDescription>
+                Only published courses are visible in the public catalog.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <Button type="submit" disabled={pending}>
-          {pending ? (
-            <>
-              Updating...
-              <Loader2 className="animate-spin ml-1" />
-            </>
-          ) : (
-            <>
-              Update Course <PlusIcon className="ml-1" size={16} />
-            </>
-          )}
-        </Button>
+        <div className="flex flex-col gap-3 border-t pt-6 sm:flex-row sm:items-center sm:justify-end">
+          <Button
+            type="submit"
+            disabled={pending}
+            aria-busy={pending}
+            className="w-full sm:w-auto"
+          >
+            {pending ? (
+              <Loader2 className="animate-spin" aria-hidden="true" />
+            ) : (
+              <Save aria-hidden="true" />
+            )}
+            {pending ? "Saving..." : "Save changes"}
+          </Button>
+        </div>
       </form>
     </Form>
   );

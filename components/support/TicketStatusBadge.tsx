@@ -31,6 +31,7 @@ export function TicketStatusBadge({ status }: { status: string }) {
   const config = statusConfig[status] || statusConfig.Open;
   return (
     <Badge variant="outline" className={cn("font-medium text-xs", config.className)}>
+      <span className="sr-only">Status: </span>
       {config.label}
     </Badge>
   );

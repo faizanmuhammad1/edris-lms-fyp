@@ -1,72 +1,73 @@
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { pluralize } from "@/app/admin/_lib/format";
+import { ConfirmDialog } from "@/components/general/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { tryCatch } from "@/hooks/try-catch";
-import { Trash2 } from "lucide-react";
-
-import { useState, useTransition } from "react";
 import { deleteChapter } from "../actions";
-import { toast } from "sonner";
 
 export function DeleteChapter({
   chapterId,
   courseId,
+  chapterTitle,
+  lessonCount,
 }: {
   chapterId: string;
   courseId: string;
+  chapterTitle: string;
+  lessonCount: number;
 }) {
-  const [open, setOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
+  const router = useRouter();
 
-  async function onSubmit() {
-    startTransition(async () => {
-      const { data: result, error } = await tryCatch(
-        deleteChapter({ chapterId, courseId })
-      );
+  async function handleConfirm() {
+    const { data: result, error } = await tryCatch(deleteChapter({ chapterId, courseId }));
 
-      if (error) {
-        toast.error("An unexpected error occurred. Please try again.");
-        return;
-      }
+    if (error) {
+      toast.error("Couldn't reach the server. Check your connection and try again.");
+      return false;
+    }
 
-      if (result.status === "success") {
-        toast.success(result.message);
-        setOpen(false);
-      } else if (result.status === "error") {
-        toast.error(result.message);
-      }
-    });
+    if (result.status !== "success") {
+      toast.error(result.message);
+      return false;
+    }
+
+    toast.success(result.message);
+    router.refresh();
   }
+
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Trash2 className="size-4" />
+    <ConfirmDialog
+      title="Delete this chapter?"
+      description={
+        <div className="space-y-2">
+          <p>
+            <span className="font-medium text-foreground break-words">&ldquo;{chapterTitle}&rdquo;</span>{" "}
+            will be permanently deleted
+            {lessonCount > 0
+              ? ` along with its ${pluralize(lessonCount, "lesson")}, their videos, files and student progress.`
+              : "."}
+          </p>
+          <p>This can&rsquo;t be undone.</p>
+        </div>
+      }
+      confirmLabel="Delete chapter"
+      destructive
+      onConfirm={handleConfirm}
+      trigger={
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="shrink-0 text-muted-foreground hover:text-destructive"
+          aria-label={`Delete chapter: ${chapterTitle}`}
+        >
+          <Trash2 aria-hidden="true" />
         </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete this
-            Chapter.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <Button onClick={onSubmit} disabled={pending}>
-            {pending ? "Deleting..." : "Delete"}
-          </Button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      }
+    />
   );
 }

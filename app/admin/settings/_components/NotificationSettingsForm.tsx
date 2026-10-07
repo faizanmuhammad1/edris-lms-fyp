@@ -1,96 +1,111 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Bell } from "lucide-react";
-import { useTransition, useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { StatusBadge } from "@/app/admin/_components/StatusBadge";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+} from "@/components/ui/form";
+import { Switch } from "@/components/ui/switch";
 import { saveNotificationSettingsAction } from "../actions";
+import { notificationSettingsSchema, type NotificationSettingsValues } from "../schemas";
+import { SettingsCard, SettingsFormActions } from "./SettingsCard";
 
-type NotificationSettingsFormProps = {
-  notifyNewEnrollments: boolean;
-  notifyTeacherApplications: boolean;
-  notifySystemAlerts: boolean;
-};
+type NotificationSettingsFormProps = NotificationSettingsValues;
+
+const OPTIONS: { name: keyof NotificationSettingsValues; label: string; description: string }[] = [
+  {
+    name: "notifyNewEnrollments",
+    label: "New enrollments",
+    description: "Email admins when a student enrolls in a course.",
+  },
+  {
+    name: "notifyTeacherApplications",
+    label: "Teacher applications",
+    description: "Email admins when a new teacher application arrives.",
+  },
+  {
+    name: "notifySystemAlerts",
+    label: "System alerts",
+    description: "Email admins about important system warnings and updates.",
+  },
+];
 
 export function NotificationSettingsForm({
-  notifyNewEnrollments: initialNewEnrollments,
-  notifyTeacherApplications: initialTeacherApplications,
-  notifySystemAlerts: initialSystemAlerts,
+  notifyNewEnrollments,
+  notifyTeacherApplications,
+  notifySystemAlerts,
 }: NotificationSettingsFormProps) {
-  const [pending, startTransition] = useTransition();
-  const [notifyNewEnrollments, setNotifyNewEnrollments] = useState(initialNewEnrollments);
-  const [notifyTeacherApplications, setNotifyTeacherApplications] = useState(initialTeacherApplications);
-  const [notifySystemAlerts, setNotifySystemAlerts] = useState(initialSystemAlerts);
+  const form = useForm<NotificationSettingsValues>({
+    resolver: zodResolver(notificationSettingsSchema),
+    defaultValues: { notifyNewEnrollments, notifyTeacherApplications, notifySystemAlerts },
+  });
+  const { isDirty, isSubmitting } = form.formState;
 
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    startTransition(async () => {
-      const result = await saveNotificationSettingsAction({
-        notifyNewEnrollments,
-        notifyTeacherApplications,
-        notifySystemAlerts,
-      });
-      if (result.ok) toast.success("Notification settings saved.");
-      else toast.error(result.error);
-    });
+  async function onSubmit(values: NotificationSettingsValues) {
+    try {
+      const result = await saveNotificationSettingsAction(values);
+      if (result.status === "success") {
+        toast.success(result.message);
+        form.reset(values);
+      } else {
+        toast.error(result.message);
+      }
+    } catch {
+      toast.error("Couldn't save notification preferences. Check your connection and try again.");
+    }
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-            <Bell className="h-5 w-5 text-blue-500" />
-          </div>
-          <div>
-            <CardTitle>Notifications</CardTitle>
-            <CardDescription>Configure email and push notifications</CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={onSubmit} className="space-y-4">
-          <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-            Not yet enforced: these preferences are saved, but no notifications are sent for
-            these events yet.
+    <SettingsCard
+      id="notification-settings"
+      title="Notifications"
+      icon={Bell}
+      badge={<StatusBadge tone="warning">Not yet enforced</StatusBadge>}
+      description="Choose which events should notify admins."
+    >
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+          <p className="rounded-lg border border-amber-600/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
+            <span className="font-medium">Not yet enforced:</span> these preferences are saved, but the
+            platform doesn&apos;t send notifications for these events yet.
           </p>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">New Enrollments</p>
-              <p className="text-sm text-muted-foreground">
-                Receive notifications for new course enrollments
-              </p>
-            </div>
-            <Switch checked={notifyNewEnrollments} onCheckedChange={setNotifyNewEnrollments} disabled={pending} />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Teacher Applications</p>
-              <p className="text-sm text-muted-foreground">
-                Get notified when new teacher applications arrive
-              </p>
-            </div>
-            <Switch checked={notifyTeacherApplications} onCheckedChange={setNotifyTeacherApplications} disabled={pending} />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">System Alerts</p>
-              <p className="text-sm text-muted-foreground">
-                Important system warnings and updates
-              </p>
-            </div>
-            <Switch checked={notifySystemAlerts} onCheckedChange={setNotifySystemAlerts} disabled={pending} />
-          </div>
-          <Button type="submit" disabled={pending}>
-            {pending ? "Saving..." : "Save Changes"}
-          </Button>
+          <fieldset className="divide-y rounded-lg border" disabled={isSubmitting}>
+            <legend className="sr-only">Admin notification events</legend>
+            {OPTIONS.map((option) => (
+              <FormField
+                key={option.name}
+                control={form.control}
+                name={option.name}
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between gap-4 space-y-0 p-3 sm:p-4">
+                    <div className="min-w-0 space-y-1">
+                      <FormLabel className="cursor-pointer text-sm font-medium">{option.label}</FormLabel>
+                      <FormDescription>{option.description}</FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} onBlur={field.onBlur} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            ))}
+          </fieldset>
+          <SettingsFormActions
+            isDirty={isDirty}
+            isSubmitting={isSubmitting}
+            onDiscard={() => form.reset()}
+            saveLabel="Save preferences"
+          />
         </form>
-      </CardContent>
-    </Card>
+      </Form>
+    </SettingsCard>
   );
 }

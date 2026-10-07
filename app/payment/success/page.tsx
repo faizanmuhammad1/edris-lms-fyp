@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { PaymentSuccessContent } from "./payment-success-content";
 import { reconcileCheckout } from "./actions";
+
+export const metadata: Metadata = {
+  title: "Payment successful",
+  robots: { index: false, follow: false },
+};
 
 interface PaymentSuccessPageProps {
   searchParams: Promise<{

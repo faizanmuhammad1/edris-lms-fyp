@@ -1,13 +1,14 @@
-"use client";
-
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, MessageSquare, Users, Settings } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { MessageSquare, MessagesSquare, Settings, Users } from "lucide-react";
 import Link from "next/link";
+import { formatNumber, getInitials, pluralize } from "@/app/admin/_lib/format";
 import { deletePost } from "@/app/actions/post";
 import { DeleteButton } from "@/components/general/DeleteButton";
-import { formatDistanceToNow } from "date-fns";
+import { EmptyState } from "@/components/general/EmptyState";
+import { PageHeader } from "@/components/general/PageHeader";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 type Post = {
   id: string;
@@ -34,119 +35,133 @@ interface AdminCommunityForumProps {
   forumBasePath: string;
 }
 
-export function AdminCommunityForum({
-  community,
-  posts,
-  forumBasePath,
-}: AdminCommunityForumProps) {
+/** Admin moderation view of a community forum: post list with delete controls. */
+export function AdminCommunityForum({ community, posts, forumBasePath }: AdminCommunityForumProps) {
   const manageHref = `/admin/communities/${community.slug}`;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href={manageHref}>
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">{community.name}</h1>
-            <p className="text-sm text-muted-foreground">{community.description}</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href={manageHref}>
-              <Users className="mr-2 h-4 w-4" />
+      <PageHeader
+        title={<span className="[overflow-wrap:anywhere]">{community.name}</span>}
+        description="Forum moderation: review discussions and remove posts that break the guidelines."
+        backHref={manageHref}
+        backLabel="Back to community"
+        actions={
+          <>
+            <Link href={`${manageHref}?tab=members`} className={buttonVariants({ variant: "outline" })}>
+              <Users className="size-4" aria-hidden="true" />
               Members
             </Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link href={manageHref}>
-              <Settings className="mr-2 h-4 w-4" />
+            <Link href={`${manageHref}?tab=settings`} className={buttonVariants({ variant: "outline" })}>
+              <Settings className="size-4" aria-hidden="true" />
               Settings
             </Link>
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-        <div className="lg:col-span-3 space-y-6">
-          <div className="space-y-4">
-            {posts.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  No posts yet in this community.
-                </CardContent>
-              </Card>
-            ) : (
-              posts.map((post) => (
-                <Link
-                  key={post.id}
-                  href={`${forumBasePath}/${post.id}`}
-                  className="block group"
-                >
-                  <Card className="hover:border-primary/50 transition-all cursor-pointer group-hover:shadow-md">
-                    <CardHeader>
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <Avatar className="h-10 w-10 shrink-0">
-                            <AvatarImage src={post.user.image ?? ""} />
-                            <AvatarFallback>{post.user.name?.[0] ?? "?"}</AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0">
-                            <CardTitle className="text-lg group-hover:text-primary transition-colors truncate">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <section aria-labelledby="forum-posts-heading" className="min-w-0 space-y-4">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 id="forum-posts-heading" className="text-lg font-semibold">
+              Posts
+            </h2>
+            <p className="text-sm text-muted-foreground">{pluralize(posts.length, "post")}</p>
+          </div>
+
+          {posts.length === 0 ? (
+            <EmptyState
+              icon={MessagesSquare}
+              titleAs="h3"
+              title="No posts yet"
+              description="When members start discussions they'll appear here, ready to review."
+            />
+          ) : (
+            <ul className="space-y-3">
+              {posts.map((post) => {
+                const authorName = post.user.name ?? "Unknown member";
+                return (
+                  <li key={post.id}>
+                    <article className="relative rounded-xl border bg-card p-4 shadow-xs transition-colors focus-within:ring-2 focus-within:ring-ring/50 hover:border-primary/40 sm:p-5">
+                      <div className="flex items-start gap-3">
+                        <Avatar className="size-10 shrink-0">
+                          <AvatarImage src={post.user.image ?? undefined} alt="" />
+                          <AvatarFallback>{getInitials(post.user.name)}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-base font-semibold leading-snug [overflow-wrap:anywhere]">
+                            <Link
+                              href={`${forumBasePath}/${post.id}`}
+                              className="outline-none after:absolute after:inset-0 after:rounded-xl hover:text-primary"
+                            >
                               {post.title}
-                            </CardTitle>
-                            <div className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
-                              <span>{post.user.name ?? "Unknown"}</span>
-                              <span>•</span>
-                              <span>{formatDistanceToNow(post.createdAt, { addSuffix: true })}</span>
-                            </div>
-                          </div>
+                            </Link>
+                          </h3>
+                          <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
+                            <span className="max-w-full truncate">{authorName}</span>
+                            <span aria-hidden="true">·</span>
+                            <time dateTime={new Date(post.createdAt).toISOString()}>
+                              {formatDistanceToNow(post.createdAt, { addSuffix: true })}
+                            </time>
+                          </p>
                         </div>
-                        <div onClick={(e) => e.preventDefault()} className="shrink-0">
-                          <DeleteButton id={post.id} deleteAction={deletePost} />
+                        <div className="relative z-10 -mr-1 -mt-1 shrink-0">
+                          <DeleteButton
+                            id={post.id}
+                            deleteAction={deletePost}
+                            itemLabel="post"
+                            itemName={post.title}
+                            confirmDescription={
+                              <>
+                                <span className="font-medium text-foreground [overflow-wrap:anywhere]">
+                                  &ldquo;{post.title}&rdquo;
+                                </span>{" "}
+                                by {authorName} and its {pluralize(post._count.comments, "comment")} will be
+                                permanently deleted. This can&apos;t be undone.
+                              </>
+                            }
+                          />
                         </div>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground line-clamp-3 mb-4">
+                      <p className="mt-3 line-clamp-3 whitespace-pre-line text-sm text-muted-foreground [overflow-wrap:anywhere]">
                         {post.content}
                       </p>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <MessageSquare className="h-4 w-4" />
-                        <span>{post._count.comments} Comments</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))
-            )}
-          </div>
-        </div>
+                      <p className="mt-3 flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <MessageSquare className="size-4" aria-hidden="true" />
+                        {pluralize(post._count.comments, "comment")}
+                      </p>
+                    </article>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>About</CardTitle>
+        <aside aria-labelledby="forum-about-heading" className="min-w-0">
+          <Card className="gap-4 shadow-xs lg:sticky lg:top-20">
+            <CardHeader className="px-4 sm:px-6">
+              <h2 id="forum-about-heading" className="text-base font-semibold leading-tight">
+                About this community
+              </h2>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">{community.description}</p>
-              <div className="mt-4 pt-4 border-t flex flex-col gap-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Members</span>
-                  <span className="font-medium">{community.memberCount}</span>
+            <CardContent className="space-y-4 px-4 sm:px-6">
+              <p className="whitespace-pre-line text-sm text-muted-foreground [overflow-wrap:anywhere]">
+                {community.description}
+              </p>
+              <dl className="space-y-2 border-t pt-4 text-sm">
+                <div className="flex justify-between gap-2">
+                  <dt className="text-muted-foreground">Members</dt>
+                  <dd className="font-medium tabular-nums">{formatNumber(community.memberCount)}</dd>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Posts</span>
-                  <span className="font-medium">{community._count.posts}</span>
+                <div className="flex justify-between gap-2">
+                  <dt className="text-muted-foreground">Posts</dt>
+                  <dd className="font-medium tabular-nums">{formatNumber(community._count.posts)}</dd>
                 </div>
-              </div>
+              </dl>
             </CardContent>
           </Card>
-        </div>
+        </aside>
       </div>
     </div>
   );

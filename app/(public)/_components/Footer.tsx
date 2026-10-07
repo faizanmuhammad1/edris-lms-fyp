@@ -1,169 +1,154 @@
-"use client";
-
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
+import { CreditCard, ShieldCheck, Sparkles } from "lucide-react";
 import Logo from "@/public/bc413ab4-3838-4b3d-ae28-e8f3cd721b33.png";
 import WhiteLogo from "@/public/edriswhitelogo.png";
-import { ArrowRight } from "lucide-react";
-import { NewsletterSubscribe } from "./NewsletterSubscribe";
 import {
   verificationPortalLinkProps,
   verificationPortalUrl,
 } from "@/lib/verification-portal-url";
+import { NewsletterSubscribe } from "./NewsletterSubscribe";
+
+const categoryHref = (category: string) => `/courses?category=${encodeURIComponent(category)}`;
+
+const linkGroups = [
+  {
+    title: "Learn",
+    links: [
+      { label: "All courses", href: "/courses" },
+      ...["Development", "Business", "Design", "IT & Software"].map((category) => ({
+        label: category,
+        href: categoryHref(category),
+      })),
+    ],
+  },
+  {
+    title: "Teach",
+    links: [
+      { label: "Become an instructor", href: "/teach" },
+      { label: "Instructor dashboard", href: "/teacher" },
+    ],
+  },
+  {
+    title: "Platform",
+    links: [
+      { label: "My learning", href: "/dashboard" },
+      { label: "Verify a certificate", href: verificationPortalUrl() },
+      { label: "Contact us", href: "/contact" },
+    ],
+  },
+];
+
+const legalLinks = [
+  { label: "Terms", href: "/terms" },
+  { label: "Privacy", href: "/privacy" },
+  { label: "Cookies", href: "/cookies" },
+  { label: "Accessibility", href: "/accessibility" },
+];
+
+const highlights = [
+  { icon: Sparkles, text: "An AI tutor that knows every lesson" },
+  { icon: ShieldCheck, text: "Certificates verified on the blockchain" },
+  { icon: CreditCard, text: "Secure checkout with Stripe" },
+];
 
 export function Footer() {
-    const currentYear = new Date().getFullYear();
+  const currentYear = new Date().getFullYear();
 
-    return (
-        <footer className="relative border-t border-border/50 bg-background overflow-hidden pt-24 pb-12">
-            {/* Ambient Background Glows */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-primary/5 blur-[120px] rounded-full pointer-events-none -z-10" />
-            <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-accent/5 blur-[120px] rounded-full pointer-events-none -z-10" />
+  return (
+    <footer className="border-t bg-muted/40">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Newsletter */}
+        <section
+          aria-labelledby="footer-newsletter-heading"
+          className="mt-12 grid gap-6 rounded-2xl border bg-card p-6 shadow-sm sm:p-8 lg:mt-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:items-center lg:gap-12 lg:p-10"
+        >
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wider text-primary">Newsletter</p>
+            <h2
+              id="footer-newsletter-heading"
+              className="mt-2 text-xl font-semibold tracking-tight text-balance sm:text-2xl"
+            >
+              New courses and learning tips, straight to your inbox
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+              One email when there&apos;s something worth reading. Unsubscribe at any time.
+            </p>
+          </div>
+          <NewsletterSubscribe />
+        </section>
 
-            <div className="container relative z-10 mx-auto px-6 md:px-12 lg:px-24 xl:px-32 2xl:px-40">
+        {/* Brand + links */}
+        <div className="grid gap-10 py-12 lg:grid-cols-12 lg:gap-8 lg:py-16">
+          <div className="lg:col-span-5 xl:col-span-4">
+            <Link href="/" className="inline-flex items-center gap-2.5 rounded-md" aria-label="Edris LMS home">
+              <Image src={Logo} alt="" className="h-9 w-auto dark:hidden" sizes="36px" />
+              <Image src={WhiteLogo} alt="" className="hidden h-9 w-auto dark:block" sizes="36px" />
+              <span className="text-lg font-semibold tracking-tight">Edris LMS</span>
+            </Link>
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
+              Expert-led video courses with quizzes, assignments and an AI tutor, and certificates anyone can
+              verify.
+            </p>
+            <ul className="mt-6 space-y-2.5">
+              {highlights.map((item) => (
+                <li key={item.text} className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                    <item.icon className="size-4 text-primary" aria-hidden="true" />
+                  </span>
+                  {item.text}
+                </li>
+              ))}
+            </ul>
+          </div>
 
-                {/* Floating Action Card (Newsletter) */}
-                <div className="relative mb-24 rounded-3xl bg-card border border-border/60 p-8 md:p-12 shadow-2xl shadow-black/5 overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+          <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:col-span-7 lg:col-start-6 xl:col-span-6 xl:col-start-7">
+            {linkGroups.map((group) => (
+              <nav
+                key={group.title}
+                aria-labelledby={`footer-${group.title.toLowerCase()}`}
+                className="min-w-0"
+              >
+                <h3 id={`footer-${group.title.toLowerCase()}`} className="text-sm font-semibold text-foreground">
+                  {group.title}
+                </h3>
+                <ul className="mt-3 space-y-0.5">
+                  {group.links.map((link) => (
+                    <li key={link.label}>
+                      <Link
+                        href={link.href}
+                        className="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors hover:text-foreground sm:min-h-9"
+                        {...verificationPortalLinkProps(link.href)}
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ))}
+          </div>
+        </div>
 
-                    <div className="relative z-10 max-w-lg">
-                        <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary mb-4">
-                            <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                            </span>
-                            Weekly Insights
-                        </div>
-                        <h3 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-3">
-                            Stay ahead of the curve.
-                        </h3>
-                        <p className="text-muted-foreground text-lg">
-                            Get the latest courses, learning tips, and exclusive tech insights delivered directly to your inbox.
-                        </p>
-                    </div>
-
-                    <div className="relative z-10 w-full md:w-auto min-w-[320px]">
-                        <NewsletterSubscribe />
-                    </div>
-                </div>
-
-                {/* Main Footer Content */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-12 lg:gap-16 pb-16">
-
-                    {/* Brand Section */}
-                    <div className="md:col-span-5 space-y-6">
-                        <Link href="/" className="flex items-center space-x-2 group w-fit">
-                            <div className="relative flex items-center justify-center">
-                                <div className="absolute inset-0 bg-primary/20 blur-md rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                <Image src={Logo} alt="Edris LMS" className="h-16 w-auto relative z-10 dark:hidden" />
-                                <Image src={WhiteLogo} alt="Edris LMS" className="h-16 w-auto relative z-10 hidden dark:block" />
-                            </div>
-                            <span className="font-bold text-3xl tracking-tight text-foreground">
-                                Edris LMS
-                            </span>
-                        </Link>
-                        <p className="text-muted-foreground leading-relaxed max-w-sm text-lg">
-                            Empowering the next generation of builders with expert-led technical education and blockchain-verified credentials.
-                        </p>
-
-
-                    </div>
-
-                    {/* Links Grid */}
-                    <div className="md:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-8">
-                        {/* Categories */}
-                        <div className="space-y-5">
-                            <h4 className="text-sm font-bold text-foreground tracking-widest uppercase">Categories</h4>
-                            <ul className="space-y-3">
-                                {["Development", "Business", "Design", "Marketing", "IT & Software"].map(
-                                    (item) => (
-                                        <li key={item}>
-                                            <Link
-                                                href={`/courses?category=${encodeURIComponent(item)}`}
-                                                onClick={() => window.scrollTo(0, 0)}
-                                                className="group inline-flex items-center text-muted-foreground hover:text-primary transition-colors font-medium"
-                                            >
-                                                <span>{item}</span>
-                                                <ArrowRight className="h-3 w-3 ml-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                                            </Link>
-                                        </li>
-                                    )
-                                )}
-                            </ul>
-                        </div>
-
-                        {/* Company */}
-                        <div className="space-y-5">
-                            <h4 className="text-sm font-bold text-foreground tracking-widest uppercase">Company</h4>
-                            <ul className="space-y-3">
-                                {[
-                                    { label: "Contact Us", href: "/contact" },
-                                    { label: "Teach on Edris", href: "/teach" },
-                                    { label: "Verify Certificate", href: verificationPortalUrl() },
-                                ].map((item) => (
-                                    <li key={item.label}>
-                                        <Link
-                                            href={item.href}
-                                            onClick={() => window.scrollTo(0, 0)}
-                                            className="group inline-flex items-center text-muted-foreground hover:text-primary transition-colors font-medium"
-                                            {...verificationPortalLinkProps(item.href)}
-                                        >
-                                            <span>{item.label}</span>
-                                            <ArrowRight className="h-3 w-3 ml-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        {/* Legal */}
-                        <div className="space-y-5">
-                            <h4 className="text-sm font-bold text-foreground tracking-widest uppercase">Legal</h4>
-                            <ul className="space-y-3">
-                                {[
-                                    { label: "Terms of Service", href: "/terms" },
-                                    { label: "Privacy Policy", href: "/privacy" },
-                                    { label: "Cookie Policy", href: "/cookies" },
-                                    { label: "Accessibility", href: "/accessibility" },
-                                ].map((item) => (
-                                    <li key={item.label}>
-                                        <Link
-                                            href={item.href}
-                                            onClick={() => window.scrollTo(0, 0)}
-                                            className="group inline-flex items-center text-muted-foreground hover:text-primary transition-colors font-medium"
-                                        >
-                                            <span>{item.label}</span>
-                                            <ArrowRight className="h-3 w-3 ml-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Massive Watermark */}
-            <div className="w-full overflow-hidden flex justify-center mt-8 -mb-10 sm:-mb-16 md:-mb-24 pointer-events-none select-none">
-                <span className="text-[12vw] font-black leading-none text-muted/20 dark:text-muted/10 tracking-tighter mix-blend-multiply dark:mix-blend-overlay">
-                    EDRIS LMS
-                </span>
-            </div>
-
-            {/* Floating Bottom Bar (Pill / Tube) */}
-            <div className="relative z-10 px-4 md:px-8 pb-8">
-                <div className="w-full max-w-[2000px] mx-auto border border-border/60 bg-background/80 dark:bg-[#0A0A0A]/80 backdrop-blur-xl rounded-3xl sm:rounded-full px-6 md:px-8 py-4 sm:py-3 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg">
-                    <p className="text-sm text-muted-foreground font-medium flex items-center gap-2 tracking-wide sm:pl-2">
-                        &copy; {currentYear} Edris LMS Inc. All rights reserved.
-                    </p>
-                    <div className="flex items-center gap-3 text-[13px] font-bold text-primary dark:text-[#86AD94] border border-primary/20 dark:border-[#2A362E] rounded-full px-5 py-2 md:py-1.5 min-h-[36px] bg-primary/5 dark:bg-[#17211C] shadow-sm whitespace-nowrap select-none">
-                        <span className="flex items-center justify-center h-4 w-4 rounded-full bg-primary/20 dark:bg-[#2A362E]">
-                            <span className="h-2 w-2 rounded-full bg-primary dark:bg-[#86AD94]"></span>
-                        </span>
-                        <span className="leading-none pt-px">Edris Learning 2.0 Just Dropped</span>
-                    </div>
-                </div>
-            </div>
-        </footer>
-    );
+        {/* Bottom bar */}
+        <div className="flex flex-col-reverse gap-3 border-t py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <p>&copy; {currentYear} Edris LMS. All rights reserved.</p>
+          <nav aria-label="Legal">
+            <ul className="flex flex-wrap gap-x-5 gap-y-1">
+              {legalLinks.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="inline-flex min-h-10 items-center transition-colors hover:text-foreground sm:min-h-8"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </footer>
+  );
 }

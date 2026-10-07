@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import Link from "next/link";
+import { AlertTriangle, Home, RefreshCw } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 export default function Error({
     error,
@@ -18,66 +18,39 @@ export default function Error({
     }, [error]);
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-destructive/5 p-4">
-            <div className="text-center space-y-8 max-w-md">
-                {/* Error Icon */}
-                <div className="relative mx-auto w-24 h-24">
-                    <div className="absolute inset-0 bg-destructive/20 rounded-full blur-xl" />
-                    <div className="relative flex items-center justify-center w-full h-full rounded-full bg-destructive/10 border border-destructive/20">
-                        <AlertTriangle className="size-12 text-destructive" />
-                    </div>
+        <main className="flex min-h-svh items-center justify-center bg-background px-4 py-16">
+            <div className="w-full max-w-md text-center">
+                <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-destructive/10">
+                    <AlertTriangle className="size-8 text-destructive" aria-hidden="true" />
                 </div>
 
-                {/* Error Message */}
-                <div className="space-y-3">
-                    <h1 className="text-3xl font-bold tracking-tight">
-                        Something went wrong!
-                    </h1>
-                    <p className="text-muted-foreground max-w-sm mx-auto">
-                        An unexpected error occurred. Don&apos;t worry, our team has been notified and is working on it.
-                    </p>
-                    {error.digest && (
-                        <p className="text-xs text-muted-foreground/60 font-mono">
-                            Error ID: {error.digest}
-                        </p>
-                    )}
-                </div>
+                <h1 className="mt-6 text-3xl font-semibold tracking-tight">Something went wrong</h1>
+                <p className="mt-3 text-base text-muted-foreground">
+                    An unexpected error occurred. Please try again — if it keeps happening, let us know.
+                </p>
+                {error.digest && (
+                    <p className="mt-3 font-mono text-xs text-muted-foreground">Error ID: {error.digest}</p>
+                )}
 
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-4">
-                    <Button
-                        variant="default"
-                        size="lg"
-                        onClick={reset}
-                        className="gap-2 min-w-[160px]"
-                    >
-                        <RefreshCw className="size-4" />
-                        Try Again
+                <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+                    <Button size="lg" onClick={reset} className="h-11">
+                        <RefreshCw aria-hidden="true" />
+                        Try again
                     </Button>
-
-                    <Button
-                        variant="outline"
-                        size="lg"
-                        asChild
-                        className="gap-2 min-w-[160px]"
-                    >
-                        <Link href="/">
-                            <Home className="size-4" />
-                            Go Home
-                        </Link>
-                    </Button>
+                    <Link href="/" className={buttonVariants({ size: "lg", variant: "outline", className: "h-11" })}>
+                        <Home aria-hidden="true" />
+                        Go home
+                    </Link>
                 </div>
 
-                {/* Support Link */}
-                <div className="pt-8 border-t border-border/50">
-                    <p className="text-sm text-muted-foreground">
-                        If the problem persists, please{" "}
-                        <Link href="/contact" className="text-primary hover:underline">
-                            contact support
-                        </Link>
-                    </p>
-                </div>
+                <p className="mt-10 border-t pt-6 text-sm text-muted-foreground">
+                    If the problem persists, please{" "}
+                    <Link href="/contact" className="font-medium text-primary hover:underline">
+                        contact support
+                    </Link>
+                    {error.digest ? " and include the error ID above." : "."}
+                </p>
             </div>
-        </div>
+        </main>
     );
 }

@@ -14,6 +14,7 @@ export type PlatformSettingsRow = {
   sessionTimeoutMinutes: number;
 };
 
+/** Mirrors the Prisma defaults, used until the settings row is first saved. */
 const defaults: PlatformSettingsRow = {
   platformName: "Edris LMS",
   supportEmail: "support@example.com",
@@ -29,17 +30,16 @@ export async function getPlatformSettings(): Promise<PlatformSettingsRow> {
 
   const row = await prisma.platformSettings.findUnique({
     where: { id: DEFAULT_ID },
+    select: {
+      platformName: true,
+      supportEmail: true,
+      notifyNewEnrollments: true,
+      notifyTeacherApplications: true,
+      notifySystemAlerts: true,
+      sessionTimeoutEnabled: true,
+      sessionTimeoutMinutes: true,
+    },
   });
 
-  if (!row) return defaults;
-
-  return {
-    platformName: row.platformName,
-    supportEmail: row.supportEmail,
-    notifyNewEnrollments: row.notifyNewEnrollments,
-    notifyTeacherApplications: row.notifyTeacherApplications,
-    notifySystemAlerts: row.notifySystemAlerts,
-    sessionTimeoutEnabled: row.sessionTimeoutEnabled,
-    sessionTimeoutMinutes: row.sessionTimeoutMinutes,
-  };
+  return row ?? defaults;
 }

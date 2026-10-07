@@ -1,212 +1,152 @@
 import { getTeacherAnalytics } from "@/app/data/teacher/get-teacher-analytics";
 import { getTeacherTransactions } from "@/app/data/teacher/get-teacher-transactions";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { PageHeader } from "@/components/general/PageHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { DollarSign, Users, BookOpen, MessageSquare, Star } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { BookOpen, DollarSign, MessageSquare, Star, Users } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
+import { formatDate, formatDateTime, formatMoney, initials } from "../_components/format";
+import { StatCard } from "../_components/StatCard";
+import { CoursePerformanceTable, TransactionsTable } from "./_components/AnalyticsTables";
+import { EnrollmentsByCourseChart } from "./_components/EnrollmentsByCourseChart";
+
+export const metadata: Metadata = { title: "Analytics" };
+
+export const dynamic = "force-dynamic";
 
 export default async function TeacherAnalyticsPage() {
-  const [data, transactions] = await Promise.all([
-    getTeacherAnalytics(),
-    getTeacherTransactions(),
-  ]);
+  const [data, transactions] = await Promise.all([getTeacherAnalytics(), getTeacherTransactions()]);
+
+  const hasEnrollments = data.coursePerformance.some((c) => c.students > 0);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Analytics</h1>
+    <div className="space-y-8">
+      <PageHeader title="Analytics" description="Revenue, enrollments and engagement across your courses." />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              ${data.totalRevenue.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Lifetime earnings
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{data.totalStudents}</div>
-            <p className="text-xs text-muted-foreground">
-              Active enrollments
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Courses</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{data.totalCourses}</div>
-            <p className="text-xs text-muted-foreground">
-              Published & Drafts
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Community Stats</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{data.totalPosts} Posts</div>
-            <p className="text-xs text-muted-foreground">
-              In {data.activeCommunitiesCount} communities
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Reviews</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{data.totalReviews}</div>
-            <Link href="/teacher/reviews" className="text-xs text-primary hover:underline">
-              Manage Reviews
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+      <section aria-labelledby="analytics-kpis">
+        <h2 id="analytics-kpis" className="sr-only">
+          Key figures
+        </h2>
+        <div className="grid grid-cols-1 gap-4 @md/main:grid-cols-2 @4xl/main:grid-cols-3 @7xl/main:grid-cols-5">
+          <StatCard label="Total revenue" value={formatMoney(data.totalRevenue)} icon={DollarSign} description="Lifetime earnings" />
+          <StatCard label="Active enrollments" value={data.totalStudents} icon={Users} description="Students with access" />
+          <StatCard label="Courses" value={data.totalCourses} icon={BookOpen} description="Published and drafts" />
+          <StatCard
+            label="Community posts"
+            value={data.totalPosts}
+            icon={MessageSquare}
+            description={`In ${data.activeCommunitiesCount} ${data.activeCommunitiesCount === 1 ? "community" : "communities"}`}
+          />
+          <StatCard
+            label="Reviews"
+            value={data.totalReviews}
+            icon={Star}
+            description={
+              <Link
+                href="/teacher/reviews"
+                className="-my-2.5 inline-flex min-h-10 items-center rounded-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Manage reviews
+              </Link>
+            }
+          />
+        </div>
+      </section>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
+      <div className="grid gap-6 @5xl/main:grid-cols-5">
+        <Card className="min-w-0 @5xl/main:col-span-3">
           <CardHeader>
-            <CardTitle>Course Performance</CardTitle>
+            <CardTitle>
+              <h2 className="text-base font-semibold">Enrollments by course</h2>
+            </CardTitle>
+            <CardDescription>Active students in each course.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[200px]">Course Name</TableHead>
-                  <TableHead>Students</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead className="text-right">Total Revenue</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.coursePerformance.map((course) => (
-                  <TableRow key={course.title}>
-                    <TableCell className="font-medium">{course.title}</TableCell>
-                    <TableCell>{course.students}</TableCell>
-                    <TableCell>${course.price}</TableCell>
-                    <TableCell className="text-right">${course.revenue.toLocaleString()}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            {hasEnrollments ? (
+              <EnrollmentsByCourseChart
+                data={data.coursePerformance.map((c) => ({ title: c.title, students: c.students }))}
+              />
+            ) : (
+              <p className="rounded-lg border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
+                No enrollments yet. Once students join your courses, you&apos;ll see how each course compares here.
+              </p>
+            )}
           </CardContent>
         </Card>
-        <Card className="col-span-3">
+
+        <Card className="min-w-0 @5xl/main:col-span-2">
           <CardHeader>
-            <CardTitle>Recent Enrollments</CardTitle>
+            <CardTitle>
+              <h2 className="text-base font-semibold">Recent enrollments</h2>
+            </CardTitle>
+            <CardDescription>The latest students to join your courses.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-8">
-              {data.recentEnrollments.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No recent enrollments</p>
-              ) : (
-                data.recentEnrollments.map((enrollment) => (
-                  <div key={enrollment.id} className="flex items-center">
-                    <Avatar className="h-9 w-9">
-                      <AvatarImage src={enrollment.User.image || "/avatar-placeholder.png"} alt="Avatar" />
-                      <AvatarFallback>{enrollment.User.name?.slice(0, 2).toUpperCase()}</AvatarFallback>
+            {data.recentEnrollments.length === 0 ? (
+              <p className="rounded-lg border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
+                No enrollments yet.
+              </p>
+            ) : (
+              <ul className="divide-y">
+                {data.recentEnrollments.map((enrollment) => (
+                  <li key={enrollment.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                    <Avatar className="size-9">
+                      <AvatarImage src={enrollment.User.image ?? undefined} alt="" />
+                      <AvatarFallback className="text-xs">{initials(enrollment.User.name)}</AvatarFallback>
                     </Avatar>
-                    <div className="ml-4 space-y-1">
-                      <p className="text-sm font-medium leading-none">{enrollment.User.name}</p>
-                      <p className="text-xs text-muted-foreground">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                        <p className="truncate text-sm font-medium">{enrollment.User.name}</p>
+                        <time
+                          dateTime={new Date(enrollment.createdAt).toISOString()}
+                          className="shrink-0 text-xs text-muted-foreground"
+                        >
+                          {formatDate(enrollment.createdAt)}
+                        </time>
+                      </div>
+                      <p className="break-words text-sm text-muted-foreground">
                         Enrolled in <span className="font-medium text-foreground">{enrollment.Course.title}</span>
                       </p>
                     </div>
-                    <div className="ml-auto font-medium text-sm text-muted-foreground">
-                      {/* Simple date formatter could be used here */}
-                      {new Date(enrollment.createdAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Transaction History Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Transaction History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Student</TableHead>
-                <TableHead>Course</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transactions.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
-                    No transactions found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                transactions.map((transaction) => (
-                  <TableRow key={transaction.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={transaction.studentImage || "/avatar-placeholder.png"} />
-                          <AvatarFallback>{transaction.studentName.slice(0, 2).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col">
-                          <span className="font-medium text-sm">{transaction.studentName}</span>
-                          <span className="text-xs text-muted-foreground">{transaction.studentEmail}</span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">{transaction.courseTitle}</TableCell>
-                    <TableCell>
-                      {new Date(transaction.date).toLocaleDateString(undefined, {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      ${transaction.amount.toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <section aria-labelledby="course-performance-heading" className="space-y-4">
+        <div className="space-y-1">
+          <h2 id="course-performance-heading" className="text-lg font-semibold">
+            Course performance
+          </h2>
+          <p className="text-sm text-muted-foreground">Active students and revenue for each course.</p>
+        </div>
+        <CoursePerformanceTable data={data.coursePerformance} />
+      </section>
 
+      <section aria-labelledby="transactions-heading" className="space-y-4">
+        <div className="space-y-1">
+          <h2 id="transactions-heading" className="text-lg font-semibold">
+            Transaction history
+          </h2>
+          <p className="text-sm text-muted-foreground">Paid enrollments in your courses.</p>
+        </div>
+        <TransactionsTable
+          data={transactions.map((t) => ({
+            id: t.id,
+            studentName: t.studentName,
+            studentEmail: t.studentEmail,
+            studentImage: t.studentImage,
+            courseTitle: t.courseTitle,
+            amount: t.amount,
+            timestamp: new Date(t.date).getTime(),
+            dateLabel: formatDateTime(t.date),
+          }))}
+        />
+      </section>
     </div>
   );
 }

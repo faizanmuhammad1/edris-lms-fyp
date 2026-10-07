@@ -46,12 +46,12 @@ export async function editTeacherCourse(
       if (decision.reason.isRateLimit()) {
         return {
           status: "error",
-          message: "You have been blocked due to rate limiting",
+          message: "Too many saves in a short time. Please wait a minute and try again.",
         };
       } else {
         return {
           status: "error",
-          message: "You are a bot! if this is a mistake contact our support",
+          message: "Your request was blocked. If this is a mistake, please contact support.",
         };
       }
     }
@@ -61,7 +61,7 @@ export async function editTeacherCourse(
     if (!result.success) {
       return {
         status: "error",
-        message: "Invalid data",
+        message: "Some course details are invalid. Please review the form and try again.",
       };
     }
 
@@ -157,9 +157,10 @@ export async function editTeacherCourse(
         message: "This slug is already used by another course. Please choose a different slug.",
       };
     }
+    console.error("[editTeacherCourse] Error updating course:", err);
     return {
       status: "error",
-      message: "Failed to update Course",
+      message: "We couldn't save the course. Please try again.",
     };
   }
 }
@@ -232,12 +233,13 @@ export async function reorderTeacherLessons(
 
     return {
       status: "success",
-      message: "Lessons reordered successfully",
+      message: "Lesson order saved",
     };
-  } catch {
+  } catch (err) {
+    console.error("[reorderTeacherLessons] Error reordering lessons:", err);
     return {
       status: "error",
-      message: "Failed to reorder lessons.",
+      message: "We couldn't save the new lesson order. Please try again.",
     };
   }
 }
@@ -288,12 +290,13 @@ export async function reorderTeacherChapters(
 
     return {
       status: "success",
-      message: "Chapters reordered successfully",
+      message: "Chapter order saved",
     };
-  } catch {
+  } catch (err) {
+    console.error("[reorderTeacherChapters] Error reordering chapters:", err);
     return {
       status: "error",
-      message: "Failed to reorder chapters",
+      message: "We couldn't save the new chapter order. Please try again.",
     };
   }
 }
@@ -323,7 +326,7 @@ export async function createTeacherChapter(
     if (!result.success) {
       return {
         status: "error",
-        message: "Invalid Data",
+        message: "Please enter a chapter name of at least 3 characters.",
       };
     }
 
@@ -353,19 +356,20 @@ export async function createTeacherChapter(
 
     return {
       status: "success",
-      message: "Chapter created successfully",
+      message: "Chapter created",
     };
-  } catch {
+  } catch (err) {
+    console.error("[createTeacherChapter] Error creating chapter:", err);
     return {
       status: "error",
-      message: "Failed to create chapter",
+      message: "We couldn't create the chapter. Please try again.",
     };
   }
 }
 
 export async function createTeacherLesson(
   values: LessonSchemaType
-): Promise<ApiResponse> {
+): Promise<ApiResponse<{ lessonId: string; chapterId: string; courseId: string }>> {
   const session = await requireTeacher();
   try {
     // Verify teacher owns the course through the chapter
@@ -390,7 +394,7 @@ export async function createTeacherLesson(
     if (!result.success) {
       return {
         status: "error",
-        message: "Invalid Data",
+        message: "Please enter a lesson name of at least 3 characters.",
       };
     }
 
@@ -450,13 +454,14 @@ export async function createTeacherLesson(
 
     return {
       status: "success",
-      message: "Lesson created successfully",
+      message: "Lesson created",
+      data: { lessonId: newLesson.id, chapterId: chapter.id, courseId: chapter.Course.id },
     };
   } catch (err) {
-    console.error("[deleteTeacherLesson] Error creating lesson:", err);
+    console.error("[createTeacherLesson] Error creating lesson:", err);
     return {
       status: "error",
-      message: "Failed to create lesson",
+      message: "We couldn't create the lesson. Please try again.",
     };
   }
 }
@@ -522,7 +527,7 @@ export async function deleteTeacherLesson({
     if (!chapterWithLessons) {
       return {
         status: "error",
-        message: "Chapter not Found",
+        message: "Chapter not found. Refresh the page and try again.",
       };
     }
 
@@ -533,7 +538,7 @@ export async function deleteTeacherLesson({
     if (!lessonToDelete) {
       return {
         status: "error",
-        message: "Lesson not found in the chapter.",
+        message: "Lesson not found. Refresh the page and try again.",
       };
     }
 
@@ -583,13 +588,13 @@ export async function deleteTeacherLesson({
 
     return {
       status: "success",
-      message: "Lesson deleted and positions reordered successfully",
+      message: "Lesson deleted",
     };
   } catch (err) {
     console.error("[deleteTeacherLesson] Error deleting lesson:", err);
     return {
       status: "error",
-      message: "Failed to delete lesson",
+      message: "We couldn't delete the lesson. Please try again.",
     };
   }
 }
@@ -638,7 +643,7 @@ export async function deleteTeacherChapter({
     if (!courseWithChapters) {
       return {
         status: "error",
-        message: "Course not Found",
+        message: "Course not found. Refresh the page and try again.",
       };
     }
 
@@ -649,7 +654,7 @@ export async function deleteTeacherChapter({
     if (!chapterToDelete) {
       return {
         status: "error",
-        message: "Chapter not found in the Course.",
+        message: "Chapter not found. Refresh the page and try again.",
       };
     }
 
@@ -725,13 +730,13 @@ export async function deleteTeacherChapter({
 
     return {
       status: "success",
-      message: "Chapter deleted and positions reordered successfully",
+      message: "Chapter deleted",
     };
   } catch (err) {
     console.error("[deleteTeacherChapter] Error deleting chapter:", err);
     return {
       status: "error",
-      message: "Failed to delete chapter",
+      message: "We couldn't delete the chapter. Please try again.",
     };
   }
 }

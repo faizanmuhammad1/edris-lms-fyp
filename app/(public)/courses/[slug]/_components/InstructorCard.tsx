@@ -1,5 +1,4 @@
 import { BookOpen, Users } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface InstructorCardProps {
@@ -14,53 +13,48 @@ interface InstructorCardProps {
     totalStudents?: number;
 }
 
-export function InstructorCard({ instructor, totalStudents = 0 }: InstructorCardProps) {
-    const initials = instructor.name
+function getInitials(name: string) {
+    return name
         .split(" ")
         .map((n) => n[0])
         .join("")
         .toUpperCase()
         .slice(0, 2);
+}
+
+export function InstructorCard({ instructor, totalStudents = 0 }: InstructorCardProps) {
+    const courseCount = instructor._count.courses;
 
     return (
-        <Card className="border-2 border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardContent className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Instructor</h3>
+        <section aria-labelledby="instructor-heading" className="space-y-4">
+            <h2 id="instructor-heading" className="text-2xl font-semibold tracking-tight">
+                Your instructor
+            </h2>
+            <div className="flex flex-col gap-4 rounded-xl border bg-card p-5 sm:flex-row sm:items-center sm:p-6">
+                <Avatar className="size-16 border sm:size-20">
+                    <AvatarImage src={instructor.image || undefined} alt="" />
+                    <AvatarFallback className="bg-primary/10 text-xl font-semibold text-primary">
+                        {getInitials(instructor.name)}
+                    </AvatarFallback>
+                </Avatar>
 
-                <div className="flex items-start gap-4">
-                    <Avatar className="h-20 w-20 border-2 border-primary/20">
-                        <AvatarImage src={instructor.image || undefined} alt={instructor.name} />
-                        <AvatarFallback className="text-xl font-semibold bg-primary/10 text-primary">
-                            {initials}
-                        </AvatarFallback>
-                    </Avatar>
-
-                    <div className="flex-1">
-                        <h4 className="text-xl font-bold text-foreground hover:text-primary transition-colors cursor-pointer">
-                            {instructor.name}
-                        </h4>
-
-                        <div className="mt-3 flex flex-wrap gap-4">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <div className="p-1.5 rounded-lg bg-primary/10">
-                                    <BookOpen className="h-4 w-4 text-primary" />
-                                </div>
-                                <span>{instructor._count.courses} Courses</span>
-                            </div>
-
-                            {totalStudents > 0 && (
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <div className="p-1.5 rounded-lg bg-primary/10">
-                                        <Users className="h-4 w-4 text-primary" />
-                                    </div>
-                                    <span>{totalStudents.toLocaleString()} Students</span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                <div className="min-w-0 flex-1">
+                    <h3 className="break-words text-xl font-semibold text-foreground">{instructor.name}</h3>
+                    <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
+                        <li className="flex items-center gap-2">
+                            <BookOpen className="size-4 text-primary" aria-hidden="true" />
+                            {courseCount} course{courseCount === 1 ? "" : "s"}
+                        </li>
+                        {totalStudents > 0 && (
+                            <li className="flex items-center gap-2">
+                                <Users className="size-4 text-primary" aria-hidden="true" />
+                                {totalStudents.toLocaleString()} student{totalStudents === 1 ? "" : "s"} in this course
+                            </li>
+                        )}
+                    </ul>
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+        </section>
     );
 }
 
@@ -70,25 +64,16 @@ export function InstructorInline({
 }: {
     instructor: { name: string; image: string | null };
 }) {
-    const initials = instructor.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-
     return (
-        <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Created by</span>
-            <div className="flex items-center gap-2 group cursor-pointer">
-                <Avatar className="h-6 w-6">
-                    <AvatarImage src={instructor.image || undefined} alt={instructor.name} />
-                    <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Created by</span>
+            <span className="flex min-w-0 items-center gap-2">
+                <Avatar className="size-6">
+                    <AvatarImage src={instructor.image || undefined} alt="" />
+                    <AvatarFallback className="text-xs">{getInitials(instructor.name)}</AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium text-primary hover:underline">
-                    {instructor.name}
-                </span>
-            </div>
+                <span className="break-words font-medium text-foreground">{instructor.name}</span>
+            </span>
         </div>
     );
 }

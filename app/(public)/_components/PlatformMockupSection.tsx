@@ -1,197 +1,124 @@
-"use client";
+import { Bell, BookOpen, CheckCircle, LayoutDashboard, Search, Settings, Shield, Video } from "lucide-react";
+import { SectionHeading, containerClass, sectionClass } from "./SectionHeading";
 
-import { useRef } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useGSAP } from "@gsap/react";
-import { BookOpen, CheckCircle, LayoutDashboard, Settings, Video, Search, Bell, Shield } from "lucide-react";
+const sidebarItems = [
+    { icon: LayoutDashboard, label: "Dashboard", active: true },
+    { icon: BookOpen, label: "My Courses" },
+    { icon: Video, label: "Live Sessions" },
+    { icon: CheckCircle, label: "Certificates" },
+];
 
-if (typeof window !== "undefined") {
-    gsap.registerPlugin(ScrollTrigger, useGSAP);
-}
+const inProgress = [
+    { title: "Advanced React Hooks", progress: 75 },
+    { title: "UI/UX Design Masterclass", progress: 30 },
+    { title: "Web3 Smart Contracts", progress: 12 },
+];
 
+/** Static illustration of the learner dashboard. Purely decorative, so it is hidden from assistive tech. */
 export function PlatformMockupSection() {
-    const sectionRef = useRef<HTMLElement>(null);
-    const mockupContainerRef = useRef<HTMLDivElement>(null);
-
-    useGSAP(() => {
-        if (!mockupContainerRef.current) return;
-
-        // Animate the mockup container scaling up and rotating slightly into place as the user scrolls
-        gsap.fromTo(
-            mockupContainerRef.current,
-            { scale: 0.85, rotationX: 15, opacity: 0.8, y: 100 },
-            {
-                scale: 1,
-                rotationX: 0,
-                opacity: 1,
-                y: 0,
-                ease: "power2.out",
-                scrollTrigger: {
-                    trigger: sectionRef.current,
-                    start: "top bottom",
-                    end: "center center",
-                    scrub: 1,
-                },
-            }
-        );
-
-        // Internal staggered enter animation for dashboard elements
-        gsap.fromTo(".gsap-mockup-item",
-            { y: 20, opacity: 0 },
-            {
-                y: 0,
-                opacity: 1,
-                stagger: 0.05,
-                duration: 0.6,
-                ease: "power2.out",
-                scrollTrigger: {
-                    trigger: sectionRef.current,
-                    start: "top center",
-                },
-            }
-        );
-    }, { scope: sectionRef });
-
     return (
-        <section
-            ref={sectionRef}
-            className="relative w-full py-24 md:py-32 overflow-hidden bg-background"
-            style={{ perspective: "1000px" }} // Required for the 3D rotationX effect
-        >
-            <div className="container relative mx-auto px-6 md:px-12 lg:px-24 xl:px-32 2xl:px-40 z-10 flex flex-col items-center">
+        <section aria-labelledby="platform-heading" className={`bg-background ${sectionClass}`}>
+            <div className={containerClass}>
+                <SectionHeading
+                    id="platform-heading"
+                    eyebrow="Platform experience"
+                    title="A workspace designed for focus"
+                    description="Your courses, progress and certificates in one clean dashboard — on any screen size."
+                    align="center"
+                />
 
-                <div className="text-center mb-16 max-w-2xl">
-                    <p className="text-sm font-semibold uppercase tracking-wider text-primary mb-3">
-                        Platform Experience
-                    </p>
-                    <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-foreground">
-                        A workspace designed <br className="hidden md:block" /> for focus.
-                    </h2>
-                </div>
-
-                {/* The Mockup Container */}
-                <div
-                    ref={mockupContainerRef}
-                    className="relative w-full max-w-5xl rounded-2xl border border-border/80 bg-card shadow-2xl overflow-hidden ring-1 ring-black/[0.04] select-none pointer-events-none"
-                    style={{ transformOrigin: "center bottom" }}
-                >
-                    {/* Browser-style Title Bar */}
-                    <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/40 backdrop-blur-sm">
-                        <span className="h-3 w-3 rounded-full bg-red-400/90 shadow-sm" />
-                        <span className="h-3 w-3 rounded-full bg-yellow-400/90 shadow-sm" />
-                        <span className="h-3 w-3 rounded-full bg-green-400/90 shadow-sm" />
-                        <div className="ml-4 flex-1 flex items-center gap-2 rounded-md bg-background px-3 py-1.5 shadow-sm border border-border/50 max-w-md mx-auto relative">
-                            <span className="text-[12px] text-muted-foreground font-medium flex-1 text-center truncate">
-                                edris-lms.com/dashboard
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Realistic HTML Dashboard Mockup */}
-                    <div className="relative w-full aspect-[16/10] bg-[#fdfdfd] dark:bg-background flex overflow-hidden">
-
-                        {/* Sidebar */}
-                        <div className="hidden sm:flex w-64 bg-white dark:bg-card border-r border-border/60 flex-col p-4">
-                            <div className="gsap-mockup-item flex items-center gap-2 px-2 py-4 mb-6">
-                                <Shield className="h-6 w-6 text-primary" />
-                                <span className="font-bold text-lg text-foreground">Edris LMS</span>
+                <figure className="mx-auto mt-12 max-w-5xl">
+                    <div
+                        aria-hidden="true"
+                        className="select-none overflow-hidden rounded-xl border bg-card shadow-xl shadow-primary/5 sm:rounded-2xl"
+                    >
+                        {/* Browser chrome */}
+                        <div className="flex items-center gap-2 border-b bg-muted/40 px-4 py-3">
+                            <span className="size-2.5 rounded-full bg-red-400/80" />
+                            <span className="size-2.5 rounded-full bg-yellow-400/80" />
+                            <span className="size-2.5 rounded-full bg-green-400/80" />
+                            <div className="mx-auto hidden w-full max-w-xs truncate rounded-md border bg-background px-3 py-1 text-center text-xs text-muted-foreground sm:block">
+                                edrislms.com/dashboard
                             </div>
+                        </div>
 
-                            <nav className="flex-1 space-y-1 block">
-                                {[
-                                    { icon: LayoutDashboard, label: 'Dashboard', active: true },
-                                    { icon: BookOpen, label: 'My Courses' },
-                                    { icon: Video, label: 'Live Sessions' },
-                                    { icon: CheckCircle, label: 'Certificates' },
-                                ].map((item, i) => (
-                                    <div key={i} className={`gsap-mockup-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${item.active ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}>
-                                        <item.icon className="h-4 w-4" />
-                                        {item.label}
-                                    </div>
-                                ))}
-                            </nav>
-
-                            <div className="gsap-mockup-item mt-auto border-t border-border/50 pt-4">
-                                <div className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted cursor-pointer">
-                                    <Settings className="h-4 w-4" />
+                        <div className="flex aspect-[4/3] w-full overflow-hidden bg-muted/20 sm:aspect-[16/10]">
+                            {/* Sidebar */}
+                            <div className="hidden w-52 shrink-0 flex-col border-r bg-card p-4 md:flex">
+                                <div className="mb-6 flex items-center gap-2 px-2 py-2">
+                                    <Shield className="size-5 text-primary" />
+                                    <span className="font-semibold text-foreground">Edris LMS</span>
+                                </div>
+                                <div className="flex-1 space-y-1">
+                                    {sidebarItems.map((item) => (
+                                        <div
+                                            key={item.label}
+                                            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${item.active ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}
+                                        >
+                                            <item.icon className="size-4" />
+                                            {item.label}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex items-center gap-3 border-t px-3 pt-4 text-sm font-medium text-muted-foreground">
+                                    <Settings className="size-4" />
                                     Settings
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Main Content Area */}
-                        <div className="flex-1 flex flex-col bg-muted/20 dark:bg-muted/10 h-full overflow-hidden">
-                            {/* Top Navbar */}
-                            <header className="gsap-mockup-item h-16 bg-white/50 dark:bg-card/50 backdrop-blur-md border-b border-border/50 flex items-center justify-between px-6 shrink-0">
-                                <div className="relative w-64 hidden md:block">
-                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <div className="h-9 w-full bg-muted/50 border border-border/50 rounded-md flex items-center pl-9 text-xs text-muted-foreground">
-                                        Search courses...
+                            {/* Main */}
+                            <div className="flex min-w-0 flex-1 flex-col">
+                                <div className="flex h-12 shrink-0 items-center justify-between border-b bg-card/60 px-4 sm:h-14 sm:px-6">
+                                    <div className="hidden h-8 w-56 items-center gap-2 rounded-md border bg-muted/50 px-3 text-xs text-muted-foreground sm:flex">
+                                        <Search className="size-3.5" />
+                                        Search courses…
+                                    </div>
+                                    <div className="ml-auto flex items-center gap-3">
+                                        <Bell className="size-4 text-muted-foreground" />
+                                        <div className="size-7 rounded-full bg-primary/30" />
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4 ml-auto">
-                                    <div className="relative p-2 text-muted-foreground hover:bg-muted rounded-full cursor-pointer">
-                                        <Bell className="h-4 w-4" />
-                                        <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 border border-white" />
-                                    </div>
-                                    <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-primary to-accent border-2 border-background shadow-sm" />
-                                </div>
-                            </header>
 
-                            {/* Dashboard Content */}
-                            <div className="p-6 md:p-8 flex-1 overflow-hidden flex flex-col gap-8">
-
-                                {/* Welcome Hero Block */}
-                                <div className="gsap-mockup-item w-full relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 p-6 md:p-8 shrink-0">
-                                    <div className="relative z-10 max-w-lg">
-                                        <h3 className="text-2xl font-bold text-foreground mb-2">Welcome back, Alex! 👋</h3>
-                                        <p className="text-sm text-muted-foreground font-medium mb-6">You&apos;ve learned for 4 hours this week. Keep up the great work!</p>
-                                        <div className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2 cursor-pointer">
-                                            Resume Learning
+                                <div className="flex flex-1 flex-col gap-4 overflow-hidden p-4 sm:gap-6 sm:p-6">
+                                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 sm:p-6">
+                                        <p className="text-base font-semibold text-foreground sm:text-xl">Welcome back, Alex</p>
+                                        <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+                                            You&apos;ve learned for 4 hours this week. Keep it up!
+                                        </p>
+                                        <div className="mt-3 inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground sm:mt-4">
+                                            Resume learning
                                         </div>
                                     </div>
-                                    {/* Decorative shape */}
-                                    <div className="absolute right-0 top-0 w-64 h-full bg-gradient-to-l from-primary/10 to-transparent pointer-events-none" />
-                                </div>
 
-                                {/* In Progress Courses */}
-                                <div className="flex flex-col gap-4">
-                                    <h4 className="gsap-mockup-item text-lg font-bold text-foreground">In Progress</h4>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {[
-                                            { title: "Advanced React Hooks", progress: 75, color: "bg-blue-500" },
-                                            { title: "UI/UX Design Masterclass", progress: 30, color: "bg-pink-500" },
-                                            { title: "Web3 Smart Contracts", progress: 12, color: "bg-emerald-500" }
-                                        ].map((course, idx) => (
-                                            <div key={idx} className="gsap-mockup-item bg-card border border-border/60 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                                                <div className={`w-full h-24 ${course.color}/10 rounded-lg mb-4 flex items-center justify-center border border-border/30`}>
-                                                    <div className="w-10 h-10 rounded-full bg-background/80 shadow-sm flex items-center justify-center border border-border">
-                                                        <div className="w-0 h-0 border-t-[5px] border-t-transparent border-l-[8px] border-l-primary border-b-[5px] border-b-transparent ml-0.5" />
+                                    <div>
+                                        <p className="mb-3 text-sm font-semibold text-foreground">In progress</p>
+                                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                            {inProgress.map((course, idx) => (
+                                                <div
+                                                    key={course.title}
+                                                    className={`rounded-lg border bg-card p-3 ${idx > 0 ? "hidden sm:block" : ""} ${idx > 1 ? "sm:hidden lg:block" : ""}`}
+                                                >
+                                                    <div className="mb-3 h-14 rounded-md bg-muted sm:h-16" />
+                                                    <p className="truncate text-sm font-medium text-foreground">{course.title}</p>
+                                                    <div className="mt-2 flex justify-between text-xs text-muted-foreground">
+                                                        <span>{course.progress}% complete</span>
+                                                        <span className="font-medium text-foreground">Continue</span>
+                                                    </div>
+                                                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+                                                        <div className="h-full rounded-full bg-primary" style={{ width: `${course.progress}%` }} />
                                                     </div>
                                                 </div>
-                                                <h5 className="font-bold text-sm text-foreground truncate mb-1">{course.title}</h5>
-                                                <div className="flex justify-between items-center mt-3">
-                                                    <span className="text-xs text-muted-foreground font-medium">{course.progress}% Complete</span>
-                                                    <span className="text-xs font-bold text-foreground">Continue</span>
-                                                </div>
-                                                <div className="w-full h-1.5 bg-muted rounded-full mt-2 overflow-hidden">
-                                                    <div className={`h-full ${course.color}`} style={{ width: `${course.progress}%` }} />
-                                                </div>
-                                            </div>
-                                        ))}
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
-
                             </div>
                         </div>
-
                     </div>
-                </div>
-
-                {/* Soft ambient glow beneath the mockup */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 max-w-4xl h-[400px] bg-primary/[0.05] blur-[100px] rounded-full pointer-events-none -z-10" />
+                    <figcaption className="sr-only">
+                        Illustration of the Edris learner dashboard showing courses in progress.
+                    </figcaption>
+                </figure>
             </div>
         </section>
     );

@@ -1,8 +1,7 @@
+import type { Metadata } from "next";
 import { getTeacherAssignment } from "@/app/data/teacher/get-teacher-assignment";
+import { PageHeader } from "@/components/general/PageHeader";
 import { AssignmentEditor } from "./_components/AssignmentEditor";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
 
 type Params = Promise<{
   courseId: string;
@@ -12,19 +11,29 @@ type Params = Promise<{
 
 export const dynamic = "force-dynamic";
 
+export const metadata: Metadata = {
+  title: "Assignment",
+};
+
 export default async function TeacherAssignmentPage({ params }: { params: Params }) {
-  const { courseId, chapterId, lessonId } = await params;
+  const { lessonId } = await params;
   const data = await getTeacherAssignment(lessonId);
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <Link href={`/teacher/courses/${courseId}/${chapterId}/${lessonId}`}>
-        <Button variant="outline" className="mb-6 gap-2">
-          <ArrowLeft className="size-4" />
-          Back to lesson
-        </Button>
-      </Link>
+    <div className="space-y-6">
+      <PageHeader
+        backHref={`/teacher/courses/${data.courseId}/${data.chapterId}/${lessonId}`}
+        backLabel="Back to lesson"
+        title={<span className="break-words">{data.assignment?.title || "Create assignment"}</span>}
+        description={
+          data.assignment
+            ? `Assignment for “${data.lessonTitle}”. Edit the brief and grade submissions.`
+            : `Add an assignment to “${data.lessonTitle}” so students can hand in work.`
+        }
+      />
       <AssignmentEditor
+        // Remount when the assignment is first created so the form starts from saved values.
+        key={data.assignment?.id ?? "new"}
         lessonId={lessonId}
         courseId={data.courseId}
         chapterId={data.chapterId}

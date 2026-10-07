@@ -38,7 +38,22 @@ export async function getMailCampaignById(campaignId: string) {
       audiencePayload: true,
       recipientCount: true,
       sentAt: true,
+      createdAt: true,
+      updatedAt: true,
     },
   });
-  return campaign;
+  if (!campaign) return null;
+
+  // Title of the targeted course (it may since have been unpublished, so it is
+  // not necessarily in getMailComposeData's course list).
+  const payload = campaign.audiencePayload as { courseId?: unknown } | null;
+  const audienceCourse =
+    campaign.audienceType === "CourseStudents" && typeof payload?.courseId === "string"
+      ? await prisma.course.findUnique({
+          where: { id: payload.courseId },
+          select: { id: true, title: true },
+        })
+      : null;
+
+  return { ...campaign, audienceCourse };
 }

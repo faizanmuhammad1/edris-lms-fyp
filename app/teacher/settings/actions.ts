@@ -20,7 +20,7 @@ export async function updateTeacherProfile(values: { name: string }): Promise<Ap
 
     const parsed = profileSchema.safeParse(values);
     if (!parsed.success) {
-        return { status: "error", message: parsed.error.errors[0]?.message ?? "Invalid data" };
+        return { status: "error", message: parsed.error.issues[0]?.message ?? "Please enter a valid display name." };
     }
 
     try {
@@ -31,9 +31,9 @@ export async function updateTeacherProfile(values: { name: string }): Promise<Ap
 
         revalidatePath("/teacher/settings");
         revalidatePath("/teacher", "layout");
-        return { status: "success", message: "Profile updated successfully" };
+        return { status: "success", message: "Profile saved" };
     } catch (error) {
         console.error("Error updating teacher profile:", error);
-        return { status: "error", message: "Failed to update profile" };
+        return { status: "error", message: "We couldn't save your profile. Please try again." };
     }
 }

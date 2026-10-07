@@ -15,20 +15,24 @@
     --card-foreground: oklch(0.3211 0 0);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.3211 0 0);
-    --primary: #5d866c;
-    --primary-hover: #8fb89a;
+    /* Brand green, deepened from #5d866c so white text on it, and green text on the page,
+       on cards and on green-tinted pills, all meet WCAG AA (≥4.5:1). */
+    --primary: #436651;
+    --primary-hover: #385644;
     --primary-foreground: oklch(1 0 0);
     --secondary: oklch(0.967 0.0029 264.5419);
     --secondary-foreground: oklch(0.4461 0.0263 256.8018);
     --muted: oklch(0.9846 0.0017 247.8389);
-    --muted-foreground: oklch(0.551 0.0234 264.3637);
+    /* Secondary text: ≥4.5:1 on the page background, cards, muted surfaces and the sidebar. */
+    --muted-foreground: oklch(0.48 0.0234 264.3637);
     --accent: #8fb89a;
     --accent-foreground: oklch(0.22 0.04 155);
-    --destructive: oklch(0.6368 0.2078 25.3313);
+    /* Red that works both as error text and behind white button text (≥5:1). */
+    --destructive: oklch(0.505 0.213 27.518);
     --destructive-foreground: oklch(1 0 0);
     --border: oklch(0.9022 0.0052 247.8822);
     --input: oklch(0.97 0.0029 264.542);
-    --ring: #5d866c;
+    --ring: #436651;
     --chart-1: #5d866c;
     /* brand green for bar charts */
     --chart-2: oklch(0.7875 0.0917 35.9616);
@@ -37,15 +41,15 @@
     --chart-5: oklch(0.4241 0.0952 264.0306);
     --sidebar: oklch(0.903 0.0046 258.3257);
     --sidebar-foreground: oklch(0.3211 0 0);
-    --sidebar-primary: #5d866c;
+    --sidebar-primary: #436651;
     --sidebar-primary-foreground: oklch(1 0 0);
     --sidebar-accent: #8fb89a;
     --sidebar-accent-foreground: oklch(0.22 0.04 155);
     --sidebar-border: oklch(0.9276 0.0058 264.5313);
-    --sidebar-ring: #5d866c;
-    --font-sans: Inter, sans-serif;
+    --sidebar-ring: #436651;
+    --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
     --font-serif: Source Serif 4, serif;
-    --font-mono: JetBrains Mono, monospace;
+    --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
     --radius: 0.75rem;
     --shadow-x: 0px;
     --shadow-y: 1px;
@@ -71,20 +75,23 @@
     --card-foreground: #ecf3ed;
     --popover: #151a17;
     --popover-foreground: #ecf3ed;
-    --primary: #5d866c;
-    --primary-hover: #6ea684;
-    --primary-foreground: #ffffff;
+    /* Lighter brand green with dark text in dark mode (≥7:1 both as text and as a button). */
+    --primary: #78b08e;
+    --primary-hover: #8ec2a2;
+    --primary-foreground: #0f1311;
     --secondary: #232d27;
     --secondary-foreground: #ecf3ed;
     --muted: #1e2621;
     --muted-foreground: #8ca393;
     --accent: #232d27;
     --accent-foreground: #ecf3ed;
-    --destructive: #7f2b2b;
+    /* Light red for error text on dark surfaces (≥5.5:1); solid destructive buttons and
+       badges render it at 60% (dark:bg-destructive/60) so white labels stay ≥6:1. */
+    --destructive: #f87171;
     --destructive-foreground: #ffffff;
     --border: #2a362e;
     --input: #2a362e;
-    --ring: #5d866c;
+    --ring: #78b08e;
     --chart-1: #5d866c;
     --chart-2: #84b395;
     --chart-3: #2d825c;
@@ -92,15 +99,15 @@
     --chart-5: #3ea77c;
     --sidebar: #111613;
     --sidebar-foreground: #ecf3ed;
-    --sidebar-primary: #5d866c;
-    --sidebar-primary-foreground: #ffffff;
+    --sidebar-primary: #78b08e;
+    --sidebar-primary-foreground: #0f1311;
     --sidebar-accent: #232d27;
     --sidebar-accent-foreground: #ecf3ed;
     --sidebar-border: #2a362e;
-    --sidebar-ring: #5d866c;
-    --font-sans: Inter, sans-serif;
+    --sidebar-ring: #78b08e;
+    --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
     --font-serif: Source Serif 4, serif;
-    --font-mono: JetBrains Mono, monospace;
+    --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
     --radius: 0.75rem;
     --shadow-x: 0px;
     --shadow-y: 1px;
@@ -185,6 +192,24 @@ body {
     }
     body {
         @apply bg-background text-foreground;
+        -webkit-tap-highlight-color: transparent;
+    }
+    /* Visible keyboard focus for interactive elements that don't style their own. */
+    :where(a, button, [role="button"], summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 2px;
+    }
+}
+
+/* Respect the OS "reduce motion" setting for CSS animations and transitions. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
     }
 }
 
@@ -220,9 +245,9 @@ body {
 /* ── Vidstack Player Brand Overrides ── */
 
 :root {
-    --media-brand: #5d866c;
-    --media-focus-ring-color: #5d866c;
-    --media-focus-ring: 0 0 0 3px #5d866c40;
+    --media-brand: #436651;
+    --media-focus-ring-color: #436651;
+    --media-focus-ring: 0 0 0 3px #43665140;
 }
 
 .dark {

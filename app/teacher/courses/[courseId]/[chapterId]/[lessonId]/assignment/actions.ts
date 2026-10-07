@@ -70,8 +70,9 @@ export async function createOrUpdateAssignment(
     revalidatePath(`/teacher/courses/${lesson.Chapter.courseId}/${lesson.chapterId}/${lessonId}`);
     revalidatePath(`/teacher/courses/${lesson.Chapter.courseId}/${lesson.chapterId}/${lessonId}/assignment`);
     return { status: "success", message: "Assignment saved" };
-  } catch {
-    return { status: "error", message: "Failed to save assignment" };
+  } catch (error) {
+    console.error("createOrUpdateAssignment failed:", error);
+    return { status: "error", message: "Couldn't save the assignment. Please try again." };
   }
 }
 
@@ -109,7 +110,15 @@ export async function gradeSubmission(
     }
     const parsed = gradeSubmissionSchema.safeParse(values);
     if (!parsed.success) {
-      return { status: "error", message: "Invalid data" };
+      const field = parsed.error.errors[0]?.path[0];
+      return {
+        status: "error",
+        message: field === "score" ? "Score must be a whole number from 0 to 10,000" : "Invalid grade details",
+      };
+    }
+    const maxScore = submission.Assignment.maxScore;
+    if (maxScore != null && parsed.data.score != null && parsed.data.score > maxScore) {
+      return { status: "error", message: `Score can't be more than the assignment's maximum of ${maxScore} points` };
     }
     await prisma.assignmentSubmission.update({
       where: { id: submissionId },
@@ -126,8 +135,9 @@ export async function gradeSubmission(
     revalidatePath(`/teacher/courses/${courseId}/edit`);
     revalidatePath(`/teacher/courses/${courseId}/${submission.Assignment.Lesson.chapterId}/${submission.Assignment.lessonId}/assignment`);
     return { status: "success", message: "Submission graded" };
-  } catch {
-    return { status: "error", message: "Failed to grade" };
+  } catch (error) {
+    console.error("gradeSubmission failed:", error);
+    return { status: "error", message: "Couldn't save the grade. Please try again." };
   }
 }
 

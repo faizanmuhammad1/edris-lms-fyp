@@ -1,60 +1,43 @@
 import { getTeacherCourses } from "@/app/data/teacher/get-teacher-courses";
-import { buttonVariants } from "@/components/ui/button";
-import Link from "next/link";
 import { EmptyState } from "@/components/general/EmptyState";
-import { Suspense } from "react";
-import {
-  TeacherCourseCard,
-  TeacherCourseCardSkeleton,
-} from "./_components/TeacherCourseCard";
+import { PageHeader } from "@/components/general/PageHeader";
+import { buttonVariants } from "@/components/ui/button";
+import { BookOpen, Plus } from "lucide-react";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { TeacherCourseList } from "./_components/TeacherCourseList";
 
-export default function TeacherCoursesPage() {
-  return (
-    <>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Your Courses</h1>
+export const metadata: Metadata = { title: "Courses" };
 
-        <Link className={buttonVariants()} href="/teacher/courses/create">
-          Create Course
-        </Link>
-      </div>
-
-      <Suspense fallback={<TeacherCourseCardSkeletonLayout />}>
-        <RenderCourses />
-      </Suspense>
-    </>
-  );
-}
-
-async function RenderCourses() {
-  const data = await getTeacherCourses();
+export default async function TeacherCoursesPage() {
+  const courses = await getTeacherCourses();
 
   return (
-    <>
-      {data.length === 0 ? (
+    <div className="space-y-6">
+      <PageHeader
+        title="Courses"
+        description="Create, edit and publish your courses."
+        actions={
+          courses.length > 0 && (
+            <Link className={buttonVariants({ className: "h-10" })} href="/teacher/courses/create">
+              <Plus aria-hidden="true" />
+              Create course
+            </Link>
+          )
+        }
+      />
+
+      {courses.length === 0 ? (
         <EmptyState
-          title="No courses found"
-          description="Create a new course to get started"
-          buttonText="Create Course"
+          icon={BookOpen}
+          title="You haven't created any courses yet"
+          description="Start with the basics (title, description, price and a thumbnail), then add chapters and lessons. Courses stay private as drafts until you publish them."
+          buttonText="Create your first course"
           href="/teacher/courses/create"
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 gap-7">
-          {data.map((course) => (
-            <TeacherCourseCard key={course.id} data={course} />
-          ))}
-        </div>
+        <TeacherCourseList courses={courses} />
       )}
-    </>
-  );
-}
-
-function TeacherCourseCardSkeletonLayout() {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 gap-7">
-      {Array.from({ length: 4 }).map((_, index) => (
-        <TeacherCourseCardSkeleton key={index} />
-      ))}
     </div>
   );
 }

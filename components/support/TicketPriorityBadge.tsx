@@ -27,6 +27,7 @@ export function TicketPriorityBadge({ priority }: { priority: string }) {
   const config = priorityConfig[priority] || priorityConfig.Medium;
   return (
     <Badge variant="outline" className={cn("font-medium text-xs", config.className)}>
+      <span className="sr-only">Priority: </span>
       {config.label}
     </Badge>
   );

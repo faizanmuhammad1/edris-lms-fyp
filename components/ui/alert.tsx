@@ -32,11 +32,12 @@ const Alert = React.forwardRef<
 ))
 Alert.displayName = "Alert"
 
+// A div (not a heading) so alerts never break the page's heading order.
 const AlertTitle = React.forwardRef<
-    HTMLParagraphElement,
-    React.HTMLAttributes<HTMLParagraphElement>
+    HTMLDivElement,
+    React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-    <h5
+    <div
         ref={ref}
         className={cn("mb-1 font-medium leading-none tracking-tight", className)}
         {...props}

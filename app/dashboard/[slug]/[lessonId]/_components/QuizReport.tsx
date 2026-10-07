@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, Clock, ExternalLink, BarChart3, ShieldAlert } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, ExternalLink, BarChart3, ShieldAlert, Trophy, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,9 +31,30 @@ interface QuizReportProps {
     description: string | null;
     timeLimit: number | null;
     passingScore: number;
+    questionCount?: number;
   };
   attempts: QuizAttempt[];
   onStartQuiz: () => void;
+}
+
+const formatTime = (seconds: number | null) => {
+  if (!seconds) return "N/A";
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+};
+
+function violationTotal(attempt: QuizAttempt) {
+  return (
+    attempt.tabSwitchCount +
+    attempt.backButtonCount +
+    attempt.windowBlurCount +
+    attempt.visibilityChangeCount +
+    attempt.copyAttemptCount +
+    attempt.pasteAttemptCount +
+    attempt.rightClickCount +
+    attempt.devToolsAttemptCount
+  );
 }
 
 export function QuizReport({ quiz, attempts, onStartQuiz }: QuizReportProps) {
@@ -44,262 +65,247 @@ export function QuizReport({ quiz, attempts, onStartQuiz }: QuizReportProps) {
     return attempt.score > best.score ? attempt : best;
   }, null as QuizAttempt | null);
 
-  const formatTime = (seconds: number | null) => {
-    if (!seconds) return "N/A";
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  const hasIntegrityIssues = latestAttempt ? (
-    latestAttempt.tabSwitchCount +
-    latestAttempt.backButtonCount +
-    latestAttempt.windowBlurCount +
-    latestAttempt.visibilityChangeCount +
-    latestAttempt.copyAttemptCount +
-    latestAttempt.pasteAttemptCount +
-    latestAttempt.rightClickCount +
-    latestAttempt.devToolsAttemptCount > 0
-  ) : false;
-
-  const totalViolations = latestAttempt ? (
-    latestAttempt.tabSwitchCount +
-    latestAttempt.backButtonCount +
-    latestAttempt.windowBlurCount +
-    latestAttempt.visibilityChangeCount +
-    latestAttempt.copyAttemptCount +
-    latestAttempt.pasteAttemptCount +
-    latestAttempt.rightClickCount +
-    latestAttempt.devToolsAttemptCount
-  ) : 0;
+  const totalViolations = latestAttempt ? violationTotal(latestAttempt) : 0;
+  const hasIntegrityIssues = totalViolations > 0;
+  const passedEver = attempts.some((a) => a.isCompleted && (a.score ?? 0) >= quiz.passingScore);
+  const isPassed = (attempt: QuizAttempt) => (attempt.score ?? 0) >= quiz.passingScore;
 
   return (
-    <Card className="w-full border-none shadow-none bg-transparent">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-primary" />
+    <div className="w-full space-y-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0 space-y-1">
+          <h3 className="flex items-start gap-2 text-xl font-semibold break-words">
+            <BarChart3 className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
             {quiz.title}
-          </h2>
-          {quiz.description && (
-            <p className="text-muted-foreground mt-1 max-w-2xl">{quiz.description}</p>
-          )}
+          </h3>
+          {quiz.description && <p className="max-w-2xl text-muted-foreground break-words">{quiz.description}</p>}
+          <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+            {typeof quiz.questionCount === "number" && (
+              <span>
+                {quiz.questionCount} question{quiz.questionCount === 1 ? "" : "s"}
+              </span>
+            )}
+            <span>Pass mark: {quiz.passingScore}%</span>
+            {quiz.timeLimit && <span>Time limit: {quiz.timeLimit} min</span>}
+          </p>
         </div>
-        <Button onClick={onStartQuiz} size="lg" className="shadow-lg hover:shadow-xl transition-all">
-          <ExternalLink className="h-4 w-4 mr-2" />
-          Take Quiz
+        <Button onClick={onStartQuiz} size="lg" className="w-full md:w-auto">
+          <ExternalLink aria-hidden="true" />
+          {attempts.length > 0 ? (passedEver ? "Retake quiz" : "Try again") : "Start quiz"}
+          <span className="sr-only">(opens in a new window)</span>
         </Button>
       </div>
 
-      <div className="space-y-8">
-        {latestAttempt && latestAttempt.isCompleted ? (
-          <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="integrity" className="relative">
-                Integrity
-                {hasIntegrityIssues && (
-                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-                )}
-              </TabsTrigger>
-            </TabsList>
+      {latestAttempt && latestAttempt.isCompleted ? (
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 sm:w-[320px]">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="integrity" className="gap-1.5">
+              Integrity
+              {hasIntegrityIssues && (
+                <>
+                  <span className="size-2 rounded-full bg-destructive" aria-hidden="true" />
+                  <span className="sr-only">(warnings recorded)</span>
+                </>
+              )}
+            </TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="overview" className="mt-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card
-                  className={cn(
-                    "border shadow-sm overflow-hidden relative",
-                    latestAttempt.score && latestAttempt.score >= quiz.passingScore
-                      ? "bg-green-50/50 dark:bg-green-950/10 border-green-200 dark:border-green-800"
-                      : "bg-red-50/50 dark:bg-red-950/10 border-red-200 dark:border-red-800"
-                  )}
-                >
-                  <div className={cn("absolute top-0 left-0 w-1 h-full", latestAttempt.score && latestAttempt.score >= quiz.passingScore ? "bg-green-500" : "bg-red-500")} />
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                      Latest Score
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center gap-3">
-                      {latestAttempt.score && latestAttempt.score >= quiz.passingScore ? (
-                        <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
-                      ) : (
-                        <XCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
-                      )}
-                      <div>
-                        <span className="text-4xl font-bold tracking-tight">
-                          {latestAttempt.score ?? 0}%
-                        </span>
-                        <p className="text-xs text-muted-foreground font-medium mt-1">
-                          {latestAttempt.score && latestAttempt.score >= quiz.passingScore ? "Passed" : "Failed"}
-                        </p>
-                      </div>
+          <TabsContent value="overview" className="mt-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Card
+                className={cn(
+                  "gap-2 py-5 shadow-none",
+                  isPassed(latestAttempt)
+                    ? "border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/10"
+                    : "border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950/10"
+                )}
+              >
+                <CardHeader className="px-5">
+                  <CardTitle className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
+                    Latest score
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-5">
+                  <div className="flex items-center gap-3">
+                    {isPassed(latestAttempt) ? (
+                      <CheckCircle2 className="size-8 shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" />
+                    ) : (
+                      <XCircle className="size-8 shrink-0 text-red-600 dark:text-red-400" aria-hidden="true" />
+                    )}
+                    <div>
+                      <span className="text-3xl font-bold tracking-tight tabular-nums">{latestAttempt.score ?? 0}%</span>
+                      <p className="mt-1 text-sm font-medium">
+                        {isPassed(latestAttempt) ? "Passed" : `Not passed (needs ${quiz.passingScore}%)`}
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </CardContent>
+              </Card>
 
-                {bestAttempt && (
-                  <Card className="border shadow-sm bg-blue-50/30 dark:bg-blue-950/5 border-blue-100 dark:border-blue-900 overflow-hidden relative">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                        Best Score
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-                          <span className="text-blue-600 dark:text-blue-400 font-bold text-xs">TOP</span>
-                        </div>
-                        <div>
-                          <span className="text-4xl font-bold tracking-tight">
-                            {bestAttempt.score ?? 0}%
-                          </span>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {bestAttempt.submittedAt && formatDistanceToNow(new Date(bestAttempt.submittedAt), { addSuffix: true })}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                <Card className="border shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                      Time Spent
+              {bestAttempt && (
+                <Card className="gap-2 py-5 shadow-none">
+                  <CardHeader className="px-5">
+                    <CardTitle className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
+                      Best score
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="px-5">
                     <div className="flex items-center gap-3">
-                      <Clock className="h-8 w-8 text-muted-foreground/50" />
+                      <Trophy className="size-8 shrink-0 text-primary" aria-hidden="true" />
                       <div>
-                        <span className="text-4xl font-bold tracking-tight">
-                          {formatTime(latestAttempt.timeSpent)}
-                        </span>
-                        {quiz.timeLimit && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Limit: {quiz.timeLimit} min
+                        <span className="text-3xl font-bold tracking-tight tabular-nums">{bestAttempt.score ?? 0}%</span>
+                        {bestAttempt.submittedAt && (
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {formatDistanceToNow(new Date(bestAttempt.submittedAt), { addSuffix: true })}
                           </p>
                         )}
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              </div>
-            </TabsContent>
+              )}
 
-            <TabsContent value="integrity" className="mt-6">
-              <Card className="border shadow-sm">
-                <CardHeader className="border-b bg-muted/30">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <CardTitle className="flex items-center gap-2">
-                        <ShieldAlert className="h-5 w-5 text-orange-500" />
-                        Integrity Report
-                      </CardTitle>
-                      <CardDescription>
-                        Monitoring logs from your latest attempt.
-                      </CardDescription>
-                    </div>
-                    {totalViolations > 0 && (
-                      <div className="px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold border border-red-200">
-                        {totalViolations} Violations Detected
-                      </div>
-                    )}
-                  </div>
+              <Card className="gap-2 py-5 shadow-none">
+                <CardHeader className="px-5">
+                  <CardTitle className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
+                    Time spent
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                    <IntegrityItem label="Tab Switches" count={latestAttempt.tabSwitchCount} />
-                    <IntegrityItem label="Copy Attempts" count={latestAttempt.copyAttemptCount} />
-                    <IntegrityItem label="Paste Attempts" count={latestAttempt.pasteAttemptCount} />
-                    <IntegrityItem label="Window Blur" count={latestAttempt.windowBlurCount} />
-                    <IntegrityItem label="Right Clicks" count={latestAttempt.rightClickCount} />
-                    <IntegrityItem label="DevTools" count={latestAttempt.devToolsAttemptCount} />
-                    <IntegrityItem label="Visibility Change" count={latestAttempt.visibilityChangeCount} />
-                    <IntegrityItem label="Back Button" count={latestAttempt.backButtonCount} />
+                <CardContent className="px-5">
+                  <div className="flex items-center gap-3">
+                    <Clock className="size-8 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    <div>
+                      <span className="text-3xl font-bold tracking-tight tabular-nums">
+                        {formatTime(latestAttempt.timeSpent)}
+                      </span>
+                      {quiz.timeLimit && (
+                        <p className="mt-1 text-sm text-muted-foreground">Limit: {quiz.timeLimit} min</p>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <Card className="border-dashed border-2 py-12 text-center bg-muted/5">
-            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <BarChart3 className="h-8 w-8 text-primary" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">No Quiz Attempts Yet</h3>
-            <p className="text-muted-foreground max-w-sm mx-auto mb-6">
-              You haven&apos;t taken this quiz yet. Click the button above to start your first attempt.
-            </p>
-            <Button onClick={onStartQuiz} variant="outline">
-              Start Quiz
-            </Button>
-          </Card>
-        )}
+          </TabsContent>
 
-        {attempts.length > 1 && (
-          <div className="mt-12">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Clock className="size-4 text-muted-foreground" />
-              Attempt History
-            </h3>
-            <div className="border rounded-lg divide-y bg-card">
-              {attempts.map((attempt, index) => (
-                <div
-                  key={attempt.id}
-                  className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
-                      #{attempts.length - index}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          "text-sm font-bold",
-                          attempt.score && attempt.score >= quiz.passingScore ? "text-green-600" : "text-red-600"
-                        )}>
-                          {attempt.score ?? 0}%
-                        </span>
-                        <span className="text-sm text-muted-foreground font-medium">
-                          • {attempt.score && attempt.score >= quiz.passingScore ? "Passed" : "Failed"}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {attempt.submittedAt && formatDistanceToNow(new Date(attempt.submittedAt), { addSuffix: true })}
-                      </p>
-                    </div>
+          <TabsContent value="integrity" className="mt-6">
+            <Card className="shadow-none">
+              <CardHeader className="border-b">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <CardTitle className="flex items-center gap-2">
+                      {hasIntegrityIssues ? (
+                        <ShieldAlert className="size-5 text-amber-600" aria-hidden="true" />
+                      ) : (
+                        <ShieldCheck className="size-5 text-green-600" aria-hidden="true" />
+                      )}
+                      Integrity report
+                    </CardTitle>
+                    <CardDescription>Monitoring log from your latest attempt.</CardDescription>
                   </div>
+                  <p
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-xs font-semibold",
+                      hasIntegrityIssues
+                        ? "border-red-200 bg-red-100 text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300"
+                        : "border-green-200 bg-green-100 text-green-800 dark:border-green-900 dark:bg-green-950/30 dark:text-green-300"
+                    )}
+                  >
+                    {hasIntegrityIssues
+                      ? `${totalViolations} warning${totalViolations === 1 ? "" : "s"} recorded`
+                      : "No issues recorded"}
+                  </p>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                  <IntegrityItem label="Tab switches" count={latestAttempt.tabSwitchCount} />
+                  <IntegrityItem label="Copy attempts" count={latestAttempt.copyAttemptCount} />
+                  <IntegrityItem label="Paste attempts" count={latestAttempt.pasteAttemptCount} />
+                  <IntegrityItem label="Window blur" count={latestAttempt.windowBlurCount} />
+                  <IntegrityItem label="Right clicks" count={latestAttempt.rightClickCount} />
+                  <IntegrityItem label="DevTools" count={latestAttempt.devToolsAttemptCount} />
+                  <IntegrityItem label="Visibility change" count={latestAttempt.visibilityChangeCount} />
+                  <IntegrityItem label="Back button" count={latestAttempt.backButtonCount} />
+                </ul>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      ) : (
+        <div className="rounded-xl border-2 border-dashed px-6 py-10 text-center">
+          <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-primary/10">
+            <BarChart3 className="size-7 text-primary" aria-hidden="true" />
+          </div>
+          <h4 className="mb-2 text-lg font-semibold">No attempts yet</h4>
+          <p className="mx-auto max-w-sm text-sm text-muted-foreground">
+            The quiz opens in a focused exam window. Make sure you have time to finish before you start.
+          </p>
+        </div>
+      )}
 
-                  <div className="text-right">
-                    <div className="text-sm font-medium flex items-center gap-1 justify-end">
-                      <Clock className="size-3 text-muted-foreground" />
-                      {formatTime(attempt.timeSpent)}
-                    </div>
+      {attempts.length > 1 && (
+        <div>
+          <h4 className="mb-4 flex items-center gap-2 text-base font-semibold">
+            <Clock className="size-4 text-muted-foreground" aria-hidden="true" />
+            Attempt history
+          </h4>
+          <ol className="divide-y rounded-lg border bg-card">
+            {attempts.map((attempt, index) => (
+              <li key={attempt.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+                <div className="flex items-center gap-4">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
+                    <span className="sr-only">Attempt </span>#{attempts.length - index}
+                  </span>
+                  <div>
+                    <p className="flex items-center gap-1.5 text-sm">
+                      {isPassed(attempt) ? (
+                        <CheckCircle2 className="size-4 text-green-600 dark:text-green-400" aria-hidden="true" />
+                      ) : (
+                        <XCircle className="size-4 text-red-600 dark:text-red-400" aria-hidden="true" />
+                      )}
+                      <span className="font-bold tabular-nums">{attempt.score ?? 0}%</span>
+                      <span className="text-muted-foreground">· {isPassed(attempt) ? "Passed" : "Not passed"}</span>
+                    </p>
+                    {attempt.submittedAt && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(attempt.submittedAt), { addSuffix: true })}
+                      </p>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </Card>
+                <p className="flex items-center gap-1 text-sm font-medium tabular-nums">
+                  <Clock className="size-3.5 text-muted-foreground" aria-hidden="true" />
+                  <span className="sr-only">Time spent: </span>
+                  {formatTime(attempt.timeSpent)}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </div>
   );
 }
 
 function IntegrityItem({ label, count }: { label: string; count: number }) {
   return (
-    <div className={cn(
-      "p-3 rounded-lg border flex flex-col items-center justify-center text-center gap-1",
-      count > 0 ? "bg-red-50 dark:bg-red-950/10 border-red-200 dark:border-red-900" : "bg-muted/30"
-    )}>
-      <span className={cn("text-2xl font-bold", count > 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground")}>
+    <li
+      className={cn(
+        "flex flex-col items-center justify-center gap-1 rounded-lg border p-3 text-center",
+        count > 0 ? "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/10" : "bg-muted/30"
+      )}
+    >
+      <span
+        className={cn(
+          "text-2xl font-bold tabular-nums",
+          count > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"
+        )}
+      >
         {count}
       </span>
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
-    </div>
+    </li>
   );
 }

@@ -21,7 +21,8 @@ import {
 import { useConstructUrl } from "@/hooks/use-construct-url";
 import { saveVideoProgress } from "@/app/dashboard/[slug]/[lessonId]/actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { BookIcon, Loader2Icon, ShieldAlertIcon, AlertCircleIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { BookIcon, Loader2Icon, ShieldAlertIcon, AlertCircleIcon, RefreshCwIcon } from "lucide-react";
 
 export interface VideoPlayerHandle {
   seekTo: (seconds: number) => void;
@@ -67,6 +68,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
   const [signedThumbnailUrl, setSignedThumbnailUrl] = useState<string | null>(null);
   const [isLoadingSignedUrl, setIsLoadingSignedUrl] = useState(!!muxPlaybackId);
   const [signedUrlError, setSignedUrlError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   const playerRef = useRef<MediaPlayerInstance>(null);
   const lastSavedTime = useRef(0);
@@ -107,8 +109,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       })
       .catch((err) => {
         if (cancelled) return;
-        console.error("Failed to fetch signed URL:", err);
-        setSignedUrlError(err.message);
+        setSignedUrlError(err instanceof Error ? err.message : "Failed to load video");
       })
       .finally(() => {
         if (!cancelled) setIsLoadingSignedUrl(false);
@@ -117,7 +118,13 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     return () => {
       cancelled = true;
     };
-  }, [muxPlaybackId, lessonId]);
+  }, [muxPlaybackId, lessonId, retryCount]);
+
+  const retrySignedUrl = () => {
+    setSignedUrlError(null);
+    setIsLoadingSignedUrl(true);
+    setRetryCount((n) => n + 1);
+  };
 
   // Determine final video and thumbnail URLs
   const isHls = !!signedStreamUrl;
@@ -144,8 +151,8 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           videoDuration: duration,
           watchPercentage: Math.round(percentage * 100) / 100,
         });
-      } catch (error) {
-        console.error("Failed to save video progress:", error);
+      } catch {
+        // Best effort: progress is saved again on the next pause/interval.
       }
     },
     [lessonId, trackProgress]
@@ -245,11 +252,9 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
   if (!videoKey && !muxPlaybackId) {
     return (
-      <div className="aspect-video bg-muted rounded-xl flex flex-col items-center justify-center">
-        <BookIcon className="size-16 text-primary mx-auto mb-4" />
-        <p className="text-muted-foreground">
-          This lesson does not have a video yet
-        </p>
+      <div className="flex aspect-video flex-col items-center justify-center rounded-xl bg-muted p-4 text-center">
+        <BookIcon className="mx-auto mb-4 size-12 text-primary sm:size-16" aria-hidden="true" />
+        <p className="text-muted-foreground">This lesson does not have a video yet</p>
       </div>
     );
   }
@@ -257,9 +262,9 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
   // Show loading state while fetching signed URL
   if (muxPlaybackId && isLoadingSignedUrl) {
     return (
-      <div className="aspect-video bg-muted rounded-xl flex flex-col items-center justify-center">
-        <Loader2Icon className="size-10 text-primary animate-spin mb-4" />
-        <p className="text-muted-foreground text-sm">
+      <div className="flex aspect-video flex-col items-center justify-center rounded-xl bg-muted p-4 text-center">
+        <Loader2Icon className="mb-4 size-10 animate-spin text-primary" aria-hidden="true" />
+        <p role="status" className="text-sm text-muted-foreground">
           Preparing secure playback…
         </p>
       </div>
@@ -269,11 +274,16 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
   // Show error if signed URL fetch failed
   if (muxPlaybackId && signedUrlError) {
     return (
-      <div className="aspect-video bg-muted rounded-xl flex flex-col items-center justify-center">
-        <ShieldAlertIcon className="size-10 text-destructive mb-4" />
-        <p className="text-muted-foreground text-sm">
-          Unable to load secure video
-        </p>
+      <div
+        role="alert"
+        className="flex aspect-video flex-col items-center justify-center gap-3 rounded-xl bg-muted p-4 text-center"
+      >
+        <ShieldAlertIcon className="size-10 text-destructive" aria-hidden="true" />
+        <p className="text-sm text-muted-foreground">We couldn&apos;t load this video. Please try again.</p>
+        <Button variant="outline" onClick={retrySignedUrl}>
+          <RefreshCwIcon aria-hidden="true" />
+          Try again
+        </Button>
       </div>
     );
   }
@@ -284,7 +294,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     <div className="space-y-3">
       {showMuxErroredBanner && (
         <Alert variant="destructive" className="rounded-lg">
-          <AlertCircleIcon className="size-4" />
+          <AlertCircleIcon className="size-4" aria-hidden="true" />
           <AlertDescription>
             Video processing failed. {videoKey ? "Playing from backup source." : ""}
           </AlertDescription>
@@ -309,7 +319,8 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           <Poster
             className="absolute inset-0 block h-full w-full rounded-xl object-cover opacity-0 transition-opacity data-[visible]:opacity-100"
             src={thumbnailUrl}
-            alt="Video thumbnail"
+            alt=""
+            aria-hidden="true"
           />
         )}
       </MediaProvider>

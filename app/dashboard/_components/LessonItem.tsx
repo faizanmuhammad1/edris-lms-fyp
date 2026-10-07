@@ -1,4 +1,3 @@
-import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Check, Play, BookOpen, AlertTriangle } from "lucide-react";
 import Link from "next/link";
@@ -16,100 +15,79 @@ interface iAppProps {
   isActive?: boolean;
   completed: boolean;
   partiallyComplete?: boolean;
+  /** Called when the lesson link is followed (e.g. to close the mobile outline drawer). */
+  onNavigate?: () => void;
 }
 
-export function LessonItem({ lesson, slug, isActive, completed, partiallyComplete }: iAppProps) {
+export function LessonItem({ lesson, slug, isActive, completed, partiallyComplete, onNavigate }: iAppProps) {
+  const isReading =
+    lesson.lessonType === "Reading" || (lesson.lessonType === "Mixed" && !lesson.videoKey);
+
+  const status = completed
+    ? "Completed"
+    : partiallyComplete
+      ? "Quiz or assignment pending"
+      : isActive
+        ? "Current lesson"
+        : null;
+
   return (
     <Link
       href={`/dashboard/${slug}/${lesson.id}`}
-      className={buttonVariants({
-        variant: completed ? "secondary" : "outline",
-        className: cn(
-          "w-full p-2.5 h-auto justify-start transition-all border-border/60 shadow-sm",
-          !completed && !partiallyComplete && !isActive && "bg-card hover:bg-accent/50",
-          completed &&
-          "bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700 hover:bg-green-200 dark:hover:bg-green-900/50 text-green-800 dark:text-green-200",
-          partiallyComplete &&
-          "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/30 text-amber-800 dark:text-amber-200",
-          isActive &&
-          !completed &&
-          !partiallyComplete &&
-          "bg-primary/10 dark:bg-primary/20 border-primary/50 hover:bg-primary/20 dark:hover:bg-primary/30 text-primary"
-        ),
-      })}
+      onClick={onNavigate}
+      aria-current={isActive ? "page" : undefined}
+      className={cn(
+        "flex min-h-11 w-full items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        "border-border/60 bg-card hover:bg-accent/60",
+        completed && "border-green-300 bg-green-50 hover:bg-green-100 dark:border-green-800 dark:bg-green-950/30 dark:hover:bg-green-950/50",
+        partiallyComplete && "border-amber-300 bg-amber-50 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/30 dark:hover:bg-amber-950/50",
+        isActive && "border-primary ring-1 ring-primary/40",
+        isActive && !completed && !partiallyComplete && "bg-primary/10 hover:bg-primary/15"
+      )}
     >
-      <div className="flex items-center gap-2.5 w-full min-w-0">
-        <div className="shrink-0">
-          {completed ? (
-            <div className="size-5 rounded-full bg-green-600 dark:bg-green-500 flex items-center justify-center">
-              <Check className="size-3 text-white" />
-            </div>
-          ) : partiallyComplete ? (
-            <div className="size-5 rounded-full bg-amber-500 dark:bg-amber-400 flex items-center justify-center">
-              <AlertTriangle className="size-3 text-white" />
-            </div>
-          ) : (
-            <div
-              className={cn(
-                "size-5 rounded-full border-2 bg-background flex justify-center items-center",
-                isActive
-                  ? "border-primary bg-primary/10 dark:bg-primary/20"
-                  : "border-muted-foreground/60"
-              )}
-            >
-              {lesson.lessonType === "Reading" || (lesson.lessonType === "Mixed" && !lesson.videoKey) ? (
-                <BookOpen
-                  className={cn(
-                    "size-2.5",
-                    isActive ? "text-primary" : "text-muted-foreground"
-                  )}
-                />
-              ) : (
-                <Play
-                  className={cn(
-                    "size-2.5 fill-current",
-                    isActive ? "text-primary" : "text-muted-foreground"
-                  )}
-                />
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="flex-1 text-left min-w-0">
-          <p
+      <span className="shrink-0" aria-hidden="true">
+        {completed ? (
+          <span className="flex size-5 items-center justify-center rounded-full bg-green-700">
+            <Check className="size-3 text-white" />
+          </span>
+        ) : partiallyComplete ? (
+          <span className="flex size-5 items-center justify-center rounded-full bg-amber-600">
+            <AlertTriangle className="size-3 text-white" />
+          </span>
+        ) : (
+          <span
             className={cn(
-              "text-xs font-medium truncate",
-              completed
-                ? "text-green-800 dark:text-green-200"
-                : partiallyComplete
-                  ? "text-amber-800 dark:text-amber-200"
-                  : isActive
-                    ? "text-primary font-semibold"
-                    : "text-foreground"
+              "flex size-5 items-center justify-center rounded-full border-2 bg-background",
+              isActive ? "border-primary" : "border-muted-foreground/60"
             )}
           >
-            {lesson.position}. {lesson.title}
-          </p>
-          {completed && (
-            <p className="text-[10px] text-green-700 dark:text-green-300 font-medium">
-              Completed
-            </p>
-          )}
+            {isReading ? (
+              <BookOpen className={cn("size-2.5", isActive ? "text-primary" : "text-muted-foreground")} />
+            ) : (
+              <Play
+                className={cn("size-2.5 fill-current", isActive ? "text-primary" : "text-muted-foreground")}
+              />
+            )}
+          </span>
+        )}
+      </span>
 
-          {partiallyComplete && (
-            <p className="text-[10px] text-amber-600 dark:text-amber-300 font-medium">
-              Quiz / Assignment pending
-            </p>
+      <span className="min-w-0 flex-1">
+        <span
+          className={cn(
+            "block font-medium break-words",
+            completed && "text-green-900 dark:text-green-100",
+            partiallyComplete && "text-amber-900 dark:text-amber-100",
+            isActive && !completed && !partiallyComplete && "text-primary"
           )}
-
-          {isActive && !completed && !partiallyComplete && (
-            <p className="text-[10px] text-primary font-medium">
-              Currently Watching
-            </p>
-          )}
-        </div>
-      </div>
+        >
+          {lesson.position}. {lesson.title}
+        </span>
+        <span className="block text-xs text-muted-foreground">
+          {isReading ? "Reading" : "Video"}
+          {status && <> · {status}</>}
+        </span>
+      </span>
     </Link>
   );
 }

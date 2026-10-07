@@ -11,14 +11,17 @@ import {
   courseSchema,
   CourseSchemaType,
   lessonSchema,
+  LessonSchemaType,
 } from "@/lib/zodSchemas";
 import { stripe } from "@/lib/stripe";
 import { deleteFilesFromS3 } from "@/lib/s3-helper";
-import { triggerMuxAssetCreation } from "@/lib/mux-trigger";
+import { deleteMuxAssets, triggerMuxAssetCreation } from "@/lib/mux-trigger";
 import { triggerTranscriptionForLesson } from "@/lib/transcription";
 import { request } from "@arcjet/next";
 import { revalidatePath } from "next/cache";
+import { unstable_rethrow } from "next/navigation";
 import { after } from "next/server";
+import { z } from "zod";
 
 const aj = arcjet.withRule(
   fixedWindow({
@@ -27,6 +30,60 @@ const aj = arcjet.withRule(
     max: 5,
   })
 );
+
+const positionsSchema = z
+  .array(z.object({ id: z.string().min(1), position: z.number().int().min(1) }))
+  .min(1);
+
+/** Storage keys and Mux assets owned by a lesson, removed once the lesson row is deleted. */
+const lessonAssetSelect = {
+  videoKey: true,
+  thumbnailKey: true,
+  muxAssetId: true,
+  pdfKey: true,
+  attachments: { select: { fileKey: true } },
+  assignment: { select: { submissions: { select: { fileKey: true } } } },
+} as const;
+
+type LessonAssets = {
+  videoKey: string | null;
+  thumbnailKey: string | null;
+  muxAssetId: string | null;
+  pdfKey: string | null;
+  attachments: { fileKey: string | null }[];
+  assignment: { submissions: { fileKey: string | null }[] } | null;
+};
+
+/** Deletes lesson files from S3 and Mux after the response is sent (after() survives on serverless). */
+function cleanupLessonAssets(lessons: LessonAssets[]) {
+  const keys: string[] = [];
+  const muxAssetIds: string[] = [];
+
+  for (const lesson of lessons) {
+    if (lesson.videoKey) keys.push(lesson.videoKey);
+    if (lesson.thumbnailKey) keys.push(lesson.thumbnailKey);
+    if (lesson.pdfKey) keys.push(lesson.pdfKey);
+    for (const att of lesson.attachments) {
+      if (att.fileKey) keys.push(att.fileKey);
+    }
+    for (const sub of lesson.assignment?.submissions ?? []) {
+      if (sub.fileKey) keys.push(sub.fileKey);
+    }
+    if (lesson.muxAssetId) muxAssetIds.push(lesson.muxAssetId);
+  }
+
+  if (keys.length === 0 && muxAssetIds.length === 0) return;
+
+  after(async () => {
+    if (keys.length > 0) await deleteFilesFromS3(keys);
+    if (muxAssetIds.length > 0) await deleteMuxAssets(muxAssetIds);
+  });
+}
+
+function revalidateCourseEditor(courseId: string) {
+  revalidatePath(`/admin/courses/${courseId}/edit`);
+  revalidatePath(`/teacher/courses/${courseId}/edit`);
+}
 
 export async function editCourse(
   data: CourseSchemaType,
@@ -41,17 +98,12 @@ export async function editCourse(
     });
 
     if (decision.isDenied()) {
-      if (decision.reason.isRateLimit()) {
-        return {
-          status: "error",
-          message: "You have been blocked due to rate limiting",
-        };
-      } else {
-        return {
-          status: "error",
-          message: "You are a bot! if this is a mistake contact our support",
-        };
-      }
+      return {
+        status: "error",
+        message: decision.reason.isRateLimit()
+          ? "Too many saves in a short time. Please wait a minute and try again."
+          : "This request was blocked. If this is a mistake, contact support.",
+      };
     }
 
     const result = courseSchema.safeParse(data);
@@ -59,7 +111,7 @@ export async function editCourse(
     if (!result.success) {
       return {
         status: "error",
-        message: "Invalid data",
+        message: result.error.issues[0]?.message ?? "Some fields are invalid. Please check the form.",
       };
     }
 
@@ -72,7 +124,7 @@ export async function editCourse(
     if (!course) {
       return {
         status: "error",
-        message: "Course not found",
+        message: "This course no longer exists.",
       };
     }
 
@@ -136,8 +188,7 @@ export async function editCourse(
     }
 
     revalidatePath("/admin/courses");
-    revalidatePath(`/admin/courses/${courseId}/edit`);
-    revalidatePath(`/teacher/courses/${courseId}/edit`);
+    revalidateCourseEditor(courseId);
     revalidatePath(`/courses/${course.slug}`);
     if (result.data.slug !== course.slug) {
       revalidatePath(`/courses/${result.data.slug}`);
@@ -145,9 +196,10 @@ export async function editCourse(
 
     return {
       status: "success",
-      message: "Course updated successfully",
+      message: "Course details saved",
     };
   } catch (err) {
+    unstable_rethrow(err);
     const e = err as { code?: string; meta?: { target?: unknown } } | null;
     if (e?.code === "P2002" && JSON.stringify(e.meta?.target ?? "").includes("slug")) {
       return {
@@ -155,9 +207,10 @@ export async function editCourse(
         message: "This slug is already used by another course. Please choose a different slug.",
       };
     }
+    console.error("[admin editCourse] Failed to update course:", err);
     return {
       status: "error",
-      message: "Failed to update Course",
+      message: "Couldn't save the course. Please try again.",
     };
   }
 }
@@ -169,14 +222,15 @@ export async function reorderLessons(
 ): Promise<ApiResponse> {
   await requireAdmin();
   try {
-    if (!lessons || lessons.length === 0) {
+    const parsed = positionsSchema.safeParse(lessons);
+    if (!parsed.success) {
       return {
         status: "error",
         message: "No lessons provided for reordering.",
       };
     }
 
-    const updates = lessons.map((lesson) =>
+    const updates = parsed.data.map((lesson) =>
       prisma.lesson.update({
         where: {
           id: lesson.id,
@@ -190,16 +244,18 @@ export async function reorderLessons(
 
     await prisma.$transaction(updates);
 
-    revalidatePath(`/admin/courses/${courseId}/edit`);
+    revalidateCourseEditor(courseId);
 
     return {
       status: "success",
-      message: "Lessons reordered successfully",
+      message: "Lesson order saved",
     };
-  } catch {
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error("[admin reorderLessons] Failed to reorder lessons:", err);
     return {
       status: "error",
-      message: "Failed to reorder lessons.",
+      message: "Couldn't save the new lesson order. The previous order was restored.",
     };
   }
 }
@@ -210,14 +266,15 @@ export async function reorderChapters(
 ): Promise<ApiResponse> {
   await requireAdmin();
   try {
-    if (!chapters || chapters.length === 0) {
+    const parsed = positionsSchema.safeParse(chapters);
+    if (!parsed.success) {
       return {
         status: "error",
         message: "No chapters provided for reordering.",
       };
     }
 
-    const updates = chapters.map((chapter) =>
+    const updates = parsed.data.map((chapter) =>
       prisma.chapter.update({
         where: {
           id: chapter.id,
@@ -231,16 +288,18 @@ export async function reorderChapters(
 
     await prisma.$transaction(updates);
 
-    revalidatePath(`/admin/courses/${courseId}/edit`);
+    revalidateCourseEditor(courseId);
 
     return {
       status: "success",
-      message: "Chapters reordered successfully",
+      message: "Chapter order saved",
     };
-  } catch {
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error("[admin reorderChapters] Failed to reorder chapters:", err);
     return {
       status: "error",
-      message: "Failed to reorder chapters",
+      message: "Couldn't save the new chapter order. The previous order was restored.",
     };
   }
 }
@@ -255,7 +314,19 @@ export async function createChapter(
     if (!result.success) {
       return {
         status: "error",
-        message: "Invalid Data",
+        message: result.error.issues[0]?.message ?? "Invalid chapter details.",
+      };
+    }
+
+    const course = await prisma.course.findUnique({
+      where: { id: result.data.courseId },
+      select: { id: true },
+    });
+
+    if (!course) {
+      return {
+        status: "error",
+        message: "This course no longer exists.",
       };
     }
 
@@ -281,22 +352,24 @@ export async function createChapter(
       });
     });
 
-    revalidatePath(`/admin/courses/${result.data.courseId}/edit`);
+    revalidateCourseEditor(result.data.courseId);
 
     return {
       status: "success",
-      message: "Chapter created successfully",
+      message: `Chapter "${result.data.name}" created`,
     };
-  } catch {
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error("[admin createChapter] Failed to create chapter:", err);
     return {
       status: "error",
-      message: "Failed to create chapter",
+      message: "Couldn't create the chapter. Please try again.",
     };
   }
 }
 
 export async function createLesson(
-  values: ChapterSchemaType
+  values: LessonSchemaType
 ): Promise<ApiResponse> {
   await requireAdmin();
   try {
@@ -305,7 +378,19 @@ export async function createLesson(
     if (!result.success) {
       return {
         status: "error",
-        message: "Invalid Data",
+        message: result.error.issues[0]?.message ?? "Invalid lesson details.",
+      };
+    }
+
+    const chapter = await prisma.chapter.findFirst({
+      where: { id: result.data.chapterId, courseId: result.data.courseId },
+      select: { id: true },
+    });
+
+    if (!chapter) {
+      return {
+        status: "error",
+        message: "This chapter no longer exists.",
       };
     }
 
@@ -345,16 +430,18 @@ export async function createLesson(
       });
     }
 
-    revalidatePath(`/admin/courses/${result.data.courseId}/edit`);
+    revalidateCourseEditor(result.data.courseId);
 
     return {
       status: "success",
-      message: "Lesson created successfully",
+      message: `Lesson "${result.data.name}" created`,
     };
-  } catch {
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error("[admin createLesson] Failed to create lesson:", err);
     return {
       status: "error",
-      message: "Failed to create lesson",
+      message: "Couldn't create the lesson. Please try again.",
     };
   }
 }
@@ -370,9 +457,10 @@ export async function deleteLesson({
 }): Promise<ApiResponse> {
   await requireAdmin();
   try {
-    const chapterWithLessons = await prisma.chapter.findUnique({
+    const chapterWithLessons = await prisma.chapter.findFirst({
       where: {
         id: chapterId,
+        courseId: courseId,
       },
       select: {
         lessons: {
@@ -382,6 +470,7 @@ export async function deleteLesson({
           select: {
             id: true,
             position: true,
+            ...lessonAssetSelect,
           },
         },
       },
@@ -390,7 +479,7 @@ export async function deleteLesson({
     if (!chapterWithLessons) {
       return {
         status: "error",
-        message: "Chapter not Found",
+        message: "This chapter no longer exists.",
       };
     }
 
@@ -401,7 +490,7 @@ export async function deleteLesson({
     if (!lessonToDelete) {
       return {
         status: "error",
-        message: "Lesson not found in the chapter.",
+        message: "This lesson no longer exists.",
       };
     }
 
@@ -423,16 +512,22 @@ export async function deleteLesson({
         },
       }),
     ]);
-    revalidatePath(`/admin/courses/${courseId}/edit`);
+
+    // Remove the lesson's files only after the database delete succeeded
+    cleanupLessonAssets([lessonToDelete]);
+
+    revalidateCourseEditor(courseId);
 
     return {
       status: "success",
-      message: "Lesson deleted and positions reordered successfully",
+      message: "Lesson deleted",
     };
-  } catch {
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error("[admin deleteLesson] Failed to delete lesson:", err);
     return {
       status: "error",
-      message: "Failed to delete lesson",
+      message: "Couldn't delete the lesson. Please try again.",
     };
   }
 }
@@ -466,7 +561,7 @@ export async function deleteChapter({
     if (!courseWithChapters) {
       return {
         status: "error",
-        message: "Course not Found",
+        message: "This course no longer exists.",
       };
     }
 
@@ -477,9 +572,15 @@ export async function deleteChapter({
     if (!chapterToDelete) {
       return {
         status: "error",
-        message: "Chapter not found in the Course.",
+        message: "This chapter no longer exists.",
       };
     }
+
+    // Collect the chapter's lesson files before the rows cascade away
+    const lessonsInChapter = await prisma.lesson.findMany({
+      where: { chapterId },
+      select: lessonAssetSelect,
+    });
 
     const remainingChapters = chapters.filter((chap) => chap.id !== chapterId);
 
@@ -498,16 +599,21 @@ export async function deleteChapter({
         },
       }),
     ]);
-    revalidatePath(`/admin/courses/${courseId}/edit`);
+
+    cleanupLessonAssets(lessonsInChapter);
+
+    revalidateCourseEditor(courseId);
 
     return {
       status: "success",
-      message: "Chapter deleted and positions reordered successfully",
+      message: "Chapter deleted",
     };
-  } catch {
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error("[admin deleteChapter] Failed to delete chapter:", err);
     return {
       status: "error",
-      message: "Failed to delete chapter",
+      message: "Couldn't delete the chapter. Please try again.",
     };
   }
 }

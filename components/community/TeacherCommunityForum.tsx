@@ -1,14 +1,13 @@
-"use client";
-
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, MessageSquare, Users, Settings } from "lucide-react";
-import Link from "next/link";
+import { DeletePostButton } from "@/app/teacher/communities/[slug]/forum/_components/delete-post-button";
 import { CreatePostForm } from "@/app/dashboard/forum/_components/create-post-form";
-import { deletePost } from "@/app/actions/post";
-import { DeleteButton } from "@/components/general/DeleteButton";
+import { EmptyState } from "@/components/general/EmptyState";
+import { PageHeader } from "@/components/general/PageHeader";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { formatDistanceToNow } from "date-fns";
+import { MessageSquare, MessagesSquare, Settings, Users } from "lucide-react";
+import Link from "next/link";
 
 type Post = {
   id: string;
@@ -35,119 +34,138 @@ interface TeacherCommunityForumProps {
   forumBasePath: string;
 }
 
-export function TeacherCommunityForum({
-  community,
-  posts,
-  forumBasePath,
-}: TeacherCommunityForumProps) {
+function initial(name: string | null) {
+  return name?.trim()?.[0]?.toUpperCase() ?? "?";
+}
+
+function plural(count: number, singular: string) {
+  return `${count} ${count === 1 ? singular : `${singular}s`}`;
+}
+
+/** Moderator view of a community forum: start posts, browse discussions and delete posts. */
+export function TeacherCommunityForum({ community, posts, forumBasePath }: TeacherCommunityForumProps) {
+  const manageHref = `/teacher/communities/${community.slug}`;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href={`/teacher/communities/${community.slug}`}>
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">{community.name}</h1>
-            <p className="text-sm text-muted-foreground">{community.description}</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/teacher/communities/${community.slug}`}>
-              <Users className="mr-2 h-4 w-4" />
+      <PageHeader
+        title={<span className="break-words">{community.name}</span>}
+        description={<span className="line-clamp-2 break-words">{community.description}</span>}
+        backHref={manageHref}
+        backLabel="Community overview"
+        actions={
+          <>
+            <Link href={`${manageHref}?tab=members`} className={buttonVariants({ variant: "outline", className: "h-10" })}>
+              <Users aria-hidden="true" />
               Members
             </Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/teacher/communities/${community.slug}`}>
-              <Settings className="mr-2 h-4 w-4" />
+            <Link href={`${manageHref}?tab=settings`} className={buttonVariants({ variant: "outline", className: "h-10" })}>
+              <Settings aria-hidden="true" />
               Settings
             </Link>
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-        <div className="lg:col-span-3 space-y-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <section aria-labelledby="forum-posts-heading" className="min-w-0 space-y-4">
           <CreatePostForm communityId={community.id} />
 
-          <div className="space-y-4">
-            {posts.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  No posts yet. Create the first post to start the conversation.
-                </CardContent>
-              </Card>
-            ) : (
-              posts.map((post) => (
-                <Link
-                  key={post.id}
-                  href={`${forumBasePath}/${post.id}`}
-                  className="block group"
-                >
-                  <Card className="hover:border-primary/50 transition-all cursor-pointer group-hover:shadow-md">
-                    <CardHeader>
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <Avatar className="h-10 w-10 shrink-0">
-                            <AvatarImage src={post.user.image ?? ""} />
-                            <AvatarFallback>{post.user.name?.[0] ?? "?"}</AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0">
-                            <CardTitle className="text-lg group-hover:text-primary transition-colors truncate">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="forum-posts-heading" className="text-lg font-semibold">
+              Posts
+            </h2>
+            <p className="text-sm text-muted-foreground">Newest first</p>
+          </div>
+
+          {posts.length === 0 ? (
+            <EmptyState
+              icon={MessagesSquare}
+              titleAs="h3"
+              title="No posts yet"
+              description="Start the conversation: welcome your students, share course updates or ask a question to get discussions going."
+            />
+          ) : (
+            <ul className="space-y-3" aria-label="Forum posts">
+              {posts.map((post) => {
+                const href = `${forumBasePath}/${post.id}`;
+                const author = post.user.name?.trim() || "Unknown user";
+                return (
+                  <li key={post.id}>
+                    <article className="space-y-3 rounded-xl border bg-card p-4 shadow-xs sm:p-5">
+                      <div className="flex items-start gap-3">
+                        <Avatar className="size-10 shrink-0">
+                          <AvatarImage src={post.user.image ?? undefined} alt="" />
+                          <AvatarFallback>{initial(post.user.name)}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <h3 className="font-semibold leading-snug break-words">
+                            <Link
+                              href={href}
+                              className="rounded-sm underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                            >
                               {post.title}
-                            </CardTitle>
-                            <div className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
-                              <span>{post.user.name ?? "Unknown"}</span>
-                              <span>•</span>
-                              <span>{formatDistanceToNow(post.createdAt, { addSuffix: true })}</span>
-                            </div>
-                          </div>
+                            </Link>
+                          </h3>
+                          <p className="text-xs text-muted-foreground">
+                            <span className="break-words">{author}</span>
+                            <span aria-hidden="true"> · </span>
+                            <time dateTime={new Date(post.createdAt).toISOString()}>
+                              {formatDistanceToNow(post.createdAt, { addSuffix: true })}
+                            </time>
+                          </p>
                         </div>
-                        <div onClick={(e) => e.preventDefault()} className="shrink-0">
-                          <DeleteButton id={post.id} deleteAction={deletePost} />
-                        </div>
+                        <DeletePostButton
+                          postId={post.id}
+                          postTitle={post.title}
+                          commentCount={post._count.comments}
+                          display="icon"
+                          className="-mr-2 -mt-2 shrink-0"
+                        />
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground line-clamp-3 mb-4">
+                      <p className="line-clamp-3 text-sm whitespace-pre-line break-words text-muted-foreground">
                         {post.content}
                       </p>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <MessageSquare className="h-4 w-4" />
-                        <span>{post._count.comments} Comments</span>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <MessageSquare className="size-4" aria-hidden="true" />
+                          {plural(post._count.comments, "comment")}
+                        </span>
+                        <Link href={href} className={buttonVariants({ variant: "outline", size: "sm", className: "h-9" })}>
+                          View discussion
+                          <span className="sr-only">: {post.title}</span>
+                        </Link>
                       </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))
-            )}
-          </div>
-        </div>
+                    </article>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
 
-        <div className="space-y-6">
-          <Card>
+        <aside aria-labelledby="forum-about-heading" className="min-w-0">
+          <Card className="gap-4">
             <CardHeader>
-              <CardTitle>About</CardTitle>
+              <h2 id="forum-about-heading" className="font-semibold leading-none">
+                About this community
+              </h2>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">{community.description}</p>
-              <div className="mt-4 pt-4 border-t flex flex-col gap-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Members</span>
-                  <span className="font-medium">{community.memberCount}</span>
+            <CardContent className="space-y-4">
+              <p className="text-sm whitespace-pre-line break-words text-muted-foreground">{community.description}</p>
+              <dl className="grid grid-cols-2 gap-3 border-t pt-4 text-sm">
+                <div>
+                  <dt className="text-muted-foreground">Members</dt>
+                  <dd className="text-lg font-semibold tabular-nums">{community.memberCount}</dd>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Posts</span>
-                  <span className="font-medium">{community._count.posts}</span>
+                <div>
+                  <dt className="text-muted-foreground">Posts</dt>
+                  <dd className="text-lg font-semibold tabular-nums">{community._count.posts}</dd>
                 </div>
-              </div>
+              </dl>
             </CardContent>
           </Card>
-        </div>
+        </aside>
       </div>
     </div>
   );

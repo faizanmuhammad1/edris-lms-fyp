@@ -8,6 +8,7 @@ import { requireAdmin } from "@/app/data/admin/require-admin";
 import {
   getRecipientsForAudience,
   getRecipientCount,
+  getUnsentRecipientCount,
 } from "@/app/data/admin/get-mail-recipients";
 import type { AudiencePayload } from "@/app/data/admin/get-mail-recipients";
 import {
@@ -18,10 +19,15 @@ import {
   previewCampaignEmail,
 } from "@/lib/email-templates";
 import { tiptapJsonToHtml } from "@/lib/tiptap-json-to-html";
+import { formatNumber, pluralize } from "@/app/admin/_lib/format";
 import { revalidatePath } from "next/cache";
+import { unstable_rethrow } from "next/navigation";
+import { z } from "zod";
 
 const BATCH_SIZE = 100;
 const DELAY_MS = 600;
+/** Keep in sync with the subject input's maxLength in ComposeForm. */
+const SUBJECT_MAX_LENGTH = 255;
 
 const VALID_AUDIENCE_TYPES: MailAudienceType[] = [
   MailAudienceType.Subscribers,
@@ -51,15 +57,130 @@ async function getAdminUserId(email: string): Promise<string> {
   return user.id;
 }
 
+// ── Results & validation ─────────────────────────────────────────────────────
+
+type ActionError = { status: "error"; message: string };
+
+/** Every action resolves to a result the UI can show; none throw to the client. */
+export type MailActionResult<T extends object = Record<never, never>> =
+  | ({ status: "success"; message: string } & T)
+  | ActionError;
+
+export type RecipientCountResult = MailActionResult<{ count: number }>;
+export type SaveDraftResult = MailActionResult<{ campaignId: string }>;
+export type SendPreviewResult = MailActionResult;
+export type CampaignPreviewResult = MailActionResult<{ subject: string; html: string }>;
+export type SendCampaignResult =
+  | { status: "success"; message: string; sent: number }
+  | {
+      status: "error";
+      message: string;
+      /** Present when some recipients received the campaign before the send stopped. */
+      partial?: { sent: number; total: number; unsent: number };
+    };
+
+const audienceTypeSchema = z.nativeEnum(MailAudienceType, {
+  errorMap: () => ({ message: "Choose a valid audience." }),
+});
+
+const audiencePayloadSchema = z
+  .object({
+    courseId: z.string().max(100).optional(),
+    category: z.string().max(200).optional(),
+    level: z.string().max(50).optional(),
+    emails: z.array(z.string().max(320)).max(5000, "Too many email addresses.").optional(),
+  })
+  .optional();
+
+const campaignIdSchema = z.string().min(1, "Campaign not found.").max(100);
+
+const bodyJsonSchema = z.string().refine((value) => {
+  if (value === "") return true;
+  try {
+    JSON.parse(value);
+    return true;
+  } catch {
+    return false;
+  }
+}, "The message body could not be read. Reload the page and try again.");
+
+const subjectSchema = z
+  .string()
+  .max(SUBJECT_MAX_LENGTH, `Keep the subject under ${SUBJECT_MAX_LENGTH} characters.`);
+
+const saveDraftSchema = z.object({
+  campaignId: campaignIdSchema.optional(),
+  subject: subjectSchema.refine((s) => s.trim().length > 0, "Add a subject before saving."),
+  bodyJson: bodyJsonSchema,
+  audienceType: audienceTypeSchema,
+  audiencePayload: audiencePayloadSchema,
+});
+
+const sendCampaignSchema = z.object({
+  campaignId: campaignIdSchema,
+  subject: subjectSchema,
+  bodyJson: bodyJsonSchema,
+  audienceType: audienceTypeSchema,
+  audiencePayload: audiencePayloadSchema,
+});
+
+const previewSchema = z.object({
+  campaignId: campaignIdSchema.optional(),
+  subject: subjectSchema,
+  bodyJson: bodyJsonSchema,
+});
+
+function invalid(error: z.ZodError): ActionError {
+  return { status: "error", message: error.issues[0]?.message ?? "Invalid request." };
+}
+
+/** Logs an unexpected failure; lets Next's redirect/notFound errors propagate. */
+function failure(scope: string, error: unknown, message: string): ActionError {
+  unstable_rethrow(error);
+  console.error(`${scope}:`, error);
+  return { status: "error", message };
+}
+
+// ── Actions ──────────────────────────────────────────────────────────────────
+
 export async function getRecipientCountAction(
   audienceType: string,
   audiencePayload?: AudiencePayload
-): Promise<number> {
+): Promise<RecipientCountResult> {
   await requireAdmin();
-  return getRecipientCount(audienceType, audiencePayload);
+  const parsed = z
+    .object({ audienceType: audienceTypeSchema, audiencePayload: audiencePayloadSchema })
+    .safeParse({ audienceType, audiencePayload });
+  if (!parsed.success) return invalid(parsed.error);
+
+  try {
+    const count = await getRecipientCount(parsed.data.audienceType, parsed.data.audiencePayload);
+    return { status: "success", message: `${pluralize(count, "recipient")} match.`, count };
+  } catch (e) {
+    return failure("getRecipientCountAction", e, "Couldn't count recipients. Try again.");
+  }
 }
 
-export type SaveDraftResult = { ok: true; campaignId: string } | { ok: false; error: string };
+/** Recipients a resend of a partially sent campaign would still reach. */
+export async function getUnsentRecipientCountAction(
+  campaignId: string
+): Promise<RecipientCountResult> {
+  await requireAdmin();
+  const parsed = campaignIdSchema.safeParse(campaignId);
+  if (!parsed.success) return invalid(parsed.error);
+
+  try {
+    const count = await getUnsentRecipientCount(parsed.data);
+    if (count === null) return { status: "error", message: "Campaign not found." };
+    return {
+      status: "success",
+      message: `${pluralize(count, "recipient")} haven't received it yet.`,
+      count,
+    };
+  } catch (e) {
+    return failure("getUnsentRecipientCountAction", e, "Couldn't count unsent recipients. Try again.");
+  }
+}
 
 export async function saveDraft(params: {
   campaignId?: string;
@@ -70,82 +191,121 @@ export async function saveDraft(params: {
 }): Promise<SaveDraftResult> {
   // Outside try/catch so Next's redirect for non-admins is not swallowed.
   const session = await requireAdmin();
+  const parsed = saveDraftSchema.safeParse(params);
+  if (!parsed.success) return invalid(parsed.error);
+  const input = parsed.data;
+
   try {
     const userId = await getAdminUserId(session.user.email);
-    const bodyHtml = tiptapJsonToHtml(params.bodyJson);
+    const bodyHtml = tiptapJsonToHtml(input.bodyJson);
 
-    if (params.campaignId) {
+    if (input.campaignId) {
       const existing = await prisma.mailCampaign.findUnique({
-        where: { id: params.campaignId },
+        where: { id: input.campaignId },
         select: { sentAt: true, recipientCount: true },
       });
-      if (!existing) return { ok: false, error: "Campaign not found." };
+      if (!existing) return { status: "error", message: "Campaign not found." };
       // Once anyone has received it (fully or partially), content is locked so
       // a retry delivers the same email to the remaining recipients.
       if (existing.sentAt || existing.recipientCount > 0) {
-        return { ok: false, error: "This campaign has already been sent and can no longer be edited." };
+        return {
+          status: "error",
+          message: "This campaign has already been sent and can no longer be edited.",
+        };
       }
 
       await prisma.mailCampaign.update({
-        where: { id: params.campaignId },
+        where: { id: input.campaignId },
         data: {
-          subject: params.subject,
+          subject: input.subject,
           bodyHtml,
-          bodyJson: params.bodyJson,
-          audienceType: toAudienceType(params.audienceType),
-          audiencePayload: params.audiencePayload ?? undefined,
+          bodyJson: input.bodyJson,
+          audienceType: toAudienceType(input.audienceType),
+          audiencePayload: input.audiencePayload ?? undefined,
           updatedAt: new Date(),
         },
       });
       revalidatePath("/admin/mail");
-      return { ok: true, campaignId: params.campaignId };
+      return { status: "success", message: "Draft saved.", campaignId: input.campaignId };
     }
 
     const campaign = await prisma.mailCampaign.create({
       data: {
-        subject: params.subject,
+        subject: input.subject,
         bodyHtml,
-        bodyJson: params.bodyJson,
-        audienceType: toAudienceType(params.audienceType),
-        audiencePayload: params.audiencePayload ?? undefined,
+        bodyJson: input.bodyJson,
+        audienceType: toAudienceType(input.audienceType),
+        audiencePayload: input.audiencePayload ?? undefined,
         recipientCount: 0,
         createdById: userId,
       },
     });
     revalidatePath("/admin/mail");
-    return { ok: true, campaignId: campaign.id };
+    return { status: "success", message: "Draft saved.", campaignId: campaign.id };
   } catch (e) {
-    console.error("saveDraft:", e);
-    return { ok: false, error: "Failed to save draft." };
+    return failure("saveDraft", e, "Couldn't save the draft. Try again.");
   }
 }
 
-export type SendPreviewResult = { ok: true } | { ok: false; error: string };
-
+/** Emails a preview of the current content to the signed-in admin only. */
 export async function sendPreview(params: {
   subject: string;
   bodyJson: string;
 }): Promise<SendPreviewResult> {
   const session = await requireAdmin();
+  const parsed = previewSchema.safeParse(params);
+  if (!parsed.success) return invalid(parsed.error);
+
   try {
     const branding = await getEmailBranding();
-    const html = previewCampaignEmail(tiptapJsonToHtml(params.bodyJson), branding);
+    const html = previewCampaignEmail(tiptapJsonToHtml(parsed.data.bodyJson), branding);
     await sendEmailOrThrow({
       from: env.EMAIL_FROM ?? DEFAULT_EMAIL_FROM,
       to: [session.user.email],
-      subject: `[Preview] ${params.subject}`,
+      subject: `[Preview] ${parsed.data.subject}`,
       html,
     });
-    return { ok: true };
+    return { status: "success", message: `Test email sent to ${session.user.email}.` };
   } catch (e) {
-    console.error("sendPreview:", e);
-    return { ok: false, error: "Failed to send preview email." };
+    return failure("sendPreview", e, "Couldn't send the test email. Try again.");
   }
 }
 
-export type SendCampaignResult =
-  | { ok: true; sent: number }
-  | { ok: false; error: string; partial?: number };
+/**
+ * Renders the campaign email for the in-app preview (nothing is sent). Once a
+ * campaign has been (partially) sent, the stored subject/body are shown because
+ * that is exactly what recipients receive.
+ */
+export async function getCampaignPreview(params: {
+  campaignId?: string;
+  subject: string;
+  bodyJson: string;
+}): Promise<CampaignPreviewResult> {
+  await requireAdmin();
+  const parsed = previewSchema.safeParse(params);
+  if (!parsed.success) return invalid(parsed.error);
+
+  try {
+    let subject = parsed.data.subject;
+    let bodyHtml: string | null = null;
+    if (parsed.data.campaignId) {
+      const campaign = await prisma.mailCampaign.findUnique({
+        where: { id: parsed.data.campaignId },
+        select: { subject: true, bodyHtml: true, sentAt: true, recipientCount: true },
+      });
+      if (campaign && (campaign.sentAt || campaign.recipientCount > 0)) {
+        subject = campaign.subject;
+        bodyHtml = campaign.bodyHtml;
+      }
+    }
+    const branding = await getEmailBranding();
+    // "#" stands in for the per-recipient unsubscribe link; no token is generated.
+    const html = campaignEmail(bodyHtml ?? tiptapJsonToHtml(parsed.data.bodyJson), "#", branding);
+    return { status: "success", message: "Preview ready.", subject, html };
+  } catch (e) {
+    return failure("getCampaignPreview", e, "Couldn't render the preview. Try again.");
+  }
+}
 
 /**
  * Sends a campaign in batches. Only batches Resend accepted are recorded as
@@ -153,7 +313,7 @@ export type SendCampaignResult =
  * recipient has been sent, so a partially failed campaign can be sent again
  * and will skip recipients who already received it.
  */
-export async function sendCampaign(params: {
+export async function sendCampaign(rawParams: {
   campaignId: string;
   subject: string;
   bodyJson: string;
@@ -161,6 +321,10 @@ export async function sendCampaign(params: {
   audiencePayload?: AudiencePayload;
 }): Promise<SendCampaignResult> {
   await requireAdmin();
+  const parsed = sendCampaignSchema.safeParse(rawParams);
+  if (!parsed.success) return invalid(parsed.error);
+  const params = parsed.data;
+
   try {
     const campaign = await prisma.mailCampaign.findUnique({
       where: { id: params.campaignId },
@@ -174,10 +338,10 @@ export async function sendCampaign(params: {
       },
     });
     if (!campaign) {
-      return { ok: false, error: "Campaign not found." };
+      return { status: "error", message: "Campaign not found." };
     }
     if (campaign.sentAt) {
-      return { ok: false, error: "This campaign has already been sent." };
+      return { status: "error", message: "This campaign has already been sent." };
     }
 
     // Recipients delivered by an earlier, partially failed attempt.
@@ -197,7 +361,7 @@ export async function sendCampaign(params: {
       : params.audiencePayload;
 
     if (!subject.trim()) {
-      return { ok: false, error: "Subject is required." };
+      return { status: "error", message: "Subject is required." };
     }
 
     const recipients = (await getRecipientsForAudience(audienceType, audiencePayload)).filter(
@@ -211,9 +375,13 @@ export async function sendCampaign(params: {
           data: { sentAt: new Date() },
         });
         revalidatePath("/admin/mail");
-        return { ok: true, sent: 0 };
+        return {
+          status: "success",
+          message: "Everyone in this audience has already received it. The campaign is now marked as sent.",
+          sent: 0,
+        };
       }
-      return { ok: false, error: "No recipients match this audience." };
+      return { status: "error", message: "No recipients match this audience." };
     }
 
     if (!isRetry) {
@@ -297,18 +465,31 @@ export async function sendCampaign(params: {
     if (failed) {
       const totalSent = alreadySent.size + sent;
       const remaining = recipients.length - sent;
+      const total = alreadySent.size + recipients.length;
       if (totalSent > 0) {
         return {
-          ok: false,
-          error: `Send partially failed: ${remaining} recipient${remaining === 1 ? "" : "s"} not sent. Send the campaign again to retry them.`,
-          partial: totalSent,
+          status: "error",
+          message: `Sent to ${formatNumber(totalSent)} of ${formatNumber(total)} recipients; ${formatNumber(remaining)} ${remaining === 1 ? "wasn't" : "weren't"} sent. You can retry the unsent recipients from the campaign page.`,
+          partial: { sent: totalSent, total, unsent: remaining },
         };
       }
-      return { ok: false, error: "Failed to send emails." };
+      return {
+        status: "error",
+        message: "The email service rejected the send, so no emails went out. Try again in a few minutes.",
+      };
     }
-    return { ok: true, sent };
+    return {
+      status: "success",
+      message: isRetry
+        ? `Sent to the remaining ${pluralize(sent, "recipient")}. The campaign is now fully sent.`
+        : `Campaign sent to ${pluralize(sent, "recipient")}.`,
+      sent,
+    };
   } catch (e) {
-    console.error("sendCampaign:", e);
-    return { ok: false, error: "Failed to send campaign." };
+    return failure(
+      "sendCampaign",
+      e,
+      "Sending stopped unexpectedly. Open the campaign to check how many recipients received it before retrying."
+    );
   }
 }

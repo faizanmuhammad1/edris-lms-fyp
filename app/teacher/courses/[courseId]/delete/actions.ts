@@ -32,12 +32,12 @@ export async function deleteTeacherCourse(courseId: string): Promise<ApiResponse
             if (decision.reason.isRateLimit()) {
                 return {
                     status: "error",
-                    message: "You have been blocked due to rate limiting",
+                    message: "Too many requests. Please wait a minute and try again.",
                 };
             } else {
                 return {
                     status: "error",
-                    message: "You are a bot! if this is a mistake contact our support",
+                    message: "Your request was blocked. If this keeps happening, please contact support.",
                 };
             }
         }
@@ -79,7 +79,7 @@ export async function deleteTeacherCourse(courseId: string): Promise<ApiResponse
         if (!courseWithLessons) {
             return {
                 status: "error",
-                message: "Course not found or unauthorized",
+                message: "Course not found, or you don't have permission to delete it.",
             };
         }
 
@@ -129,16 +129,17 @@ export async function deleteTeacherCourse(courseId: string): Promise<ApiResponse
         }
 
         revalidatePath("/teacher/courses");
+        revalidatePath("/teacher");
 
         return {
             status: "success",
-            message: "Course deleted successfully",
+            message: "Course deleted",
         };
     } catch (err) {
         console.error("[deleteTeacherCourse] Error deleting course:", err);
         return {
             status: "error",
-            message: "Failed to delete Course!",
+            message: "We couldn't delete this course. Please try again.",
         };
     }
 }

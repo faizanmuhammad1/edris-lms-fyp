@@ -1,3 +1,6 @@
+"use client";
+
+import type { KeyboardEvent } from "react";
 import { type Editor } from "@tiptap/react";
 import {
   Tooltip,
@@ -20,12 +23,139 @@ import {
   Redo,
   Strikethrough,
   Undo,
+  type LucideIcon,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 
 interface iAppProps {
   editor: Editor | null;
+}
+
+interface ToggleItem {
+  label: string;
+  icon: LucideIcon;
+  isActive: (editor: Editor) => boolean;
+  run: (editor: Editor) => void;
+}
+
+const FORMAT_ITEMS: ToggleItem[] = [
+  {
+    label: "Bold",
+    icon: Bold,
+    isActive: (e) => e.isActive("bold"),
+    run: (e) => e.chain().focus().toggleBold().run(),
+  },
+  {
+    label: "Italic",
+    icon: Italic,
+    isActive: (e) => e.isActive("italic"),
+    run: (e) => e.chain().focus().toggleItalic().run(),
+  },
+  {
+    label: "Strikethrough",
+    icon: Strikethrough,
+    isActive: (e) => e.isActive("strike"),
+    run: (e) => e.chain().focus().toggleStrike().run(),
+  },
+  {
+    label: "Heading 1",
+    icon: Heading1Icon,
+    isActive: (e) => e.isActive("heading", { level: 1 }),
+    run: (e) => e.chain().focus().toggleHeading({ level: 1 }).run(),
+  },
+  {
+    label: "Heading 2",
+    icon: Heading2Icon,
+    isActive: (e) => e.isActive("heading", { level: 2 }),
+    run: (e) => e.chain().focus().toggleHeading({ level: 2 }).run(),
+  },
+  {
+    label: "Heading 3",
+    icon: Heading3Icon,
+    isActive: (e) => e.isActive("heading", { level: 3 }),
+    run: (e) => e.chain().focus().toggleHeading({ level: 3 }).run(),
+  },
+  {
+    label: "Bullet list",
+    icon: ListIcon,
+    isActive: (e) => e.isActive("bulletList"),
+    run: (e) => e.chain().focus().toggleBulletList().run(),
+  },
+  {
+    label: "Numbered list",
+    icon: ListOrdered,
+    isActive: (e) => e.isActive("orderedList"),
+    run: (e) => e.chain().focus().toggleOrderedList().run(),
+  },
+];
+
+const ALIGN_ITEMS: ToggleItem[] = [
+  {
+    label: "Align left",
+    icon: AlignLeft,
+    isActive: (e) => e.isActive({ textAlign: "left" }),
+    run: (e) => e.chain().focus().setTextAlign("left").run(),
+  },
+  {
+    label: "Align center",
+    icon: AlignCenter,
+    isActive: (e) => e.isActive({ textAlign: "center" }),
+    run: (e) => e.chain().focus().setTextAlign("center").run(),
+  },
+  {
+    label: "Align right",
+    icon: AlignRight,
+    isActive: (e) => e.isActive({ textAlign: "right" }),
+    run: (e) => e.chain().focus().setTextAlign("right").run(),
+  },
+];
+
+/** Arrow keys move between toolbar controls (WAI-ARIA toolbar pattern). */
+function handleToolbarKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+  const keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
+  if (!keys.includes(event.key)) return;
+  const items = Array.from(
+    event.currentTarget.querySelectorAll<HTMLButtonElement>("button:not(:disabled)")
+  );
+  const current = items.indexOf(document.activeElement as HTMLButtonElement);
+  if (current === -1 || items.length === 0) return;
+  event.preventDefault();
+  let next = current;
+  if (event.key === "ArrowRight") next = (current + 1) % items.length;
+  if (event.key === "ArrowLeft") next = (current - 1 + items.length) % items.length;
+  if (event.key === "Home") next = 0;
+  if (event.key === "End") next = items.length - 1;
+  items[next]?.focus();
+}
+
+function ToolbarToggle({ editor, item }: { editor: Editor; item: ToggleItem }) {
+  const Icon = item.icon;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Toggle
+          type="button"
+          size="default"
+          aria-label={item.label}
+          pressed={item.isActive(editor)}
+          onPressedChange={() => item.run(editor)}
+        >
+          <Icon aria-hidden="true" />
+        </Toggle>
+      </TooltipTrigger>
+      <TooltipContent>{item.label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function ToolbarSeparator() {
+  return (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      className="mx-1 h-6 w-px shrink-0 bg-border"
+    />
+  );
 }
 
 export function Menubar({ editor }: iAppProps) {
@@ -34,232 +164,42 @@ export function Menubar({ editor }: iAppProps) {
   }
 
   return (
-    <div className="border border-input border-t-0 border-x-0  rounded-t-lg p-2 bg-card flex flex-wrap gap-1 items-center">
-      <TooltipProvider>
+    <TooltipProvider>
+      <div
+        role="toolbar"
+        aria-label="Text formatting"
+        aria-orientation="horizontal"
+        onKeyDown={handleToolbarKeyDown}
+        className="flex flex-wrap items-center gap-1 border-b border-input bg-card p-1.5 sm:p-2"
+      >
         <div className="flex flex-wrap gap-1">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Toggle
-                size="sm"
-                pressed={editor.isActive("bold")}
-                onPressedChange={() =>
-                  editor.chain().focus().toggleBold().run()
-                }
-                className={cn(
-                  editor.isActive("bold") && "bg-muted text-muted-foreground"
-                )}
-              >
-                <Bold />
-              </Toggle>
-            </TooltipTrigger>
-            <TooltipContent>Bold</TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Toggle
-                size="sm"
-                pressed={editor.isActive("italic")}
-                onPressedChange={() =>
-                  editor.chain().focus().toggleItalic().run()
-                }
-                className={cn(
-                  editor.isActive("italic") && "bg-muted text-muted-foreground"
-                )}
-              >
-                <Italic />
-              </Toggle>
-            </TooltipTrigger>
-            <TooltipContent>Italic</TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Toggle
-                size="sm"
-                pressed={editor.isActive("strike")}
-                onPressedChange={() =>
-                  editor.chain().focus().toggleStrike().run()
-                }
-                className={cn(
-                  editor.isActive("strike") && "bg-muted text-muted-foreground"
-                )}
-              >
-                <Strikethrough />
-              </Toggle>
-            </TooltipTrigger>
-            <TooltipContent>Strike</TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Toggle
-                size="sm"
-                pressed={editor.isActive("heading", { level: 1 })}
-                onPressedChange={() =>
-                  editor.chain().focus().toggleHeading({ level: 1 }).run()
-                }
-                className={cn(
-                  editor.isActive("heading", { level: 1 }) &&
-                    "bg-muted text-muted-foreground"
-                )}
-              >
-                <Heading1Icon />
-              </Toggle>
-            </TooltipTrigger>
-            <TooltipContent>Heading 1</TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Toggle
-                size="sm"
-                pressed={editor.isActive("heading", { level: 2 })}
-                onPressedChange={() =>
-                  editor.chain().focus().toggleHeading({ level: 2 }).run()
-                }
-                className={cn(
-                  editor.isActive("heading", { level: 2 }) &&
-                    "bg-muted text-muted-foreground"
-                )}
-              >
-                <Heading2Icon />
-              </Toggle>
-            </TooltipTrigger>
-            <TooltipContent>Heading 2</TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Toggle
-                size="sm"
-                pressed={editor.isActive("heading", { level: 3 })}
-                onPressedChange={() =>
-                  editor.chain().focus().toggleHeading({ level: 3 }).run()
-                }
-                className={cn(
-                  editor.isActive("heading", { level: 3 }) &&
-                    "bg-muted text-muted-foreground"
-                )}
-              >
-                <Heading3Icon />
-              </Toggle>
-            </TooltipTrigger>
-            <TooltipContent>Heading 3</TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Toggle
-                size="sm"
-                pressed={editor.isActive("bulletList")}
-                onPressedChange={() =>
-                  editor.chain().focus().toggleBulletList().run()
-                }
-                className={cn(
-                  editor.isActive("bulletList") &&
-                    "bg-muted text-muted-foreground"
-                )}
-              >
-                <ListIcon />
-              </Toggle>
-            </TooltipTrigger>
-            <TooltipContent>Bullet List</TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Toggle
-                size="sm"
-                pressed={editor.isActive("orderedList")}
-                onPressedChange={() =>
-                  editor.chain().focus().toggleOrderedList().run()
-                }
-                className={cn(
-                  editor.isActive("orderedList") &&
-                    "bg-muted text-muted-foreground"
-                )}
-              >
-                <ListOrdered />
-              </Toggle>
-            </TooltipTrigger>
-            <TooltipContent>Ordered List</TooltipContent>
-          </Tooltip>
+          {FORMAT_ITEMS.map((item) => (
+            <ToolbarToggle key={item.label} editor={editor} item={item} />
+          ))}
         </div>
 
-        <div className="w-px h-6 bg-border mx-2"></div>
+        <ToolbarSeparator />
+
         <div className="flex flex-wrap gap-1">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Toggle
-                size="sm"
-                pressed={editor.isActive({ textAlign: "left" })}
-                onPressedChange={() =>
-                  editor.chain().focus().setTextAlign("left").run()
-                }
-                className={cn(
-                  editor.isActive({ textAlign: "left" }) &&
-                    "bg-muted text-muted-foreground"
-                )}
-              >
-                <AlignLeft />
-              </Toggle>
-            </TooltipTrigger>
-            <TooltipContent>Align Left</TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Toggle
-                size="sm"
-                pressed={editor.isActive({ textAlign: "center" })}
-                onPressedChange={() =>
-                  editor.chain().focus().setTextAlign("center").run()
-                }
-                className={cn(
-                  editor.isActive({ textAlign: "center" }) &&
-                    "bg-muted text-muted-foreground"
-                )}
-              >
-                <AlignCenter />
-              </Toggle>
-            </TooltipTrigger>
-            <TooltipContent>Align Center</TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Toggle
-                size="sm"
-                pressed={editor.isActive({ textAlign: "right" })}
-                onPressedChange={() =>
-                  editor.chain().focus().setTextAlign("right").run()
-                }
-                className={cn(
-                  editor.isActive({ textAlign: "right" }) &&
-                    "bg-muted text-muted-foreground"
-                )}
-              >
-                <AlignRight />
-              </Toggle>
-            </TooltipTrigger>
-            <TooltipContent>Align Right</TooltipContent>
-          </Tooltip>
+          {ALIGN_ITEMS.map((item) => (
+            <ToolbarToggle key={item.label} editor={editor} item={item} />
+          ))}
         </div>
 
-        <div className="w-px h-6 bg-border mx-2"></div>
+        <ToolbarSeparator />
 
         <div className="flex flex-wrap gap-1">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                size="sm"
+                size="icon"
                 variant="ghost"
                 type="button"
+                aria-label="Undo"
                 onClick={() => editor.chain().focus().undo().run()}
                 disabled={!editor.can().undo()}
               >
-                <Undo />
+                <Undo aria-hidden="true" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Undo</TooltipContent>
@@ -268,19 +208,20 @@ export function Menubar({ editor }: iAppProps) {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                size="sm"
+                size="icon"
                 variant="ghost"
                 type="button"
+                aria-label="Redo"
                 onClick={() => editor.chain().focus().redo().run()}
                 disabled={!editor.can().redo()}
               >
-                <Redo />
+                <Redo aria-hidden="true" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Redo</TooltipContent>
           </Tooltip>
         </div>
-      </TooltipProvider>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }

@@ -1,13 +1,22 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Settings } from "lucide-react";
-import { useTransition } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { savePlatformSettingsAction } from "../actions";
+import { platformSettingsSchema, type PlatformSettingsValues } from "../schemas";
+import { SettingsCard, SettingsFormActions } from "./SettingsCard";
 
 type PlatformSettingsFormProps = {
   platformName: string;
@@ -15,66 +24,80 @@ type PlatformSettingsFormProps = {
 };
 
 export function PlatformSettingsForm({ platformName, supportEmail }: PlatformSettingsFormProps) {
-  const [pending, startTransition] = useTransition();
+  const form = useForm<PlatformSettingsValues>({
+    resolver: zodResolver(platformSettingsSchema),
+    defaultValues: { platformName, supportEmail },
+    mode: "onTouched",
+  });
+  const { isDirty, isSubmitting } = form.formState;
 
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-    startTransition(async () => {
-      const result = await savePlatformSettingsAction(formData);
-      if (result.ok) {
-        toast.success("Platform settings saved.");
+  async function onSubmit(values: PlatformSettingsValues) {
+    try {
+      const result = await savePlatformSettingsAction(values);
+      if (result.status === "success") {
+        toast.success(result.message);
+        form.reset(values);
       } else {
-        toast.error(result.error);
+        toast.error(result.message);
       }
-    });
+    } catch {
+      toast.error("Couldn't save platform settings. Check your connection and try again.");
+    }
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <Settings className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <CardTitle>Platform Settings</CardTitle>
-            <CardDescription>
-              Platform name and support email shown in outgoing emails (header, footer and
-              subject lines). Site pages still use the built-in name.
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="platform-name">Platform Name</Label>
-            <Input
-              id="platform-name"
-              name="platformName"
-              defaultValue={platformName}
-              placeholder="Edris LMS"
-              disabled={pending}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="support-email">Support Email</Label>
-            <Input
-              id="support-email"
-              name="supportEmail"
-              type="email"
-              defaultValue={supportEmail}
-              placeholder="support@example.com"
-              disabled={pending}
-            />
-          </div>
-          <Button type="submit" disabled={pending}>
-            {pending ? "Saving..." : "Save Changes"}
-          </Button>
+    <SettingsCard
+      id="platform-settings"
+      title="Platform"
+      icon={Settings}
+      description="Name and contact address used in outgoing emails (header, footer and subject lines). Site pages still show the built-in name."
+    >
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5" noValidate>
+          <FormField
+            control={form.control}
+            name="platformName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Platform name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Edris LMS" autoComplete="organization" maxLength={100} {...field} />
+                </FormControl>
+                <FormDescription>2–100 characters. Appears in email subjects and footers.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="supportEmail"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Support email</FormLabel>
+                <FormControl>
+                  <Input
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    placeholder="support@yourdomain.com"
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Shown as the &quot;Questions? Contact…&quot; line in emails. Placeholder addresses at
+                  example.com are hidden from emails.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <SettingsFormActions
+            isDirty={isDirty}
+            isSubmitting={isSubmitting}
+            onDiscard={() => form.reset()}
+          />
         </form>
-      </CardContent>
-    </Card>
+      </Form>
+    </SettingsCard>
   );
 }

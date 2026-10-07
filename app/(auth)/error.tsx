@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { AlertTriangle, RefreshCw, ArrowLeft } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 export default function AuthError({
     error,
@@ -13,35 +13,31 @@ export default function AuthError({
     error: Error & { digest?: string };
     reset: () => void;
 }) {
-    const router = useRouter();
-
     useEffect(() => {
         console.error("Auth Error:", error);
     }, [error]);
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4">
-            <Card className="w-full max-w-md">
-                <CardHeader className="text-center">
-                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
-                        <AlertTriangle className="h-7 w-7 text-destructive" />
-                    </div>
-                    <CardTitle>Authentication Error</CardTitle>
-                    <CardDescription>
-                        Something went wrong during authentication. Please try again.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-3">
-                    <Button onClick={reset} className="w-full gap-2">
-                        <RefreshCw className="size-4" />
-                        Try Again
-                    </Button>
-                    <Button variant="outline" onClick={() => router.push("/login")} className="w-full gap-2">
-                        <ArrowLeft className="size-4" />
-                        Back to Login
-                    </Button>
-                </CardContent>
-            </Card>
-        </div>
+        <Card className="w-full">
+            <CardHeader className="text-center">
+                <div className="mx-auto mb-2 flex size-14 items-center justify-center rounded-full bg-destructive/10">
+                    <AlertTriangle className="size-7 text-destructive" aria-hidden="true" />
+                </div>
+                <h1 className="text-2xl font-semibold tracking-tight">Something went wrong</h1>
+                <CardDescription className="text-base">
+                    We hit a problem while signing you in. Please try again.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+                <Button onClick={reset} className="h-11 w-full">
+                    <RefreshCw aria-hidden="true" />
+                    Try again
+                </Button>
+                <Link href="/login" className={buttonVariants({ variant: "outline", className: "h-11 w-full" })}>
+                    <ArrowLeft aria-hidden="true" />
+                    Back to sign in
+                </Link>
+            </CardContent>
+        </Card>
     );
 }

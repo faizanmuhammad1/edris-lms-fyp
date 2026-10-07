@@ -2,14 +2,22 @@
 
 import { prisma } from "@/lib/db";
 import { requireTeacher } from "@/app/data/teacher/require-teacher";
+import type { ApiResponse } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 
-export type EnrollmentActionResult = { ok: true } | { ok: false; error: string };
+type OwnedEnrollment = {
+    id: string;
+    courseId: string;
+    userId: string;
+    status: string;
+    User: { name: string };
+    Course: { title: string };
+};
 
-async function getEnrollmentAndVerifyTeacher(enrollmentId: string) {
-    const session = await requireTeacher();
-    const teacherId = session.user.id;
+type LookupResult = { error: string; enrollment: null } | { error: null; enrollment: OwnedEnrollment };
 
+/** Loads the enrollment and verifies it belongs to one of the signed-in teacher's courses. */
+async function getEnrollmentAndVerifyTeacher(teacherId: string, enrollmentId: string): Promise<LookupResult> {
     const enrollment = await prisma.enrollment.findUnique({
         where: { id: enrollmentId },
         select: {
@@ -17,62 +25,85 @@ async function getEnrollmentAndVerifyTeacher(enrollmentId: string) {
             courseId: true,
             userId: true,
             status: true,
-            Course: { select: { userId: true } },
+            User: { select: { name: true } },
+            Course: { select: { userId: true, title: true } },
         },
     });
 
     if (!enrollment) {
-        return { error: "Enrollment not found" as const, enrollment: null };
+        return { error: "This enrollment no longer exists. Refresh the page to see the latest list.", enrollment: null };
     }
     if (enrollment.Course.userId !== teacherId) {
-        return { error: "You can only manage enrollments in your own courses" as const, enrollment: null };
+        return { error: "You can only manage enrollments in your own courses.", enrollment: null };
     }
     return { error: null, enrollment };
 }
 
-/** Ban: revoke access only. Sets enrollment status to Cancelled. */
-export async function banEnrollment(enrollmentId: string): Promise<EnrollmentActionResult> {
+function revalidateStudentPages() {
+    revalidatePath("/teacher/students");
+    revalidatePath("/teacher/student-progress");
+}
+
+/** Ban: revoke access only. Sets enrollment status to Cancelled; no data is deleted. */
+export async function banEnrollment(enrollmentId: string): Promise<ApiResponse> {
+    // Outside the try so auth redirects are not swallowed.
+    const session = await requireTeacher();
     try {
-        const { error, enrollment } = await getEnrollmentAndVerifyTeacher(enrollmentId);
-        if (error || !enrollment) return { ok: false, error: error ?? "Enrollment not found" };
-        if (enrollment.status === "Cancelled") return { ok: false, error: "Enrollment is already banned" };
+        const { error, enrollment } = await getEnrollmentAndVerifyTeacher(session.user.id, enrollmentId);
+        if (error !== null) return { status: "error", message: error };
+        if (enrollment.status === "Cancelled") {
+            return { status: "error", message: `${enrollment.User.name} is already banned from this course.` };
+        }
 
         await prisma.enrollment.update({
             where: { id: enrollmentId },
             data: { status: "Cancelled" },
         });
-        revalidatePath("/teacher/students");
-        return { ok: true };
+        revalidateStudentPages();
+        return {
+            status: "success",
+            message: `${enrollment.User.name} can no longer access ${enrollment.Course.title}.`,
+        };
     } catch (e) {
         console.error("banEnrollment:", e);
-        return { ok: false, error: "Failed to ban enrollment" };
+        return { status: "error", message: "Couldn't ban this student. Please try again." };
     }
 }
 
 /** Unban: restore access. Sets enrollment status back to Active. */
-export async function unbanEnrollment(enrollmentId: string): Promise<EnrollmentActionResult> {
+export async function unbanEnrollment(enrollmentId: string): Promise<ApiResponse> {
+    const session = await requireTeacher();
     try {
-        const { error, enrollment } = await getEnrollmentAndVerifyTeacher(enrollmentId);
-        if (error || !enrollment) return { ok: false, error: error ?? "Enrollment not found" };
-        if (enrollment.status !== "Cancelled") return { ok: false, error: "Enrollment is not banned" };
+        const { error, enrollment } = await getEnrollmentAndVerifyTeacher(session.user.id, enrollmentId);
+        if (error !== null) return { status: "error", message: error };
+        if (enrollment.status !== "Cancelled") {
+            return { status: "error", message: `${enrollment.User.name} already has access to this course.` };
+        }
 
         await prisma.enrollment.update({
             where: { id: enrollmentId },
             data: { status: "Active" },
         });
-        revalidatePath("/teacher/students");
-        return { ok: true };
+        revalidateStudentPages();
+        return {
+            status: "success",
+            message: `${enrollment.User.name} can access ${enrollment.Course.title} again.`,
+        };
     } catch (e) {
         console.error("unbanEnrollment:", e);
-        return { ok: false, error: "Failed to unban enrollment" };
+        return { status: "error", message: "Couldn't restore access. Please try again." };
     }
 }
 
-/** Remove: delete enrollment and all related data for this course (cascade). */
-export async function removeEnrollment(enrollmentId: string): Promise<EnrollmentActionResult> {
+/**
+ * Remove: delete the enrollment plus this student's lesson progress, quiz attempts,
+ * assignment submissions and certificate for the course.
+ */
+export async function removeEnrollment(enrollmentId: string): Promise<ApiResponse> {
+    const session = await requireTeacher();
     try {
-        const { error, enrollment } = await getEnrollmentAndVerifyTeacher(enrollmentId);
-        if (error || !enrollment) return { ok: false, error: error ?? "Enrollment not found" };
+        const { error, enrollment } = await getEnrollmentAndVerifyTeacher(session.user.id, enrollmentId);
+        if (error !== null) return { status: "error", message: error };
 
         const courseId = enrollment.courseId;
         const userId = enrollment.userId;
@@ -127,10 +158,13 @@ export async function removeEnrollment(enrollmentId: string): Promise<Enrollment
             });
         });
 
-        revalidatePath("/teacher/students");
-        return { ok: true };
+        revalidateStudentPages();
+        return {
+            status: "success",
+            message: `${enrollment.User.name} was removed from ${enrollment.Course.title} and their course data was deleted.`,
+        };
     } catch (e) {
         console.error("removeEnrollment:", e);
-        return { ok: false, error: "Failed to remove enrollment" };
+        return { status: "error", message: "Couldn't remove this enrollment. Please try again." };
     }
 }

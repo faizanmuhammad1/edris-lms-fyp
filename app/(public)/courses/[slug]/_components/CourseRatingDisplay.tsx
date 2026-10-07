@@ -5,6 +5,8 @@ interface CourseRatingDisplayProps {
   avgRating: number;
   reviewCount: number;
   reviews: Array<{ rating: number }>;
+  /** Exact per-star counts over all reviews; preferred over counting the (partial) `reviews` list. */
+  ratingCounts?: Record<number, number>;
   showDistribution?: boolean;
 }
 
@@ -12,12 +14,15 @@ export function CourseRatingDisplay({
   avgRating,
   reviewCount,
   reviews,
+  ratingCounts,
   showDistribution = false,
 }: CourseRatingDisplayProps) {
-  const countsByStar = reviews.reduce<Record<number, number>>((acc, review) => {
-    acc[review.rating] = (acc[review.rating] ?? 0) + 1;
-    return acc;
-  }, {});
+  const countsByStar =
+    ratingCounts ??
+    reviews.reduce<Record<number, number>>((acc, review) => {
+      acc[review.rating] = (acc[review.rating] ?? 0) + 1;
+      return acc;
+    }, {});
 
   const distribution = [5, 4, 3, 2, 1].map((stars) => {
     const count = countsByStar[stars] ?? 0;
@@ -25,7 +30,7 @@ export function CourseRatingDisplay({
     return { stars, count, percentage };
   });
 
-  const recommendedCount = reviews.filter((review) => review.rating >= 4).length;
+  const recommendedCount = (countsByStar[4] ?? 0) + (countsByStar[5] ?? 0);
   const recommendationRate =
     reviewCount > 0 ? Math.round((recommendedCount / reviewCount) * 100) : 0;
 
@@ -35,12 +40,12 @@ export function CourseRatingDisplay({
         <div className="rounded-xl border border-border/60 bg-gradient-to-b from-amber-500/10 via-amber-500/5 to-transparent p-5">
           <p className="text-sm text-muted-foreground">Average rating</p>
           <div className="mt-1 flex items-end gap-2">
-            <span className="text-4xl font-bold text-amber-500">
+            <span className="text-4xl font-bold text-amber-800 dark:text-amber-400">
               {avgRating.toFixed(1)}
             </span>
             <span className="pb-1 text-sm text-muted-foreground">/ 5</span>
           </div>
-          <div className="mt-2 flex">
+          <div className="mt-2 flex" aria-hidden="true">
             {[1, 2, 3, 4, 5].map((star) => (
               <Star
                 key={star}
@@ -68,8 +73,8 @@ export function CourseRatingDisplay({
               {distribution.map(({ stars, percentage, count }) => (
                 <div key={stars} className="flex items-center gap-3">
                   <div className="flex w-16 items-center gap-1">
-                    <span className="text-sm text-muted-foreground">{stars}</span>
-                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                    <span className="text-sm text-muted-foreground">{stars}<span className="sr-only"> star</span></span>
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" aria-hidden="true" />
                   </div>
                   <Progress value={percentage} className="h-2 flex-1 bg-muted/50" />
                   <span className="w-9 text-right text-xs text-muted-foreground">
@@ -106,14 +111,15 @@ export function CourseRatingInline({
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
       {reviewCount > 0 && (
         <div className="flex items-center gap-1.5">
-          <span className="font-bold text-amber-500">{avgRating.toFixed(1)}</span>
-          <div className="flex">
+          <span className="font-bold text-amber-800 dark:text-amber-400">{avgRating.toFixed(1)}</span>
+          <span className="sr-only">out of 5 stars</span>
+          <div className="flex" aria-hidden="true">
             {[1, 2, 3, 4, 5].map((star) => (
               <Star
                 key={star}
                 className={`h-4 w-4 ${star <= Math.round(avgRating)
                   ? "fill-amber-400 text-amber-400"
-                  : "fill-muted/30 text-muted/30"
+                  : "fill-muted text-muted-foreground/30"
                   }`}
               />
             ))}

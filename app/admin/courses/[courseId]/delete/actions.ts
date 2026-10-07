@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { ApiResponse } from "@/lib/types";
 import { request } from "@arcjet/next";
 import { revalidatePath } from "next/cache";
+import { unstable_rethrow } from "next/navigation";
 import { deleteFilesFromS3 } from "@/lib/s3-helper";
 import { deleteMuxAssets } from "@/lib/mux-trigger";
 
@@ -29,17 +30,12 @@ export async function deleteCourse(courseId: string): Promise<ApiResponse> {
     });
 
     if (decision.isDenied()) {
-      if (decision.reason.isRateLimit()) {
-        return {
-          status: "error",
-          message: "You have been blocked due to rate limiting",
-        };
-      } else {
-        return {
-          status: "error",
-          message: "You are a bot! if this is a mistake contact our support",
-        };
-      }
+      return {
+        status: "error",
+        message: decision.reason.isRateLimit()
+          ? "Too many delete requests in a short time. Please wait a minute and try again."
+          : "This request was blocked. If this is a mistake, contact support.",
+      };
     }
     // 1. Fetch course + lessons to get S3 keys
     const courseWithLessons = await prisma.course.findUnique({
@@ -74,7 +70,7 @@ export async function deleteCourse(courseId: string): Promise<ApiResponse> {
     if (!courseWithLessons) {
       return {
         status: "error",
-        message: "Course not found",
+        message: "This course no longer exists. It may have already been deleted.",
       };
     }
 
@@ -124,16 +120,19 @@ export async function deleteCourse(courseId: string): Promise<ApiResponse> {
     }
 
     revalidatePath("/admin/courses");
+    revalidatePath("/admin");
 
     return {
       status: "success",
-      message: "Course deleted successfully",
+      message: "Course deleted",
     };
   } catch (err) {
+    // Let requireAdmin()'s redirect and other framework errors propagate.
+    unstable_rethrow(err);
     console.error("[deleteCourse] Error deleting course:", err);
     return {
       status: "error",
-      message: "Failed to delete Course!",
+      message: "Couldn't delete the course. Please try again.",
     };
   }
 }

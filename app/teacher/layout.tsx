@@ -8,6 +8,8 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
     title: "Teacher Dashboard",
     description: "Manage your courses and students",
+    // Private area: keep out of search engines.
+    robots: { index: false, follow: false },
 };
 
 export default async function TeacherLayout({ children }: { children: ReactNode }) {

@@ -1,11 +1,7 @@
 "use client";
 import { getAvatarUrl } from "@/lib/avatar";
 
-import {
-  IconDashboard,
-  IconDotsVertical,
-  IconLogout,
-} from "@tabler/icons-react";
+import { IconDashboard, IconDotsVertical, IconLogout } from "@tabler/icons-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -23,10 +19,10 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
 import { Tv2 } from "lucide-react";
-import Image from "next/image";
 import { useSignOut } from "@/hooks/use-singout";
 
 interface UserWithRole {
@@ -34,14 +30,71 @@ interface UserWithRole {
   teacherStatus?: string;
 }
 
+function getInitials(name: string) {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "?"
+  );
+}
+
+/** Links for the account menu, based on the signed-in user's portal. */
+function getPortalLinks(user: UserWithRole | undefined) {
+  if (user?.role === "admin") {
+    return { dashboard: "/admin", courses: "/admin/courses" };
+  }
+  if (user?.role === "teacher" || user?.teacherStatus === "Approved") {
+    return { dashboard: "/teacher", courses: "/teacher/courses" };
+  }
+  return { dashboard: "/dashboard", courses: "/courses" };
+}
+
 export function NavUser() {
-  const { isMobile } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar();
   const { data: session, isPending } = authClient.useSession();
   const handleSignOut = useSignOut();
 
   if (isPending) {
-    return null;
+    // Same footprint as the loaded button, so the sidebar doesn't jump.
+    return (
+      <div className="flex h-12 items-center gap-2 p-2" role="status" aria-label="Loading account">
+        <Skeleton className="size-8 rounded-lg" />
+        <div className="flex-1 space-y-1.5">
+          <Skeleton className="h-3.5 w-24" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+      </div>
+    );
   }
+
+  if (!session) return null;
+
+  const { user } = session;
+  const displayName = user.name && user.name.length > 0 ? user.name : user.email.split("@")[0];
+  const avatarSrc = user.image ?? getAvatarUrl(user.name);
+  const links = getPortalLinks(user as UserWithRole);
+  const closeOnMobile = () => {
+    if (isMobile) setOpenMobile(false);
+  };
+
+  const identity = (
+    <>
+      {/* Decorative: the name is written next to it. */}
+      <Avatar className="size-8 rounded-lg">
+        <AvatarImage src={avatarSrc} alt="" />
+        <AvatarFallback className="rounded-lg text-xs font-medium">{getInitials(displayName)}</AvatarFallback>
+      </Avatar>
+      <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
+        <span className="truncate font-medium">{displayName}</span>
+        <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+      </div>
+    </>
+  );
 
   return (
     <SidebarMenu>
@@ -50,36 +103,11 @@ export function NavUser() {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
+              aria-label={`Account menu for ${displayName}`}
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <Avatar className="h-8 w-8 rounded-lg ">
-                <AvatarImage
-                  src={
-                    session?.user.image ??
-                    getAvatarUrl(session?.user.name)
-                  }
-                  alt={session?.user.name || "User"}
-                />
-                <AvatarFallback className="rounded-lg">
-                  <Image
-                    src={getAvatarUrl(session?.user.name)}
-                    alt={session?.user.name || "User"}
-                    fill
-                    className="object-cover rounded-lg"
-                  />
-                </AvatarFallback>
-              </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">
-                  {session?.user.name && session.user.name.length > 0
-                    ? session.user.name
-                    : session?.user.email.split("@")[0]}
-                </span>
-                <span className="text-muted-foreground truncate text-xs">
-                  {session?.user.email}
-                </span>
-              </div>
-              <IconDotsVertical className="ml-auto size-4" />
+              {identity}
+              <IconDotsVertical className="ml-auto size-4" aria-hidden="true" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -89,90 +117,26 @@ export function NavUser() {
             sideOffset={4}
           >
             <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage
-                    src={
-                      session?.user.image ??
-                      getAvatarUrl(session?.user.name)
-                    }
-                    alt={session?.user.name || "User"}
-                  />
-                  <AvatarFallback className="rounded-lg">
-                    <Image
-                      src={getAvatarUrl(session?.user.name)}
-                      alt={session?.user.name || "User"}
-                      fill
-                      className="object-cover rounded-lg"
-                    />
-                  </AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">
-                    {session?.user.name && session.user.name.length > 0
-                      ? session.user.name
-                      : session?.user.email.split("@")[0]}
-                  </span>
-                  <span className="text-muted-foreground truncate text-xs">
-                    {session?.user.email}
-                  </span>
-                </div>
-              </div>
+              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">{identity}</div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-
-              {/* Role based links */}
-              {(session?.user as UserWithRole)?.role === "admin" ? (
-                <>
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin">
-                      <IconDashboard />
-                      Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin/courses">
-                      <Tv2 />
-                      Courses
-                    </Link>
-                  </DropdownMenuItem>
-                </>
-              ) : (session?.user as UserWithRole)?.role === "teacher" || (session?.user as UserWithRole)?.teacherStatus === "Approved" ? (
-                <>
-                  <DropdownMenuItem asChild>
-                    <Link href="/teacher">
-                      <IconDashboard />
-                      Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/teacher/courses">
-                      <Tv2 />
-                      Courses
-                    </Link>
-                  </DropdownMenuItem>
-                </>
-              ) : (
-                <>
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard">
-                      <IconDashboard />
-                      Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/courses">
-                      <Tv2 />
-                      Courses
-                    </Link>
-                  </DropdownMenuItem>
-                </>
-              )}
+              <DropdownMenuItem asChild>
+                <Link href={links.dashboard} onClick={closeOnMobile}>
+                  <IconDashboard aria-hidden="true" />
+                  Dashboard
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={links.courses} onClick={closeOnMobile}>
+                  <Tv2 aria-hidden="true" />
+                  Courses
+                </Link>
+              </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut}>
-              <IconLogout />
+              <IconLogout aria-hidden="true" />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>

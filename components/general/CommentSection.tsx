@@ -1,162 +1,211 @@
 "use client";
+
+import { useId, useState, useTransition } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { formatDistanceToNow } from "date-fns";
+import { Loader2, MessageSquare, Reply, Send } from "lucide-react";
+import { toast } from "sonner";
+import { createComment, CommentWithReplies } from "@/app/actions/comments";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { getAvatarUrl } from "@/lib/avatar";
 
-import { useState, useTransition } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { createComment, CommentWithReplies } from "@/app/actions/comments";
-import { formatDistanceToNow } from "date-fns";
-import { Reply, Send } from "lucide-react";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+const MAX_LENGTH = 2000;
 
 function CommentForm({
-    lessonId,
-    parentId,
-    placeholder = "Write a comment...",
-    onSuccess
+  lessonId,
+  parentId,
+  label,
+  placeholder = "Share a question or insight about this lesson…",
+  submitLabel = "Post comment",
+  onSuccess,
+  onCancel,
+  autoFocus = false,
 }: {
-    lessonId: string,
-    parentId?: string,
-    placeholder?: string,
-    onSuccess?: () => void
+  lessonId: string;
+  parentId?: string;
+  label: string;
+  placeholder?: string;
+  submitLabel?: string;
+  onSuccess?: () => void;
+  onCancel?: () => void;
+  autoFocus?: boolean;
 }) {
-    const [text, setText] = useState("");
-    const [isPending, startTransition] = useTransition();
-    const router = useRouter();
+  const [text, setText] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const inputId = useId();
+  const countId = useId();
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!text.trim()) return;
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!text.trim() || isPending) return;
 
-        startTransition(async () => {
-            const result = await createComment(lessonId, text, parentId);
-            if (result.status === "success") {
-                toast.success(result.message);
-                setText("");
-                router.refresh();
-                if (onSuccess) onSuccess();
-            } else {
-                toast.error(result.message);
-            }
-        });
-    };
+    startTransition(async () => {
+      try {
+        const result = await createComment(lessonId, text, parentId);
+        if (result.status === "success") {
+          toast.success(parentId ? "Reply posted" : "Comment posted");
+          setText("");
+          router.refresh();
+          onSuccess?.();
+        } else {
+          toast.error(result.message);
+        }
+      } catch {
+        toast.error("We couldn't post your comment. Please try again.");
+      }
+    });
+  };
 
-    return (
-        <form onSubmit={handleSubmit} className="flex gap-4">
-            <Textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder={placeholder}
-                maxLength={2000}
-                className="min-h-[80px]"
-            />
-            <Button type="submit" size="icon" disabled={isPending || !text.trim()} className="h-[80px] w-[80px]">
-                <Send className="w-5 h-5" />
+  return (
+    <form onSubmit={handleSubmit} className="space-y-2">
+      <Label htmlFor={inputId} className={parentId ? "sr-only" : undefined}>
+        {label}
+      </Label>
+      <Textarea
+        id={inputId}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder={placeholder}
+        maxLength={MAX_LENGTH}
+        disabled={isPending}
+        autoFocus={autoFocus}
+        aria-describedby={countId}
+        className="min-h-[88px]"
+      />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p id={countId} className="text-xs text-muted-foreground tabular-nums">
+          {text.length}/{MAX_LENGTH}
+        </p>
+        <div className="flex gap-2">
+          {onCancel && (
+            <Button type="button" variant="ghost" onClick={onCancel} disabled={isPending}>
+              Cancel
             </Button>
-        </form>
-    );
+          )}
+          <Button type="submit" disabled={isPending || !text.trim()} aria-busy={isPending}>
+            {isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Send aria-hidden="true" />}
+            {isPending ? "Posting…" : submitLabel}
+          </Button>
+        </div>
+      </div>
+    </form>
+  );
 }
 
-function SingleComment({ comment, lessonId }: { comment: CommentWithReplies, lessonId: string }) {
-    const [isReplying, setIsReplying] = useState(false);
+function UserAvatar({ name, image, className }: { name: string; image: string | null; className?: string }) {
+  return (
+    <Avatar className={className}>
+      <AvatarImage src={image || ""} alt="" />
+      <AvatarFallback>
+        <Image src={getAvatarUrl(name)} alt="" fill className="object-cover" />
+      </AvatarFallback>
+    </Avatar>
+  );
+}
 
-    return (
-        <div className="group">
-            <div className="flex gap-4">
-                <Avatar className="w-10 h-10 border">
-                    <AvatarImage src={comment.User.image || ""} />
-                    <AvatarFallback>
-                        <Image
-                            src={getAvatarUrl(comment.User.name)}
-                            alt={comment.User.name}
-                            fill
-                            className="object-cover"
-                        />
-                    </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm">{comment.User.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
-                        </span>
+function SingleComment({ comment, lessonId }: { comment: CommentWithReplies; lessonId: string }) {
+  const [isReplying, setIsReplying] = useState(false);
+
+  return (
+    <li>
+      <article className="flex gap-3 sm:gap-4">
+        <UserAvatar name={comment.User.name} image={comment.User.image} className="size-9 shrink-0 border sm:size-10" />
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex flex-wrap items-baseline gap-x-2">
+            <span className="text-sm font-semibold break-words">{comment.User.name}</span>
+            <time dateTime={new Date(comment.createdAt).toISOString()} className="text-xs text-muted-foreground">
+              {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+            </time>
+          </div>
+          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{comment.text}</p>
+
+          {!isReplying ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="-ml-2 text-muted-foreground hover:text-foreground"
+              onClick={() => setIsReplying(true)}
+            >
+              <Reply aria-hidden="true" />
+              Reply<span className="sr-only"> to {comment.User.name}</span>
+            </Button>
+          ) : (
+            <div className="mt-3 border-l-2 pl-3 sm:pl-4">
+              <CommentForm
+                lessonId={lessonId}
+                parentId={comment.id}
+                label={`Reply to ${comment.User.name}`}
+                placeholder={`Reply to ${comment.User.name}…`}
+                submitLabel="Post reply"
+                autoFocus
+                onSuccess={() => setIsReplying(false)}
+                onCancel={() => setIsReplying(false)}
+              />
+            </div>
+          )}
+
+          {comment.replies.length > 0 && (
+            <ul className="mt-3 space-y-4" aria-label={`Replies to ${comment.User.name}`}>
+              {comment.replies.map((reply) => (
+                <li key={reply.id} className="flex gap-3">
+                  <UserAvatar name={reply.User.name} image={reply.User.image} className="size-8 shrink-0 border" />
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex flex-wrap items-baseline gap-x-2">
+                      <span className="text-sm font-semibold break-words">{reply.User.name}</span>
+                      <time
+                        dateTime={new Date(reply.createdAt).toISOString()}
+                        className="text-xs text-muted-foreground"
+                      >
+                        {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
+                      </time>
                     </div>
-                    <p className="text-sm leading-relaxed">{comment.text}</p>
-
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-auto p-0 text-muted-foreground hover:text-foreground"
-                        onClick={() => setIsReplying(!isReplying)}
-                    >
-                        <Reply className="w-3 h-3 mr-1" /> Reply
-                    </Button>
-
-                    {isReplying && (
-                        <div className="mt-4 pl-4 border-l-2">
-                            <CommentForm
-                                lessonId={lessonId}
-                                parentId={comment.id}
-                                placeholder={`Reply to ${comment.User.name}...`}
-                                onSuccess={() => setIsReplying(false)}
-                            />
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {comment.replies.length > 0 && (
-                <div className="mt-4 ml-10 space-y-4">
-                    {comment.replies.map((reply) => (
-                        <div key={reply.id} className="flex gap-4">
-                            <Avatar className="w-8 h-8 border">
-                                <AvatarImage src={reply.User.image || ""} />
-                                <AvatarFallback>
-                                    <Image
-                                        src={getAvatarUrl(reply.User.name)}
-                                        alt={reply.User.name}
-                                        fill
-                                        className="object-cover"
-                                    />
-                                </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 space-y-1">
-                                <div className="flex items-center gap-2">
-                                    <span className="font-semibold text-sm">{reply.User.name}</span>
-                                    <span className="text-xs text-muted-foreground">
-                                        {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
-                                    </span>
-                                </div>
-                                <p className="text-sm">{reply.text}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{reply.text}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
-    );
+      </article>
+    </li>
+  );
 }
 
-export function CommentSection({ lessonId, comments }: { lessonId: string, comments: CommentWithReplies[] }) {
-    return (
-        <div className="w-full space-y-8 bg-card border rounded-xl p-6 shadow-sm">
-            <div className="flex items-center gap-2">
-                <h3 className="text-xl font-bold">Discussion</h3>
-                <span className="px-2 py-0.5 rounded-full bg-muted text-xs font-medium">
-                    {comments.reduce((acc, c) => acc + 1 + c.replies.length, 0)}
-                </span>
-            </div>
+export function CommentSection({ lessonId, comments }: { lessonId: string; comments: CommentWithReplies[] }) {
+  const headingId = useId();
+  const total = comments.reduce((acc, c) => acc + 1 + c.replies.length, 0);
 
-            <CommentForm lessonId={lessonId} />
+  return (
+    <section aria-labelledby={headingId} className="w-full space-y-6 rounded-xl border bg-card p-4 shadow-sm sm:p-6">
+      <div className="flex items-center gap-2">
+        <h2 id={headingId} className="text-xl font-semibold">
+          Discussion
+        </h2>
+        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">
+          {total}
+          <span className="sr-only"> {total === 1 ? "comment" : "comments"}</span>
+        </span>
+      </div>
 
-            <div className="space-y-6 mt-8">
-                {comments.map((comment) => (
-                    <SingleComment key={comment.id} comment={comment} lessonId={lessonId} />
-                ))}
-            </div>
+      <CommentForm lessonId={lessonId} label="Add a comment" />
+
+      {comments.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed px-4 py-8 text-center">
+          <MessageSquare className="size-6 text-muted-foreground" aria-hidden="true" />
+          <p className="text-sm text-muted-foreground">No comments yet. Start the discussion!</p>
         </div>
-    );
+      ) : (
+        <ul className="space-y-6">
+          {comments.map((comment) => (
+            <SingleComment key={comment.id} comment={comment} lessonId={lessonId} />
+          ))}
+        </ul>
+      )}
+    </section>
+  );
 }

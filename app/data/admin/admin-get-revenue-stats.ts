@@ -3,14 +3,28 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "./require-admin";
 
+/**
+ * Platform revenue figures. Every money field is in CENTS (`Enrollment.amount`);
+ * format with `formatCents` from app/admin/_lib/format.
+ */
 export interface RevenueStats {
+    /** Lifetime revenue from active enrollments (cents). */
     totalRevenue: number;
+    /** Revenue from active enrollments in the last 30 days (cents). */
     thisMonthRevenue: number;
+    /** Revenue from active enrollments 30–60 days ago (cents). */
     lastMonthRevenue: number;
+    /**
+     * % change of the last 30 days vs the 30 days before, rounded to 2 decimals.
+     * 100 when there was no revenue to compare against; check `lastMonthRevenue`.
+     */
     revenueGrowth: number;
+    /** Enrollments of every status. */
     totalEnrollments: number;
     activeEnrollments: number;
+    /** Average active enrollment amount (cents). */
     averageOrderValue: number;
+    /** Last 30 days (oldest first), keyed by UTC `yyyy-mm-dd`; revenue in cents. */
     revenueByDay: { date: string; revenue: number; enrollments: number }[];
 }
 
@@ -19,90 +33,67 @@ export async function adminGetRevenueStats(): Promise<RevenueStats> {
 
     const now = new Date();
 
-    const thirtyDaysAgo = new Date();
+    const thirtyDaysAgo = new Date(now);
     thirtyDaysAgo.setDate(now.getDate() - 30);
 
-    const sixtyDaysAgo = new Date();
+    const sixtyDaysAgo = new Date(now);
     sixtyDaysAgo.setDate(now.getDate() - 60);
 
-    // Run all aggregations in parallel at database level
-    const [
-        totalEnrollmentsCount,
-        activeEnrollments,
-        thisMonthEnrollments,
-        lastMonthEnrollments,
-    ] = await Promise.all([
-        // Total enrollments (all statuses)
+    // Aggregate in the database; only the last 30 days are loaded row by row (for the chart).
+    const [totalEnrollments, lifetime, previousPeriod, recentEnrollments] = await Promise.all([
         prisma.enrollment.count(),
-
-        // Active enrollments with amounts (for total revenue + daily breakdown)
-        prisma.enrollment.findMany({
-            where: { status: "Active" },
-            select: {
-                amount: true,
-                createdAt: true,
-            },
-            orderBy: { createdAt: "asc" },
-        }),
-
-        // This month's active revenue (last 30 days) -- aggregated at DB level
         prisma.enrollment.aggregate({
-            where: {
-                status: "Active",
-                createdAt: { gte: thirtyDaysAgo },
-            },
+            where: { status: "Active" },
             _sum: { amount: true },
             _count: true,
         }),
-
-        // Last month's active revenue (30-60 days ago) -- aggregated at DB level
         prisma.enrollment.aggregate({
             where: {
                 status: "Active",
                 createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo },
             },
             _sum: { amount: true },
-            _count: true,
+        }),
+        prisma.enrollment.findMany({
+            where: { status: "Active", createdAt: { gte: thirtyDaysAgo } },
+            select: { amount: true, createdAt: true },
         }),
     ]);
 
-    // Calculate totals
-    const totalRevenue = activeEnrollments.reduce((sum, e) => sum + e.amount, 0);
-    const averageOrderValue = activeEnrollments.length > 0
-        ? Math.round(totalRevenue / activeEnrollments.length)
-        : 0;
+    const totalRevenue = lifetime._sum.amount ?? 0;
+    const activeEnrollments = lifetime._count;
+    const averageOrderValue = activeEnrollments > 0 ? Math.round(totalRevenue / activeEnrollments) : 0;
 
-    const thisMonthRevenue = thisMonthEnrollments._sum.amount ?? 0;
-    const lastMonthRevenue = lastMonthEnrollments._sum.amount ?? 0;
+    const thisMonthRevenue = recentEnrollments.reduce((sum, e) => sum + e.amount, 0);
+    const lastMonthRevenue = previousPeriod._sum.amount ?? 0;
 
-    // Revenue growth percentage
-    const revenueGrowth = lastMonthRevenue > 0
-        ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
-        : thisMonthRevenue > 0 ? 100 : 0;
+    const revenueGrowth =
+        lastMonthRevenue > 0
+            ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
+            : thisMonthRevenue > 0
+              ? 100
+              : 0;
 
-    // Revenue by day for the last 30 days — only include enrollments in this window
     const dayMap = new Map<string, { revenue: number; enrollments: number }>();
-    for (const enrollment of activeEnrollments) {
-        if (enrollment.createdAt < thirtyDaysAgo) continue;
-        const dateStr = enrollment.createdAt.toISOString().split("T")[0];
-        const existing = dayMap.get(dateStr);
+    for (const enrollment of recentEnrollments) {
+        const day = enrollment.createdAt.toISOString().split("T")[0];
+        const existing = dayMap.get(day);
         if (existing) {
             existing.revenue += enrollment.amount;
             existing.enrollments += 1;
         } else {
-            dayMap.set(dateStr, { revenue: enrollment.amount, enrollments: 1 });
+            dayMap.set(day, { revenue: enrollment.amount, enrollments: 1 });
         }
     }
 
-    const revenueByDay: { date: string; revenue: number; enrollments: number }[] = [];
+    const revenueByDay: RevenueStats["revenueByDay"] = [];
     for (let i = 29; i >= 0; i--) {
-        const date = new Date();
+        const date = new Date(now);
         date.setDate(now.getDate() - i);
-        const dateStr = date.toISOString().split("T")[0];
-        const dayData = dayMap.get(dateStr);
-
+        const day = date.toISOString().split("T")[0];
+        const dayData = dayMap.get(day);
         revenueByDay.push({
-            date: dateStr,
+            date: day,
             revenue: dayData?.revenue ?? 0,
             enrollments: dayData?.enrollments ?? 0,
         });
@@ -113,8 +104,8 @@ export async function adminGetRevenueStats(): Promise<RevenueStats> {
         thisMonthRevenue,
         lastMonthRevenue,
         revenueGrowth: Math.round(revenueGrowth * 100) / 100,
-        totalEnrollments: totalEnrollmentsCount,
-        activeEnrollments: activeEnrollments.length,
+        totalEnrollments,
+        activeEnrollments,
         averageOrderValue,
         revenueByDay,
     };

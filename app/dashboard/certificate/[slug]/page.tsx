@@ -1,18 +1,28 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Great_Vibes, Cinzel, EB_Garamond, Montserrat } from "next/font/google";
+import { CheckCircle2, ExternalLink, Lock, ShieldCheck } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/app/data/user/require-user";
-import { notFound } from "next/navigation";
-import {
-  CertificatePrintButton,
-  BackToCourseButton,
-} from "./CertificatePrintButton";
-import { CertificateClaimView } from "./CertificateClaimView";
 import { getCourseCompletionStatus } from "@/app/data/course/get-course-completion-status";
-import { Great_Vibes, Cinzel, EB_Garamond, Montserrat } from "next/font/google";
-import { CertificateTemplate } from "./CertificateTemplate";
 import { verificationPortalUrl } from "@/lib/verification-portal-url";
+import { PageHeader } from "@/components/general/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
+import { PageContainer } from "../../_components/PageContainer";
+import { CertificatePrintButton, BackToCourseButton } from "./CertificatePrintButton";
+import { CertificateClaimView } from "./CertificateClaimView";
+import { CertificateTemplate } from "./CertificateTemplate";
 
 // The claim action waits for a blockchain confirmation.
 export const maxDuration = 60;
+
+export const metadata: Metadata = {
+  title: "Certificate",
+};
 
 const cinzel = Cinzel({
   subsets: ["latin"],
@@ -38,6 +48,8 @@ const montserrat = Montserrat({
   weight: ["300", "400", "500", "600", "700"],
   variable: "--font-montserrat",
 });
+
+const certificateFonts = `${cinzel.variable} ${greatVibes.variable} ${garamond.variable} ${montserrat.variable}`;
 
 async function getCertificateData(slug: string) {
   const user = await requireUser();
@@ -84,8 +96,7 @@ async function getCertificateData(slug: string) {
 
   const completionStatus = await getCourseCompletionStatus(course.id, user.id);
 
-  const isIssuedOnChain =
-    certificate?.blockchainStatus === "ISSUED";
+  const isIssuedOnChain = certificate?.blockchainStatus === "ISSUED";
 
   if (!completionStatus.isEligible && !isIssuedOnChain) {
     return {
@@ -146,15 +157,30 @@ function formatCertId(uniqueId: string, issuedAt: string) {
   return `EDR-${year}-${short}`;
 }
 
-function networkDisplayName(
-  network: string | null | undefined
-): string {
+function networkDisplayName(network: string | null | undefined): string {
   if (!network) return "Polygon Amoy Network";
   const n = network.toLowerCase();
   if (n.includes("amoy") || n.includes("polygon")) {
     return "Polygon Amoy Network";
   }
   return network;
+}
+
+function RequirementList({ title, items, total }: { title: string; items: string[]; total: number }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="rounded-lg border bg-muted/40 p-4">
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm break-words text-muted-foreground">
+        {items.map((item, i) => (
+          <li key={`${i}-${item}`}>{item}</li>
+        ))}
+      </ul>
+      {total > items.length && (
+        <p className="mt-2 text-xs text-muted-foreground">and {total - items.length} more</p>
+      )}
+    </div>
+  );
 }
 
 export default async function CertificatePage({
@@ -170,78 +196,68 @@ export default async function CertificatePage({
   }
 
   if (data.kind === "locked") {
-    const previewLessonMissing = data.completion.remainingLessonTitles.slice(0, 5);
-    const previewQuizMissing = data.completion.remainingQuizTitles.slice(0, 5);
-    const previewAssignmentMissing =
-      data.completion.remainingAssignmentTitles.slice(0, 5);
+    const { completion } = data;
+    const percentage =
+      completion.totalLessons > 0
+        ? Math.round((completion.completedLessons / completion.totalLessons) * 100)
+        : 0;
 
     return (
-      <div className="min-h-dvh w-full bg-gray-100 p-4 md:p-8">
-        <div className="mx-auto mb-6 flex max-w-4xl items-center justify-start">
-          <BackToCourseButton slug={slug} />
-        </div>
+      <PageContainer width="narrow">
+        <PageHeader
+          backHref={`/dashboard/${slug}`}
+          backLabel="Back to course"
+          title="Certificate locked"
+          description={
+            <>
+              Complete every requirement in <span className="font-medium text-foreground">{data.course.title}</span> to
+              unlock your certificate.
+            </>
+          }
+        />
 
-        <div className="mx-auto max-w-4xl rounded-2xl border border-[#1B4332]/20 bg-white p-8 shadow-sm md:p-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#1B4332]/70">
-            Certificate Locked
-          </p>
-          <h1 className="mt-3 text-3xl font-bold text-[#1B4332] md:text-4xl">
-            Complete all course requirements to unlock your certificate
-          </h1>
-
-          <p className="mt-3 text-base text-gray-600">
-            Progress: {data.completion.completedLessons}/{data.completion.totalLessons} lessons
-            completed.
-          </p>
-          <p className="mt-1 text-base font-medium text-[#1B4332]">
-            Remaining: {data.completion.remainingLessons} lesson
-            {data.completion.remainingLessons === 1 ? "" : "s"}
-          </p>
-
-          {previewLessonMissing.length > 0 && (
-            <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-5">
-              <p className="text-sm font-semibold text-gray-700">
-                Incomplete lessons:
-              </p>
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
-                {previewLessonMissing.map((title) => (
-                  <li key={title}>{title}</li>
-                ))}
-              </ul>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lock className="size-5 text-muted-foreground" aria-hidden="true" />
+              <h2 className="text-lg font-semibold">Your progress</h2>
+            </CardTitle>
+            <CardDescription>
+              {completion.completedLessons} of {completion.totalLessons} lessons completed ·{" "}
+              {completion.remainingLessons} remaining
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Course completion</span>
+                <span className="font-medium tabular-nums">{percentage}%</span>
+              </div>
+              <Progress value={percentage} aria-label="Course completion" />
             </div>
-          )}
 
-          {previewQuizMissing.length > 0 && (
-            <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-5">
-              <p className="text-sm font-semibold text-gray-700">
-                Quizzes not passed yet:
-              </p>
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
-                {previewQuizMissing.map((title) => (
-                  <li key={title}>{title}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+            <RequirementList
+              title="Lessons to complete"
+              items={completion.remainingLessonTitles.slice(0, 5)}
+              total={completion.remainingLessonTitles.length}
+            />
+            <RequirementList
+              title="Quizzes to pass"
+              items={completion.remainingQuizTitles.slice(0, 5)}
+              total={completion.remainingQuizTitles.length}
+            />
+            <RequirementList
+              title="Assignments to submit"
+              items={completion.remainingAssignmentTitles.slice(0, 5)}
+              total={completion.remainingAssignmentTitles.length}
+            />
 
-          {previewAssignmentMissing.length > 0 && (
-            <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-5">
-              <p className="text-sm font-semibold text-gray-700">
-                Assignments not submitted yet:
-              </p>
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
-                {previewAssignmentMissing.map((title) => (
-                  <li key={title}>{title}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <div className="mt-8">
-            <BackToCourseButton slug={slug} />
-          </div>
-        </div>
-      </div>
+            <Button size="lg" asChild className="w-full sm:w-auto">
+              <Link href={`/dashboard/${slug}`}>Continue the course</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </PageContainer>
     );
   }
 
@@ -253,12 +269,18 @@ export default async function CertificatePage({
     const previewYear = now.getFullYear();
 
     return (
-      <div
-        className={`min-h-dvh w-full bg-background p-4 md:p-8 ${cinzel.variable} ${greatVibes.variable} ${garamond.variable} ${montserrat.variable}`}
-      >
-        <div className="mx-auto mb-6 flex max-w-[900px] items-center justify-start print:hidden">
-          <BackToCourseButton slug={slug} />
-        </div>
+      <PageContainer width="medium" className={certificateFonts}>
+        <PageHeader
+          className="print:hidden"
+          title="Claim your certificate"
+          description={
+            <>
+              Congratulations on completing <span className="font-medium text-foreground">{data.course.title}</span>!
+              Check the name below, then issue your blockchain-verified certificate.
+            </>
+          }
+          actions={<BackToCourseButton slug={slug} />}
+        />
 
         <CertificateClaimView
           slug={slug}
@@ -272,7 +294,7 @@ export default async function CertificatePage({
           year={previewYear}
           networkLabel="Polygon Amoy Network"
         />
-      </div>
+      </PageContainer>
     );
   }
 
@@ -283,29 +305,26 @@ export default async function CertificatePage({
 
   const blockchainStatus = data.certificate.blockchainStatus ?? "PENDING";
   const verifyAtUrl = verificationPortalUrl();
-  const certDisplayId = formatCertId(
-    data.certificate.id,
-    data.certificate.issuedOn
-  );
-  const explorerBase =
-    process.env.NEXT_PUBLIC_BLOCK_EXPLORER ?? "https://amoy.polygonscan.com";
-  const txUrl = data.certificate.txHash
-    ? `${explorerBase}/tx/${data.certificate.txHash}`
-    : null;
+  const certDisplayId = formatCertId(data.certificate.id, data.certificate.issuedOn);
+  const explorerBase = process.env.NEXT_PUBLIC_BLOCK_EXPLORER ?? "https://amoy.polygonscan.com";
+  const txUrl = data.certificate.txHash ? `${explorerBase}/tx/${data.certificate.txHash}` : null;
 
   const networkLabel = networkDisplayName(data.certificate.network);
 
   return (
-    <div
-      className={`min-h-dvh w-full bg-background p-4 md:p-8 ${cinzel.variable} ${greatVibes.variable} ${garamond.variable} ${montserrat.variable}`}
-    >
+    <PageContainer width="medium" className={certificateFonts}>
       {/* Screen-only chrome (hidden when printing) */}
-      <div className="mx-auto mb-6 flex max-w-[900px] items-center justify-between print:hidden">
-        <BackToCourseButton slug={slug} />
-        <div className="flex items-center gap-3">
-          <CertificatePrintButton />
-        </div>
-      </div>
+      <PageHeader
+        className="print:hidden"
+        title="Your certificate"
+        description={data.course.title}
+        actions={
+          <>
+            <BackToCourseButton slug={slug} />
+            <CertificatePrintButton />
+          </>
+        }
+      />
 
       <CertificateTemplate
         userName={data.certificate.recipientName || data.user.name || "Learner"}
@@ -325,9 +344,76 @@ export default async function CertificatePage({
         txHash={data.certificate.txHash}
       />
 
+      <p className="text-center text-sm text-muted-foreground sm:hidden print:hidden">
+        Tip: rotate your phone or use <span className="font-medium">Print / Save as PDF</span> for a
+        full-size copy.
+      </p>
+
+      <Card className="print:hidden">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck className="size-5 text-primary" aria-hidden="true" />
+            <h2 className="text-lg font-semibold">Verification details</h2>
+          </CardTitle>
+          <CardDescription>
+            Share these details so anyone can confirm your certificate is genuine.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
+            <div className="min-w-0">
+              <dt className="text-muted-foreground">Certificate ID</dt>
+              <dd className="font-mono break-all">{data.certificate.id}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Issued</dt>
+              <dd>
+                <time dateTime={data.certificate.issuedOn}>
+                  {issuedDate.toLocaleDateString(undefined, { dateStyle: "long" })}
+                </time>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Network</dt>
+              <dd>{networkLabel}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Status</dt>
+              <dd
+                className={cn(
+                  "inline-flex items-center gap-1.5 font-medium",
+                  blockchainStatus === "ISSUED" && "text-primary"
+                )}
+              >
+                {blockchainStatus === "ISSUED" && <CheckCircle2 className="size-4" aria-hidden="true" />}
+                {blockchainStatus === "ISSUED" ? "Recorded on-chain" : blockchainStatus}
+              </dd>
+            </div>
+          </dl>
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+            <Button variant="outline" size="lg" asChild>
+              <a href={verifyAtUrl} target="_blank" rel="noopener noreferrer">
+                Open verification portal
+                <ExternalLink aria-hidden="true" />
+                <span className="sr-only">(opens in a new tab)</span>
+              </a>
+            </Button>
+            {txUrl && (
+              <Button variant="ghost" size="lg" asChild>
+                <a href={txUrl} target="_blank" rel="noopener noreferrer">
+                  View transaction
+                  <ExternalLink aria-hidden="true" />
+                  <span className="sr-only">(opens in a new tab)</span>
+                </a>
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       <p className="hidden px-4 py-2 text-center text-[10px] text-gray-400 print:block">
         Printed from EDRIS LMS &middot; Verify at {verifyAtUrl}
       </p>
-    </div>
+    </PageContainer>
   );
 }

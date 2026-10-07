@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireAdmin } from "./require-admin";
 import { notFound } from "next/navigation";
 
+/** A lesson plus its chapter/course context for the admin lesson editor. */
 export async function adminGetLesson(id: string) {
   await requireAdmin();
 
@@ -18,6 +19,14 @@ export async function adminGetLesson(id: string) {
       id: true,
       position: true,
       transcriptionStatus: true,
+      Chapter: {
+        select: {
+          id: true,
+          title: true,
+          courseId: true,
+          Course: { select: { title: true } },
+        },
+      },
     },
   });
 

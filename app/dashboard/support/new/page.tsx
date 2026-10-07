@@ -1,21 +1,14 @@
+import type { Metadata } from "next";
 import { requireUser } from "@/app/data/user/require-user";
 import { prisma } from "@/lib/db";
 import { CreateTicketForm } from "@/components/support/CreateTicketForm";
-import { studentCategories } from "@/app/data/support/schemas";
+import { PageHeader } from "@/components/general/PageHeader";
+import { PageContainer } from "../../_components/PageContainer";
+import { studentCategoryOptions } from "../_components/student-categories";
 
-const studentCategoryOptions = studentCategories.map((c) => {
-  const labels: Record<string, string> = {
-    TechnicalIssue: "Technical Issue",
-    CourseRelated: "Course Related",
-    AccountIssue: "Account Issue",
-    PaymentBilling: "Payment & Billing",
-    AssignmentGrading: "Assignment & Grading",
-    CommunityForum: "Community & Forum",
-    FeatureRequest: "Feature Request",
-    Other: "Other",
-  };
-  return { value: c, label: labels[c] || c };
-});
+export const metadata: Metadata = {
+  title: "New Support Ticket",
+};
 
 export default async function StudentNewTicketPage() {
   const user = await requireUser();
@@ -36,13 +29,21 @@ export default async function StudentNewTicketPage() {
   }));
 
   return (
-    <div className="p-6">
+    <PageContainer width="narrow">
+      <PageHeader
+        backHref="/dashboard/support"
+        backLabel="Back to tickets"
+        title="New support ticket"
+        description="Describe your issue and we'll route it to the right person to help you."
+      />
       <CreateTicketForm
         role="student"
         backHref="/dashboard/support"
         courses={courses}
         categoryOptions={studentCategoryOptions}
+        showBackLink={false}
+        showHeader={false}
       />
-    </div>
+    </PageContainer>
   );
 }

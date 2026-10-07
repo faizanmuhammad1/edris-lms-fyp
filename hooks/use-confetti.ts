@@ -1,12 +1,15 @@
 "use client";
 
-import confetti from "canvas-confetti";
+import { useCallback } from "react";
 
 export const useConfetti = () => {
-  const triggerConfetti = () => {
+  // canvas-confetti is only loaded when a celebration actually fires.
+  const triggerConfetti = useCallback(async () => {
+    const { default: confetti } = await import("canvas-confetti");
     const count = 200;
     const defaults = {
       origin: { y: 0.7 },
+      disableForReducedMotion: true,
     };
 
     function fire(particleRatio: number, opts: Record<string, unknown>) {
@@ -39,7 +42,7 @@ export const useConfetti = () => {
       spread: 120,
       startVelocity: 45,
     });
-  };
+  }, []);
 
   return { triggerConfetti };
 };

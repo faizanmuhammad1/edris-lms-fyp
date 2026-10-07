@@ -1,101 +1,179 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { IconUsers, IconMessageCircle } from "@tabler/icons-react";
-import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
+import { CalendarDays, GraduationCap, LayoutDashboard, MessageSquare, Settings, Users } from "lucide-react";
 import Link from "next/link";
-import { MemberManagement } from "@/components/community/MemberManagement";
+import { StatCard, StatGrid } from "@/app/admin/_components/StatCard";
+import { formatNumber } from "@/app/admin/_lib/format";
 import { EditCommunityForm } from "@/app/admin/communities/[slug]/edit-community-form";
+import { MemberManagement } from "@/components/community/MemberManagement";
+import { PageHeader } from "@/components/general/PageHeader";
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+export type CommunityDashboardTab = "overview" | "members" | "settings";
 
 interface CommunityDashboardProps {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    community: any; // Type should be inferred ideally or imported
+    /** A community as returned by getCommunity(). */
+    community: {
+        id: string;
+        name: string;
+        slug: string;
+        description: string;
+        createdAt?: Date | string;
+        _count: { members: number; posts: number };
+        course?: { title: string; _count?: { enrollment: number } } | null;
+    };
     role?: "teacher" | "admin";
+    /** Tab shown first, e.g. from a `?tab=` link. */
+    defaultTab?: CommunityDashboardTab;
 }
 
-export function CommunityDashboard({ community, role = "teacher" }: CommunityDashboardProps) {
+/** Management view for one community: overview stats, member moderation and settings. */
+export function CommunityDashboard({ community, role = "teacher", defaultTab = "overview" }: CommunityDashboardProps) {
+    const basePath = role === "admin" ? "/admin/communities" : "/teacher/communities";
+    const forumHref = `${basePath}/${community.slug}/forum`;
+    const enrollmentCount = community.course?._count?.enrollment;
+
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">{community.name}</h1>
-                    <p className="text-muted-foreground">
-                        Manage your community settings and members
-                    </p>
-                </div>
-                {role === "teacher" && (
-                    <Button asChild>
-                        <Link href={`/teacher/communities/${community.slug}/forum`}>
-                            <IconMessageCircle className="mr-2 h-4 w-4" />
-                            Open Forum
-                        </Link>
-                    </Button>
-                )}
-                {role === "admin" && (
-                    <Button variant="outline" asChild>
-                        <Link href={`/admin/communities/${community.slug}/forum`}>
-                            <IconMessageCircle className="mr-2 h-4 w-4" />
-                            View Forum
-                        </Link>
-                    </Button>
-                )}
-            </div>
+            <PageHeader
+                title={<span className="[overflow-wrap:anywhere]">{community.name}</span>}
+                description="Manage this community's details, members and moderation."
+                backHref={basePath}
+                backLabel={role === "admin" ? "All communities" : "My communities"}
+                actions={
+                    <Link
+                        href={forumHref}
+                        className={buttonVariants({ variant: role === "teacher" ? "default" : "outline" })}
+                    >
+                        <MessageSquare className="size-4" aria-hidden="true" />
+                        {role === "teacher" ? "Open forum" : "View forum"}
+                    </Link>
+                }
+            />
 
-            <Tabs defaultValue="overview" className="space-y-4">
-                <TabsList>
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="members">Members</TabsTrigger>
-                    <TabsTrigger value="settings">Settings</TabsTrigger>
+            <Tabs key={defaultTab} defaultValue={defaultTab} className="gap-4">
+                <TabsList className="h-10 w-full sm:w-fit">
+                    <TabsTrigger value="overview" className="px-3">
+                        <LayoutDashboard aria-hidden="true" />
+                        Overview
+                    </TabsTrigger>
+                    <TabsTrigger value="members" className="px-3">
+                        <Users aria-hidden="true" />
+                        Members
+                    </TabsTrigger>
+                    <TabsTrigger value="settings" className="px-3">
+                        <Settings aria-hidden="true" />
+                        Settings
+                    </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="overview" className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Members</CardTitle>
-                                <IconUsers className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{community._count.members}</div>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Posts</CardTitle>
-                                <IconMessageCircle className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{community._count.posts}</div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </TabsContent>
+                <TabsContent value="overview" className="space-y-6">
+                    <h2 className="sr-only">Overview</h2>
+                    <StatGrid columns={3}>
+                        <StatCard
+                            label="Members"
+                            value={formatNumber(community._count.members)}
+                            icon={Users}
+                            description="People who joined this community"
+                        />
+                        <StatCard
+                            label="Posts"
+                            value={formatNumber(community._count.posts)}
+                            icon={MessageSquare}
+                            description="Discussions started in the forum"
+                        />
+                        {community.course ? (
+                            <StatCard
+                                label="Course enrollments"
+                                value={enrollmentCount === undefined ? "—" : formatNumber(enrollmentCount)}
+                                icon={GraduationCap}
+                                tone="info"
+                                description={
+                                    <span className="line-clamp-2 [overflow-wrap:anywhere]">
+                                        Students enrolled in {community.course.title}
+                                    </span>
+                                }
+                            />
+                        ) : (
+                            <StatCard
+                                label="Audience"
+                                value="Platform-wide"
+                                icon={GraduationCap}
+                                tone="neutral"
+                                description="Not linked to a course"
+                            />
+                        )}
+                    </StatGrid>
 
-                <TabsContent value="members" className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Member Management</CardTitle>
-                            <CardDescription>
-                                Manage members of your community. You can ban users who violate community guidelines.
-                            </CardDescription>
+                    <Card className="gap-4 shadow-xs">
+                        <CardHeader className="px-4 sm:px-6">
+                            <h2 className="text-base font-semibold leading-tight sm:text-lg">About</h2>
                         </CardHeader>
-                        <CardContent>
-                            <MemberManagement communityId={community.id} />
+                        <CardContent className="space-y-4 px-4 sm:px-6">
+                            <p className="whitespace-pre-line text-sm text-muted-foreground [overflow-wrap:anywhere]">
+                                {community.description}
+                            </p>
+                            <dl className="grid gap-3 border-t pt-4 text-sm sm:grid-cols-2">
+                                <div className="min-w-0 space-y-0.5">
+                                    <dt className="flex items-center gap-1.5 text-muted-foreground">
+                                        <GraduationCap className="size-4" aria-hidden="true" />
+                                        Linked course
+                                    </dt>
+                                    <dd className="font-medium [overflow-wrap:anywhere]">
+                                        {community.course?.title ?? "None (platform-wide)"}
+                                    </dd>
+                                </div>
+                                {community.createdAt && (
+                                    <div className="space-y-0.5">
+                                        <dt className="flex items-center gap-1.5 text-muted-foreground">
+                                            <CalendarDays className="size-4" aria-hidden="true" />
+                                            Created
+                                        </dt>
+                                        <dd className="font-medium">
+                                            {format(new Date(community.createdAt), "MMM d, yyyy")}
+                                        </dd>
+                                    </div>
+                                )}
+                            </dl>
                         </CardContent>
                     </Card>
                 </TabsContent>
 
-                <TabsContent value="settings" className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Community Settings</CardTitle>
+                <TabsContent value="members">
+                    <Card className="gap-5 shadow-xs">
+                        <CardHeader className="px-4 sm:px-6">
+                            <h2 className="text-base font-semibold leading-tight sm:text-lg">Member management</h2>
                             <CardDescription>
-                                Update your community details.
+                                Review members and moderate people who break the community guidelines.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <EditCommunityForm initialData={community} role={role} />
+                        <CardContent className="space-y-4 px-4 sm:px-6">
+                            <ul className="space-y-2 text-sm text-muted-foreground">
+                                <li>
+                                    <span className="font-medium text-foreground">Ban</span> removes someone from the
+                                    community and stops them rejoining. Their posts stay.
+                                </li>
+                                <li>
+                                    <span className="font-medium text-foreground">Remove</span> takes someone out of the
+                                    community and permanently deletes their posts and comments here.
+                                </li>
+                            </ul>
+                            <div className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+                                <p className="text-sm">
+                                    <span className="font-medium tabular-nums">
+                                        {formatNumber(community._count.members)}
+                                    </span>{" "}
+                                    {community._count.members === 1 ? "member" : "members"} in this community
+                                </p>
+                                <MemberManagement communityId={community.id} />
+                            </div>
                         </CardContent>
                     </Card>
+                </TabsContent>
+
+                <TabsContent value="settings">
+                    <EditCommunityForm initialData={community} role={role} />
                 </TabsContent>
             </Tabs>
         </div>

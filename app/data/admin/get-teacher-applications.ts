@@ -1,6 +1,10 @@
+import "server-only";
+
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "./require-admin";
 
 export async function getTeacherApplications() {
+    await requireAdmin();
     const applications = await prisma.user.findMany({
         where: {
             OR: [

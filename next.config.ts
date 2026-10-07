@@ -26,6 +26,10 @@ const nextConfig = {
       },
     ];
   },
+  compiler: {
+    // Strip leftover debug logging from production bundles; keep real diagnostics.
+    removeConsole: process.env.NODE_ENV === "production" ? { exclude: ["error", "warn"] } : false,
+  },
   // output: "standalone",
   experimental: {
     serverActions: {
@@ -44,6 +48,7 @@ const nextConfig = {
   },
 
   images: {
+    formats: ["image/avif", "image/webp"],
     // DiceBear avatars are SVGs; sandbox them so an SVG can never run script.
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",

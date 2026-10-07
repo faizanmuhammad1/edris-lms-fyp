@@ -2,8 +2,10 @@ import "server-only";
 import { requireUser } from "../user/require-user";
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 
-export async function getLessonContent(lessonId: string) {
+// Cached per request so generateMetadata and the page share one query.
+export const getLessonContent = cache(async (lessonId: string) => {
   const session = await requireUser();
 
   const lesson = await prisma.lesson.findUnique({
@@ -177,6 +179,6 @@ export async function getLessonContent(lessonId: string) {
     return notFound();
   }
   return lesson;
-}
+});
 
 export type LessonContentType = Awaited<ReturnType<typeof getLessonContent>>;

@@ -3,6 +3,9 @@
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
+import { after } from "next/server";
+import { deleteFilesFromS3 } from "@/lib/s3-helper";
+import { deleteMuxAssets } from "@/lib/mux-trigger";
 import { z } from "zod";
 import { requireAdmin } from "@/app/data/admin/require-admin";
 
@@ -81,14 +84,99 @@ export async function unbanUser(userId: string): Promise<UserActionResult> {
     });
 }
 
+/** Storage keys and Mux assets owned by a user's courses and submissions (removed by the cascade). */
+async function collectUserMedia(userId: string) {
+    const [courses, submissions] = await Promise.all([
+        prisma.course.findMany({
+            where: { userId },
+            select: {
+                fileKey: true,
+                chapter: {
+                    select: {
+                        lessons: {
+                            select: {
+                                videoKey: true,
+                                thumbnailKey: true,
+                                pdfKey: true,
+                                muxAssetId: true,
+                                attachments: { select: { fileKey: true } },
+                            },
+                        },
+                    },
+                },
+            },
+        }),
+        prisma.assignmentSubmission.findMany({
+            where: { userId, fileKey: { not: null } },
+            select: { fileKey: true },
+        }),
+    ]);
+
+    const keys = new Set<string>();
+    const muxAssetIds = new Set<string>();
+    for (const course of courses) {
+        if (course.fileKey) keys.add(course.fileKey);
+        for (const lesson of course.chapter.flatMap((c) => c.lessons)) {
+            for (const key of [lesson.videoKey, lesson.thumbnailKey, lesson.pdfKey]) {
+                if (key) keys.add(key);
+            }
+            lesson.attachments.forEach((a) => keys.add(a.fileKey));
+            if (lesson.muxAssetId) muxAssetIds.add(lesson.muxAssetId);
+        }
+    }
+    submissions.forEach((s) => s.fileKey && keys.add(s.fileKey));
+    return { keys: [...keys], muxAssetIds: [...muxAssetIds] };
+}
+
+/** Deletes files no remaining record references (keys can be shared, e.g. copied lessons). */
+async function cleanupOrphanedMedia(keys: string[], muxAssetIds: string[]) {
+    const stillUsed = new Set<string>();
+    if (keys.length > 0) {
+        const [courses, lessons, attachments, submissions] = await Promise.all([
+            prisma.course.findMany({ where: { fileKey: { in: keys } }, select: { fileKey: true } }),
+            prisma.lesson.findMany({
+                where: {
+                    OR: [{ videoKey: { in: keys } }, { thumbnailKey: { in: keys } }, { pdfKey: { in: keys } }],
+                },
+                select: { videoKey: true, thumbnailKey: true, pdfKey: true },
+            }),
+            prisma.lessonAttachment.findMany({ where: { fileKey: { in: keys } }, select: { fileKey: true } }),
+            prisma.assignmentSubmission.findMany({ where: { fileKey: { in: keys } }, select: { fileKey: true } }),
+        ]);
+        courses.forEach((c) => stillUsed.add(c.fileKey));
+        lessons.forEach((l) => [l.videoKey, l.thumbnailKey, l.pdfKey].forEach((k) => k && stillUsed.add(k)));
+        attachments.forEach((a) => stillUsed.add(a.fileKey));
+        submissions.forEach((s) => s.fileKey && stillUsed.add(s.fileKey));
+    }
+    const orphanKeys = keys.filter((key) => !stillUsed.has(key));
+
+    const usedAssets = muxAssetIds.length
+        ? await prisma.lesson.findMany({ where: { muxAssetId: { in: muxAssetIds } }, select: { muxAssetId: true } })
+        : [];
+    const usedAssetIds = new Set(usedAssets.map((l) => l.muxAssetId));
+    const orphanAssets = muxAssetIds.filter((id) => !usedAssetIds.has(id));
+
+    if (orphanKeys.length > 0) await deleteFilesFromS3(orphanKeys);
+    if (orphanAssets.length > 0) await deleteMuxAssets(orphanAssets);
+}
+
 export async function deleteUser(userId: string): Promise<UserActionResult> {
     return runUserAction("User deleted", async () => {
         userIdSchema.parse(userId);
         await assertNotSelf(userId, "delete");
 
+        // The cascade removes the user's courses and submissions; collect their files first.
+        const media = await collectUserMedia(userId);
+
         await prisma.user.delete({
             where: { id: userId },
         });
+
+        after(() =>
+            cleanupOrphanedMedia(media.keys, media.muxAssetIds).catch((err) =>
+                console.error("Failed to clean up deleted user's media:", err)
+            )
+        );
         revalidatePath("/admin/users");
     });
 }

@@ -9,6 +9,7 @@ import { stripe } from "@/lib/stripe";
 import { ApiResponse } from "@/lib/types";
 import { courseSchema, CourseSchemaType } from "@/lib/zodSchemas";
 import { request } from "@arcjet/next";
+import { revalidatePath } from "next/cache";
 
 const aj = arcjet.withRule(
   fixedWindow({
@@ -20,7 +21,7 @@ const aj = arcjet.withRule(
 
 export async function CreateTeacherCourse(
   values: CourseSchemaType
-): Promise<ApiResponse> {
+): Promise<ApiResponse<{ id: string }>> {
   const session = await requireTeacher();
 
   try {
@@ -33,12 +34,12 @@ export async function CreateTeacherCourse(
       if (decision.reason.isRateLimit()) {
         return {
           status: "error",
-          message: "You have been blocked due to rate limiting",
+          message: "You're creating courses too quickly. Please wait a minute and try again.",
         };
       } else {
         return {
           status: "error",
-          message: "You are a bot! if this is a mistake contact our support",
+          message: "Your request was blocked. If this keeps happening, please contact support.",
         };
       }
     }
@@ -48,7 +49,7 @@ export async function CreateTeacherCourse(
     if (!validation.success) {
       return {
         status: "error",
-        message: "Invalid Form Data",
+        message: "Some fields are invalid. Please check the form and try again.",
       };
     }
 
@@ -74,24 +75,31 @@ export async function CreateTeacherCourse(
       },
     });
 
+    let courseId: string;
     try {
-      await prisma.course.create({
+      const created = await prisma.course.create({
         data: {
           ...validation.data,
           normalizedName: normalizeCourseName(validation.data.title),
           userId: session.user.id,
           stripePriceId: data.default_price as string,
         },
+        select: { id: true },
       });
+      courseId = created.id;
     } catch (dbError) {
       // Don't leave an orphaned, purchasable Stripe product behind
       await stripe.products.update(data.id, { active: false }).catch(() => {});
       throw dbError;
     }
 
+    revalidatePath("/teacher/courses");
+    revalidatePath("/teacher");
+
     return {
       status: "success",
-      message: "Course created succesfully",
+      message: "Course created",
+      data: { id: courseId },
     };
   } catch (err) {
     const e = err as { code?: string; meta?: { target?: unknown } } | null;
@@ -101,9 +109,10 @@ export async function CreateTeacherCourse(
         message: "This slug is already used by another course. Please choose a different slug.",
       };
     }
+    console.error("[CreateTeacherCourse] Error creating course:", err);
     return {
       status: "error",
-      message: "Failed to create course",
+      message: "We couldn't create the course. Please try again.",
     };
   }
 }

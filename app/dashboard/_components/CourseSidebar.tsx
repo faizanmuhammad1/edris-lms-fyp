@@ -2,11 +2,7 @@
 
 import { CourseSidebarDataType } from "@/app/data/course/get-course-sidebar-data";
 import { Button } from "@/components/ui/button";
-import {
-  CollapsibleContent,
-  Collapsible,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { CollapsibleContent, Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
 import { Award, ChevronDown, Play } from "lucide-react";
 import { LessonItem } from "./LessonItem";
@@ -16,29 +12,41 @@ import { useCourseProgress, isLessonFullyComplete } from "@/hooks/use-course-pro
 
 interface iAppProps {
   course: CourseSidebarDataType["course"];
+  /** Called after a lesson or link is followed (closes the mobile drawer). */
+  onNavigate?: () => void;
 }
 
-export function CourseSidebar({ course }: iAppProps) {
+export function CourseSidebar({ course, onNavigate }: iAppProps) {
   const pathname = usePathname();
   const currentLessonId = pathname.split("/").pop();
 
-  const { completedLessons, totalLessons, progressPercentage } =
-    useCourseProgress({ courseData: course });
+  const { completedLessons, totalLessons, progressPercentage } = useCourseProgress({ courseData: course });
+  const allDone = totalLessons > 0 && completedLessons === totalLessons;
+
+  // Expand the chapter containing the current lesson (or the first chapter on the overview page).
+  const activeChapterId =
+    course.chapter.find((chapter) => chapter.lessons.some((lesson) => lesson.id === currentLessonId))?.id ??
+    course.chapter[0]?.id;
+
   return (
-    <div className="flex flex-col h-full">
-      <div className="pb-4 pr-4 border-b border-border">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+    <div className="flex flex-col">
+      <div className="border-b border-border pb-4">
+        <div className="mb-3 flex items-center gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10" aria-hidden="true">
             <Play className="size-5 text-primary" />
           </div>
 
-          <div className="flex-1 min-w-0">
-            <h1 className="font-semibold text-base leading-tight truncate">
+          <div className="min-w-0 flex-1">
+            {/* Not a heading: the page's h1 is the lesson or course title. */}
+            <Link
+              href={`/dashboard/${course.slug}`}
+              onClick={onNavigate}
+              className="line-clamp-2 py-0.5 text-base leading-tight font-semibold break-words hover:text-primary hover:underline"
+              title={course.title}
+            >
               {course.title}
-            </h1>
-            <p className="text-xs text-muted-foreground mt-1 truncate">
-              {course.category}
-            </p>
+            </Link>
+            <p className="mt-1 truncate text-xs text-muted-foreground">{course.category}</p>
           </div>
         </div>
 
@@ -49,74 +57,77 @@ export function CourseSidebar({ course }: iAppProps) {
               {completedLessons}/{totalLessons} lessons
             </span>
           </div>
-          <Progress value={progressPercentage} className="h-1.5" />
-          <p className="text-xs text-muted-foreground">
-            {progressPercentage}% complete
-          </p>
-          {totalLessons > 0 &&
-            completedLessons === totalLessons &&
-            progressPercentage === 100 && (
-              <Button
-                asChild
-                className="w-full mt-2"
-                variant="default"
-              >
-                <Link href={`/dashboard/certificate/${course.slug}`}>
-                  <Award className="size-4 mr-2 shrink-0" />
-                  View certificate
-                </Link>
-              </Button>
-            )}
-          {totalLessons > 0 && completedLessons < totalLessons && (
-            <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
-              Complete all lessons to unlock your certificate.
-            </p>
+          <Progress value={progressPercentage} className="h-1.5" aria-label="Course progress" />
+          <p className="text-xs text-muted-foreground">{progressPercentage}% complete</p>
+          {allDone ? (
+            <Button asChild className="mt-2 w-full" size="lg">
+              <Link href={`/dashboard/certificate/${course.slug}`} onClick={onNavigate}>
+                <Award aria-hidden="true" />
+                View certificate
+              </Link>
+            </Button>
+          ) : (
+            totalLessons > 0 && (
+              <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                Complete all lessons to unlock your certificate.
+              </p>
+            )
           )}
         </div>
       </div>
 
-      <div className="py-4 pr-4 space-y-3">
-        {course.chapter.map((chapter, index) => (
-          <Collapsible key={chapter.id} defaultOpen={index === 0}>
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full p-3 h-auto flex items-center gap-2 bg-card hover:bg-accent/50 transition-colors shadow-sm border-border/60"
-              >
-                <div className="shrink-0">
-                  <ChevronDown className="size-4 text-primary" />
-                </div>
-                <div className="flex-1 text-left min-w-0">
-                  <p className="font-semibold text-sm truncate text-foreground">
-                    {chapter.position}: {chapter.title}
-                  </p>
-
-                  <p className="text-[10px] text-muted-foreground font-medium truncate">
-                    {chapter.lessons.length} lessons
-                  </p>
-                </div>
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="mt-3 pl-6 border-l-2 space-y-3">
-              {chapter.lessons.map((lesson) => {
-                const fullyDone = isLessonFullyComplete(lesson);
-                const markedComplete = lesson.lessonProgress.some(
-                  (p) => p.lessonId === lesson.id && p.completed
-                );
-                return (
-                  <LessonItem
-                    key={lesson.id}
-                    lesson={lesson}
-                    slug={course.slug}
-                    isActive={currentLessonId === lesson.id}
-                    completed={fullyDone}
-                    partiallyComplete={markedComplete && !fullyDone}
+      <div className="space-y-3 py-4">
+        {course.chapter.map((chapter) => {
+          const chapterDone = chapter.lessons.filter((lesson) => isLessonFullyComplete(lesson)).length;
+          return (
+            <Collapsible key={chapter.id} defaultOpen={chapter.id === activeChapterId}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="group/chapter h-auto min-h-11 w-full justify-start gap-2 bg-card p-3 whitespace-normal shadow-none hover:scale-100 hover:bg-accent/50"
+                >
+                  <ChevronDown
+                    className="size-4 shrink-0 text-primary transition-transform group-data-[state=closed]/chapter:-rotate-90"
+                    aria-hidden="true"
                   />
-                );
-              })}
-            </CollapsibleContent>
-          </Collapsible>
-        ))}
+                  <span className="min-w-0 flex-1 text-left">
+                    <span className="block text-sm font-semibold break-words text-foreground">
+                      {chapter.position}: {chapter.title}
+                    </span>
+                    <span className="block text-xs font-normal text-muted-foreground">
+                      {chapterDone}/{chapter.lessons.length} lessons completed
+                    </span>
+                  </span>
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <ul className="mt-3 space-y-2 border-l-2 pl-3">
+                  {chapter.lessons.map((lesson) => {
+                    const fullyDone = isLessonFullyComplete(lesson);
+                    const markedComplete = lesson.lessonProgress.some(
+                      (p) => p.lessonId === lesson.id && p.completed
+                    );
+                    return (
+                      <li key={lesson.id}>
+                        <LessonItem
+                          lesson={lesson}
+                          slug={course.slug}
+                          isActive={currentLessonId === lesson.id}
+                          completed={fullyDone}
+                          partiallyComplete={markedComplete && !fullyDone}
+                          onNavigate={onNavigate}
+                        />
+                      </li>
+                    );
+                  })}
+                </ul>
+              </CollapsibleContent>
+            </Collapsible>
+          );
+        })}
+        {course.chapter.length === 0 && (
+          <p className="text-sm text-muted-foreground">This course doesn&apos;t have any lessons yet.</p>
+        )}
       </div>
     </div>
   );

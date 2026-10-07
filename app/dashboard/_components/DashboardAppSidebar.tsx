@@ -2,9 +2,7 @@
 
 import * as React from "react";
 import {
-  IconCamera,
   IconDashboard,
-  IconFileAi,
   IconFileDescription,
   IconSettings,
   IconCertificate,
@@ -28,90 +26,41 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 
-const data = {
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: IconDashboard,
-    },
-    {
-      title: "My Courses",
-      url: "/dashboard/courses",
-      icon: IconFileDescription,
-    },
-    {
-      title: "Certificates",
-      url: "/dashboard/certificates",
-      icon: IconCertificate,
-    },
-    {
-      title: "Community Forum",
-      url: "/dashboard/forum",
-      icon: IconMessageCircle,
-    },
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: IconCamera,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: IconFileDescription,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: IconFileAi,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "/dashboard/settings",
-      icon: IconSettings,
-    },
-    {
-      title: "Support & Help",
-      url: "/dashboard/support",
-      icon: IconHeadset,
-    },
-  ],
-};
+const navMain = [
+  {
+    title: "Dashboard",
+    url: "/dashboard",
+    icon: IconDashboard,
+  },
+  {
+    title: "My Courses",
+    url: "/dashboard/courses",
+    icon: IconFileDescription,
+  },
+  {
+    title: "Certificates",
+    url: "/dashboard/certificates",
+    icon: IconCertificate,
+  },
+  {
+    title: "Community Forum",
+    url: "/dashboard/forum",
+    icon: IconMessageCircle,
+  },
+];
+
+const navSecondary = [
+  {
+    title: "Settings",
+    url: "/dashboard/settings",
+    icon: IconSettings,
+  },
+  {
+    title: "Support & Help",
+    url: "/dashboard/support",
+    icon: IconHeadset,
+  },
+];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
@@ -119,12 +68,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
-            >
+            <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
               <Link href="/">
-                <Image src={Logo} alt="Logo" className="size-8" />
+                <Image src={Logo} alt="" className="size-8" />
                 <span className="text-lg font-semibold">Edris LMS</span>
               </Link>
             </SidebarMenuButton>
@@ -132,9 +78,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={navMain} />
 
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

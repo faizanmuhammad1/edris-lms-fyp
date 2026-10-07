@@ -3,6 +3,8 @@
 import { Quiz } from "./Quiz";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { toast } from "sonner";
+import { Lock, Maximize, Play } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface QuizWindowProps {
   quizData: {
@@ -41,6 +43,34 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
   // Track if the quiz was started (entered fullscreen mode at least once)
   const quizStartedRef = useRef(false);
 
+  // Fullscreen isn't available everywhere (e.g. iPhone Safari, some in-app browsers).
+  // In that case the student may continue without it; all other monitoring stays active.
+  const [fullscreenSupported, setFullscreenSupported] = useState(true);
+  const [fullscreenFailed, setFullscreenFailed] = useState(false);
+  const [fallbackMode, setFallbackMode] = useState(false);
+  const fallbackModeRef = useRef(false);
+  const [hasStarted, setHasStarted] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const startWithoutFullscreen = useCallback(() => {
+    fallbackModeRef.current = true;
+    quizStartedRef.current = true;
+    setFallbackMode(true);
+    setHasStarted(true);
+  }, []);
+
+  const requestExamFullscreen = useCallback(() => {
+    const request = document.documentElement.requestFullscreen?.bind(document.documentElement);
+    if (!request) {
+      setFullscreenSupported(false);
+      return;
+    }
+    request().catch(() => {
+      setFullscreenFailed(true);
+      toast.error("Fullscreen isn't available in this browser. You can continue without it.");
+    });
+  }, []);
+
   // Warning System
   const warningsRef = useRef(0);
   const MAX_WARNINGS = 3;
@@ -78,7 +108,7 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
     } else {
       // No submit function, just close
       if (window.opener && !window.opener.closed) {
-        window.opener.postMessage({ type: "quizCancelled" }, "*");
+        window.opener.postMessage({ type: "quizCancelled" }, window.location.origin);
       }
       window.close();
     }
@@ -94,18 +124,20 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
       toast.error("Maximum warnings exceeded. Quiz auto-submitted.");
       handleExitQuiz();
     } else {
-      toast.warning(`Warning ${currentWarnings}/${MAX_WARNINGS}: ${type} detected. maintain focus!`);
+      toast.warning(`Warning ${currentWarnings} of ${MAX_WARNINGS}: ${type} detected. Stay on the quiz screen.`);
     }
   }, [handleExitQuiz]);
 
   interface SecureDOM {
     addEventListener: (
       type: string,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- listeners for many event types go through the sandboxed EventTarget methods
       callback: any,
       options?: boolean | AddEventListenerOptions
     ) => void;
     removeEventListener: (
       type: string,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- listeners for many event types go through the sandboxed EventTarget methods
       callback: any,
       options?: boolean | EventListenerOptions
     ) => void;
@@ -121,7 +153,9 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
   useEffect(() => {
     // 1. Initialize secureDOM from clean iframe sandbox to prevent script/extension overrides
     if (!secureDOMRef.current) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see SecureDOM
       let addEventListener = EventTarget.prototype.addEventListener as any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see SecureDOM
       let removeEventListener = EventTarget.prototype.removeEventListener as any;
       let hiddenGetter = () => document.hidden;
       let visibilityStateGetter = () => document.visibilityState;
@@ -164,8 +198,8 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
           }
         }
         document.body.removeChild(iframe);
-      } catch (err) {
-        console.warn("Secure DOM extraction failed, falling back to standard DOM", err);
+      } catch {
+        // Secure DOM extraction failed: fall back to the standard DOM APIs.
       }
 
       secureDOMRef.current = {
@@ -183,6 +217,10 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
     if (typeof window !== "undefined") {
       setTimeout(() => {
         setIsFullscreen(!!secureDOM.fullscreenElementGetter());
+        setFullscreenSupported(
+          typeof document.documentElement.requestFullscreen === "function" &&
+            document.fullscreenEnabled !== false
+        );
       }, 0);
     }
     if (typeof window !== "undefined" && window.self !== window.top) {
@@ -394,6 +432,7 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
 
       if (isCurrentlyFullscreen && !quizStartedRef.current) {
         quizStartedRef.current = true;
+        setHasStarted(true);
       }
 
       if (
@@ -473,6 +512,8 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
 
     const mutationObserver = new MutationObserver(() => {
       if (quizSubmittedRef.current || !quizStartedRef.current) return;
+      // No overlay exists when the student continues without fullscreen.
+      if (fallbackModeRef.current) return;
       const isCurrentlyFullscreen = !!secureDOM.fullscreenElementGetter();
       if (!isCurrentlyFullscreen && !isExitingRef.current && !quizSubmittedRef.current) {
         const overlay = document.getElementById("secure-overlay");
@@ -535,20 +576,52 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
   const handleQuizComplete = () => {
     quizSubmittedRef.current = true;
     setIsSubmitted(true);
-    setTimeout(() => {
-      if (window.opener && !window.opener.closed) {
-        window.opener.postMessage({ type: "quizCompleted" }, "*");
-      }
-      window.close();
-    }, 3000);
+
+    const opener = window.opener && !window.opener.closed ? (window.opener as Window) : null;
+    if (opener) {
+      // Opened as an exam window: notify the lesson page and close shortly after the result shows.
+      closeTimerRef.current = setTimeout(() => {
+        opener.postMessage({ type: "quizCompleted" }, window.location.origin);
+        window.close();
+      }, 3000);
+    } else if (document.fullscreenElement) {
+      // Opened in the same tab (popup blocked): stay on the results and leave fullscreen.
+      document.exitFullscreen?.().catch(() => {});
+    }
+  };
+
+  // "Retake quiz" in the same tab starts a fresh, fully monitored attempt.
+  const handleRetake = () => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    quizSubmittedRef.current = false;
+    isExitingRef.current = false;
+    warningsRef.current = 0;
+    setIsExiting(false);
+    setIsSubmitted(false);
   };
 
   const handleAnswerChange = (_hasAnswers: boolean, answers: Record<string, string>) => {
     answersRef.current = answers;
   };
 
+  const leaveBeforeStart = () => {
+    if (quizStartedRef.current) return;
+    const opener = window.opener && !window.opener.closed ? (window.opener as Window) : null;
+    if (opener) {
+      opener.postMessage({ type: "quizCancelled" }, window.location.origin);
+      window.close();
+    } else {
+      // Opened in the same tab (pop-up blocked): go back to the lesson.
+      window.location.assign(`/dashboard/${quizData.courseSlug}/${lessonId}`);
+    }
+  };
+
+  const showOverlay = !isFullscreen && !isExiting && !isSubmitted && !fallbackMode;
+  const canUseFullscreen = fullscreenSupported && !fullscreenFailed;
+
   return (
-    <div className="fixed inset-0 bg-background overflow-auto">
+    // z-40: above the dashboard chrome (sidebar is z-10), below dialogs and toasts (z-50+).
+    <div className="fixed inset-0 z-40 overflow-auto overscroll-contain bg-background">
       <style dangerouslySetInnerHTML={{
         __html: `
           body {
@@ -565,39 +638,62 @@ export function QuizWindow({ quizData, lessonId }: QuizWindowProps) {
           }
         `
       }} />
-      {!isFullscreen && !isExiting && !isSubmitted && (
-        <div id="secure-overlay" className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background/85 backdrop-blur-md p-6 transition-all duration-300 animate-in fade-in">
-          <div className="max-w-md w-full bg-card border border-border shadow-2xl rounded-2xl p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-2">
-              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
+      {showOverlay && (
+        <div
+          id="secure-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="secure-overlay-title"
+          aria-describedby="secure-overlay-description"
+          className="fixed inset-0 z-[9999] flex flex-col items-center overflow-y-auto bg-background/95 p-4 sm:p-6"
+        >
+          <div className="my-auto w-full max-w-md space-y-5 rounded-2xl border bg-card p-6 text-center shadow-lg sm:p-8">
+            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Lock className="size-7" aria-hidden="true" />
             </div>
-            <h2 className="text-2xl font-bold tracking-tight">Secure Exam Mode Required</h2>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              This quiz is protected by cheating prevention mechanisms. To start or resume the quiz, you must view it in secure fullscreen mode.
-            </p>
-            <button
-              onClick={() => {
-                document.documentElement.requestFullscreen?.().catch((err) => {
-                  toast.error("Failed to enter fullscreen mode. Please check browser permissions.");
-                  console.error(err);
-                });
-              }}
-              className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-sm font-semibold rounded-xl text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all active:scale-[0.98]"
-            >
-              Enter Fullscreen Mode
-            </button>
+            <h2 id="secure-overlay-title" className="text-xl font-bold tracking-tight sm:text-2xl">
+              {hasStarted ? "Return to exam mode" : "Secure exam mode"}
+            </h2>
+            <div id="secure-overlay-description" className="space-y-2 text-sm leading-relaxed text-muted-foreground">
+              <p>
+                This quiz is monitored. Switching tabs or apps, leaving fullscreen, copying or pasting are
+                recorded, and after {MAX_WARNINGS} warnings the quiz is submitted automatically.
+              </p>
+              {!canUseFullscreen && (
+                <p className="font-medium text-foreground">
+                  Fullscreen isn&apos;t available in this browser, so you can take the quiz without it. Stay on
+                  this screen until you submit.
+                </p>
+              )}
+            </div>
+            {canUseFullscreen ? (
+              <Button size="lg" className="w-full" onClick={requestExamFullscreen}>
+                <Maximize aria-hidden="true" />
+                {hasStarted ? "Return to fullscreen" : "Enter fullscreen and start"}
+              </Button>
+            ) : (
+              <Button size="lg" className="w-full" onClick={startWithoutFullscreen}>
+                <Play aria-hidden="true" />
+                Start quiz
+              </Button>
+            )}
+            {!hasStarted && (
+              // Leaving before the attempt starts records nothing.
+              <Button size="lg" variant="ghost" className="w-full" onClick={leaveBeforeStart}>
+                Not now
+              </Button>
+            )}
           </div>
         </div>
       )}
-      <div className="min-h-screen p-4">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-dvh px-4">
+        <div className="mx-auto max-w-4xl">
           <Quiz
             quiz={quizData.quiz}
             lessonId={lessonId}
             courseSlug={quizData.courseSlug}
             onComplete={handleQuizComplete}
+            onRetake={handleRetake}
             onAnswerChange={handleAnswerChange}
             onSubmitRef={(submitFn) => {
               submitQuizRef.current = submitFn;

@@ -1,4 +1,4 @@
-// server-only
+import "server-only";
 
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "./require-admin";
@@ -27,17 +27,7 @@ export async function adminGetDashboardStats() {
       prisma.lesson.count(),
     ]);
 
-  // If the platform is empty, return a rich mock snapshot so the admin
-  // dashboard can demonstrate the UI in demo mode.
-  if (totalSignups + totalCustomers + totalCourses + totalLessons === 0) {
-    return {
-      totalSignups: 1289,
-      totalCustomers: 347,
-      totalCourses: 18,
-      totalLessons: 142,
-    } as const;
-  }
-
+  // Real counts only: an empty platform must show zeros, never demo numbers.
   return {
     totalSignups,
     totalCustomers,

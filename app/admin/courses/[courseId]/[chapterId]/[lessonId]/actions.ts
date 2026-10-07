@@ -12,6 +12,7 @@ import { deleteFilesFromS3 } from "@/lib/s3-helper";
 import { ApiResponse } from "@/lib/types";
 import { lessonSchema, LessonSchemaType } from "@/lib/zodSchemas";
 import { revalidatePath } from "next/cache";
+import { unstable_rethrow } from "next/navigation";
 import { after } from "next/server";
 
 export async function updateLesson(
@@ -26,7 +27,7 @@ export async function updateLesson(
     if (!result.success) {
       return {
         status: "error",
-        message: "Invalid data",
+        message: result.error.issues[0]?.message ?? "Some fields are invalid. Please check the form.",
       };
     }
 
@@ -44,7 +45,7 @@ export async function updateLesson(
     if (!lesson) {
       return {
         status: "error",
-        message: "Lesson not found",
+        message: "This lesson no longer exists.",
       };
     }
 
@@ -98,35 +99,21 @@ export async function updateLesson(
 
     revalidatePath(`/admin/courses/${lesson.Chapter.courseId}/edit`);
     revalidatePath(`/admin/courses/${lesson.Chapter.courseId}/${lesson.chapterId}/${lessonId}`);
+    revalidatePath(`/teacher/courses/${lesson.Chapter.courseId}/edit`);
 
     return {
       status: "success",
-      message: "Course updated successfully",
+      message: videoChanged && nextVideoKey
+        ? "Lesson saved. The new video is being processed."
+        : "Lesson saved",
     };
-  } catch {
+  } catch (err) {
+    // Let requireAdmin()'s redirect and other framework errors propagate.
+    unstable_rethrow(err);
+    console.error("[admin updateLesson] Failed to update lesson:", err);
     return {
       status: "error",
-      message: "Failed to update course",
-    };
-  }
-}
-
-export async function regenerateSummary(lessonId: string) {
-  await requireAdmin();
-
-  try {
-    const { generateLessonSummary } = await import("@/lib/generate-summary");
-    await generateLessonSummary(lessonId);
-
-    return {
-      status: "success",
-      message: "Summary generated successfully",
-    };
-  } catch (error) {
-    console.error("Failed to generate summary:", error);
-    return {
-      status: "error",
-      message: "Failed to generate summary",
+      message: "Couldn't save the lesson. Please try again.",
     };
   }
 }

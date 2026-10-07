@@ -2,46 +2,26 @@ import { ReactNode, Suspense } from "react";
 import { Navbar } from "./_components/Navbar";
 import { Footer } from "./_components/Footer";
 import { SubscriptionParamsToasts } from "./_components/SubscriptionParamsToasts";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { prisma } from "@/lib/db";
-import { redirect } from "next/navigation";
 
-async function redirectByRole() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (session) {
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { role: true, teacherStatus: true },
-    });
-
-    if (user?.role === "admin") {
-      redirect("/admin");
-    }
-
-    if (user?.role === "teacher" || user?.teacherStatus === "Approved") {
-      redirect("/teacher");
-    }
-  }
-}
-
-export default async function LayoutPublic({ children }: { children: ReactNode }) {
-  await redirectByRole();
-
+// Signed-in teachers and admins may browse the public site (e.g. to preview their course
+// page); only the home page sends signed-in users to their own dashboard.
+export default function LayoutPublic({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col overflow-x-clip">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:shadow-lg focus:ring-[3px] focus:ring-ring/50"
+      >
+        Skip to main content
+      </a>
       <Suspense fallback={null}>
         <SubscriptionParamsToasts />
       </Suspense>
       <Navbar />
-      <main className="flex-1">
+      <main id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">
         {children}
       </main>
       <Footer />
     </div>
   );
 }
-

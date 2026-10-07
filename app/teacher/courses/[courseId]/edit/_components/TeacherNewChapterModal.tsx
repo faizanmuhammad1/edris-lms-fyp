@@ -1,6 +1,9 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -16,6 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -25,8 +29,15 @@ import { Input } from "@/components/ui/input";
 import { tryCatch } from "@/hooks/try-catch";
 import { createTeacherChapter } from "../actions";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-export function TeacherNewChapterModal({ courseId }: { courseId: string }) {
+export function TeacherNewChapterModal({
+  courseId,
+  triggerClassName,
+}: {
+  courseId: string;
+  triggerClassName?: string;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -38,12 +49,14 @@ export function TeacherNewChapterModal({ courseId }: { courseId: string }) {
     },
   });
 
-  async function onSubmit(values: ChapterSchemaType) {
+  function onSubmit(values: ChapterSchemaType) {
     startTransition(async () => {
       const { data: result, error } = await tryCatch(createTeacherChapter(values));
 
-      if (error) {
-        toast.error("An unexpected error occurred. Please try again.");
+      if (error || !result) {
+        const message = "We couldn't create the chapter. Please try again.";
+        form.setError("root", { message });
+        toast.error(message);
         return;
       }
 
@@ -51,58 +64,77 @@ export function TeacherNewChapterModal({ courseId }: { courseId: string }) {
         toast.success(result.message);
         form.reset();
         setIsOpen(false);
-      } else if (result.status === "error") {
+      } else {
+        form.setError("root", { message: result.message });
         toast.error(result.message);
       }
     });
   }
 
   function handleOpenChange(open: boolean) {
+    // Keep the dialog open while the chapter is being saved
+    if (pending) return;
     if (!open) {
       form.reset();
     }
-
     setIsOpen(open);
   }
+
+  const rootError = form.formState.errors.root?.message;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Plus className="size-4" /> New Chapter
+        <Button type="button" className={cn("h-10 gap-2 sm:h-9", triggerClassName)}>
+          <Plus className="size-4" aria-hidden="true" />
+          New chapter
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create new chapter</DialogTitle>
+          <DialogTitle>Create a new chapter</DialogTitle>
           <DialogDescription>
-            What would you like to name your chapter?
+            Chapters group related lessons. It is added to the end of the course; you can
+            drag it to a new position afterwards.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
+          <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)} noValidate>
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>Chapter name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Chapter Name" {...field} />
+                    <Input
+                      placeholder="e.g. Getting started"
+                      autoComplete="off"
+                      {...field}
+                      readOnly={pending}
+                    />
                   </FormControl>
+                  <FormDescription>At least 3 characters. Students see this title.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
+            {rootError && (
+              <p role="alert" className="text-sm text-destructive">
+                {rootError}
+              </p>
+            )}
+
             <DialogFooter>
-              <Button disabled={pending} type="submit">
-                {pending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : "Save"}
+              <DialogClose asChild>
+                <Button type="button" variant="outline" disabled={pending}>
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button disabled={pending} type="submit" aria-busy={pending}>
+                {pending && <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden="true" />}
+                {pending ? "Creating..." : "Create chapter"}
               </Button>
             </DialogFooter>
           </form>
@@ -111,4 +143,3 @@ export function TeacherNewChapterModal({ courseId }: { courseId: string }) {
     </Dialog>
   );
 }
-

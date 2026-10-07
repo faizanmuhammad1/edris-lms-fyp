@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { unsubscribeByEmail } from "@/app/actions/newsletter";
 
@@ -28,11 +29,12 @@ export function UnsubscribeForm({ email, token }: UnsubscribeFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-w-sm">
-      <p className="text-sm">
-        Email address: <span className="font-medium break-all">{email}</span>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Email address: <span className="break-all font-medium text-foreground">{email}</span>
       </p>
-      <Button type="submit" disabled={isPending}>
+      <Button type="submit" disabled={isPending} className="h-11 w-full sm:w-auto">
+        {isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
         {isPending ? "Unsubscribing…" : "Unsubscribe"}
       </Button>
     </form>

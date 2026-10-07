@@ -3,95 +3,101 @@
 import { requireAdmin } from "@/app/data/admin/require-admin";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { unstable_rethrow } from "next/navigation";
+import type { z } from "zod";
+import {
+  notificationSettingsSchema,
+  platformSettingsSchema,
+  securitySettingsSchema,
+  type SettingsActionResult,
+} from "./schemas";
 
 const DEFAULT_ID = "default";
 
-export type SaveSettingsResult = { ok: true } | { ok: false; error: string };
+/** Values used when the settings row does not exist yet (mirror the Prisma defaults). */
+const ROW_DEFAULTS = {
+  id: DEFAULT_ID,
+  platformName: "Edris LMS",
+  supportEmail: "support@example.com",
+};
 
-export async function savePlatformSettingsAction(formData: FormData): Promise<SaveSettingsResult> {
-  // Outside try/catch so Next's redirect for non-admins is not swallowed.
-  await requireAdmin();
+/**
+ * Validates the input, runs the update as an admin and turns failures into a
+ * message the UI can show (thrown errors are hidden in production builds).
+ */
+async function runSettingsAction<T>(
+  schema: z.ZodType<T>,
+  input: unknown,
+  successMessage: string,
+  failureMessage: string,
+  save: (values: T) => Promise<void>
+): Promise<SettingsActionResult> {
   try {
+    await requireAdmin();
 
-    const platformName = (formData.get("platformName") as string)?.trim() ?? "";
-    const supportEmail = (formData.get("supportEmail") as string)?.trim() ?? "";
-
-    if (!platformName || platformName.length < 2) {
-      return { ok: false, error: "Platform name must be at least 2 characters." };
-    }
-    if (!supportEmail) {
-      return { ok: false, error: "Support email is required." };
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supportEmail)) {
-      return { ok: false, error: "Please enter a valid support email." };
+    const parsed = schema.safeParse(input);
+    if (!parsed.success) {
+      return {
+        status: "error",
+        message: parsed.error.issues[0]?.message ?? "Please check the highlighted fields.",
+      };
     }
 
-    await prisma.platformSettings.upsert({
-      where: { id: DEFAULT_ID },
-      create: { id: DEFAULT_ID, platformName, supportEmail },
-      update: { platformName, supportEmail },
-    });
-
+    await save(parsed.data);
     revalidatePath("/admin/settings");
-    return { ok: true };
-  } catch (e) {
-    console.error("savePlatformSettingsAction:", e);
-    return { ok: false, error: "Failed to save settings." };
+    return { status: "success", message: successMessage };
+  } catch (error) {
+    // Let requireAdmin()'s redirect propagate.
+    unstable_rethrow(error);
+    console.error(failureMessage, error);
+    return { status: "error", message: `${failureMessage} Please try again.` };
   }
 }
 
-export async function saveNotificationSettingsAction(payload: {
-  notifyNewEnrollments: boolean;
-  notifyTeacherApplications: boolean;
-  notifySystemAlerts: boolean;
-}): Promise<SaveSettingsResult> {
-  await requireAdmin();
-  try {
-    await prisma.platformSettings.upsert({
-      where: { id: DEFAULT_ID },
-      create: {
-        id: DEFAULT_ID,
-        platformName: "Edris LMS",
-        supportEmail: "support@example.com",
-        ...payload,
-      },
-      update: payload,
-    });
-    revalidatePath("/admin/settings");
-    return { ok: true };
-  } catch (e) {
-    console.error("saveNotificationSettingsAction:", e);
-    return { ok: false, error: "Failed to save notification settings." };
-  }
+export async function savePlatformSettingsAction(input: unknown): Promise<SettingsActionResult> {
+  return runSettingsAction(
+    platformSettingsSchema,
+    input,
+    "Platform settings saved.",
+    "Couldn't save platform settings.",
+    async ({ platformName, supportEmail }) => {
+      await prisma.platformSettings.upsert({
+        where: { id: DEFAULT_ID },
+        create: { id: DEFAULT_ID, platformName, supportEmail },
+        update: { platformName, supportEmail },
+      });
+    }
+  );
 }
 
-export async function saveSecuritySettingsAction(payload: {
-  sessionTimeoutEnabled: boolean;
-  sessionTimeoutMinutes?: number;
-}): Promise<SaveSettingsResult> {
-  await requireAdmin();
-  try {
-    const { sessionTimeoutMinutes, ...rest } = payload;
-    await prisma.platformSettings.upsert({
-      where: { id: DEFAULT_ID },
-      create: {
-        id: DEFAULT_ID,
-        platformName: "Edris LMS",
-        supportEmail: "support@example.com",
-        sessionTimeoutEnabled: rest.sessionTimeoutEnabled,
-        sessionTimeoutMinutes: Math.min(120, Math.max(5, sessionTimeoutMinutes ?? 30)),
-      },
-      update: {
-        ...rest,
-        ...(typeof sessionTimeoutMinutes === "number" && {
-          sessionTimeoutMinutes: Math.min(120, Math.max(5, sessionTimeoutMinutes)),
-        }),
-      },
-    });
-    revalidatePath("/admin/settings");
-    return { ok: true };
-  } catch (e) {
-    console.error("saveSecuritySettingsAction:", e);
-    return { ok: false, error: "Failed to save security settings." };
-  }
+export async function saveNotificationSettingsAction(input: unknown): Promise<SettingsActionResult> {
+  return runSettingsAction(
+    notificationSettingsSchema,
+    input,
+    "Notification preferences saved.",
+    "Couldn't save notification preferences.",
+    async (values) => {
+      await prisma.platformSettings.upsert({
+        where: { id: DEFAULT_ID },
+        create: { ...ROW_DEFAULTS, ...values },
+        update: values,
+      });
+    }
+  );
+}
+
+export async function saveSecuritySettingsAction(input: unknown): Promise<SettingsActionResult> {
+  return runSettingsAction(
+    securitySettingsSchema,
+    input,
+    "Security settings saved.",
+    "Couldn't save security settings.",
+    async (values) => {
+      await prisma.platformSettings.upsert({
+        where: { id: DEFAULT_ID },
+        create: { ...ROW_DEFAULTS, ...values },
+        update: values,
+      });
+    }
+  );
 }

@@ -1,171 +1,118 @@
-"use client";
-
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Phone, Mail, Clock, Send } from "lucide-react";
+import type { Metadata } from "next";
 import Image from "next/image";
-import { useState } from "react";
-import { toast } from "sonner"; // Assuming sonner is used, or I'll use a simple alert if not sure, but sonner is common with shadcn
+import Link from "next/link";
+import { BookOpen, HelpCircle, Mail, ShieldCheck } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { getEmailBranding } from "@/lib/email-templates";
+import {
+    verificationPortalLinkProps,
+    verificationPortalUrl,
+} from "@/lib/verification-portal-url";
+import { containerClass } from "../_components/SectionHeading";
+import { pageMetadata } from "../_lib/seo";
+import { ContactForm } from "./_components/ContactForm";
 
-export default function ContactPage() {
-    const [loading, setLoading] = useState(false);
+export const metadata: Metadata = pageMetadata({
+    title: "Contact us",
+    description: "Questions about a course, your account or a certificate? Get in touch with the Edris LMS support team.",
+    path: "/contact",
+});
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setLoading(true);
-        // Simulate sending
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        setLoading(false);
-        toast.success("Message sent successfully!");
-        (e.target as HTMLFormElement).reset();
-    };
+/** Used when no support address is configured in Admin → Settings. */
+const FALLBACK_SUPPORT_EMAIL = "support@edrislms.com";
+
+export default async function ContactPage() {
+    const branding = await getEmailBranding();
+    const supportEmail = branding.supportEmail ?? FALLBACK_SUPPORT_EMAIL;
+    const verificationHref = verificationPortalUrl();
+
+    const helpLinks = [
+        { icon: BookOpen, label: "Browse the course catalog", href: "/courses" },
+        { icon: HelpCircle, label: "Read the FAQ", href: "/#faq" },
+        { icon: ShieldCheck, label: "Verify a certificate", href: verificationHref },
+    ];
 
     return (
-        <div className="min-h-screen bg-background">
-            {/* Hero Section */}
-            <div className="relative h-[400px] w-full overflow-hidden">
+        <div className="bg-background">
+            {/* Header */}
+            <div className="relative isolate overflow-hidden">
                 <Image
                     src="/contact-hero.png"
-                    alt="Contact Us"
+                    alt=""
                     fill
-                    className="object-cover"
                     priority
+                    sizes="100vw"
+                    className="-z-10 object-cover"
                 />
-                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                    <div className="text-center space-y-4 px-4">
-                        <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
-                            Get in Touch
-                        </h1>
-                        <p className="text-lg text-white/80 max-w-2xl mx-auto">
-                            We&apos;d love to hear from you. Our team is always here to chat.
-                        </p>
-                    </div>
+                <div aria-hidden="true" className="absolute inset-0 -z-10 bg-zinc-950/70" />
+                <div className={`${containerClass} py-16 text-center sm:py-24`}>
+                    <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">Get in touch</h1>
+                    <p className="mx-auto mt-4 max-w-2xl text-base text-zinc-200 sm:text-lg">
+                        Questions about a course, your account or a certificate? We&apos;d love to hear from you.
+                    </p>
                 </div>
             </div>
 
-            <div className="container mx-auto px-4 py-16 -mt-20 relative z-10">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Contact Info Cards */}
-                    <div className="lg:col-span-1 space-y-6">
-                        <Card className="border-none shadow-lg bg-card/95 backdrop-blur-sm">
-                            <CardContent className="p-6 space-y-6">
-                                <div className="flex items-start space-x-4">
-                                    <div className="bg-primary/10 p-3 rounded-full">
-                                        <MapPin className="h-6 w-6 text-primary" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-lg mb-1">Visit Us</h3>
-                                        <p className="text-muted-foreground leading-relaxed">
-                                            123 Education Lane,<br />
-                                            Tech City, TC 90210
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-start space-x-4">
-                                    <div className="bg-primary/10 p-3 rounded-full">
-                                        <Mail className="h-6 w-6 text-primary" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-lg mb-1">Email Us</h3>
-                                        <p className="text-muted-foreground">
-                                            hello@edrislms.com<br />
-                                            support@edrislms.com
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-start space-x-4">
-                                    <div className="bg-primary/10 p-3 rounded-full">
-                                        <Phone className="h-6 w-6 text-primary" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-lg mb-1">Call Us</h3>
-                                        <p className="text-muted-foreground">
-                                            +1 (555) 123-4567<br />
-                                            Mon-Fri from 8am to 5pm
+            <div className={`${containerClass} py-12 sm:py-16`}>
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                    {/* Contact details */}
+                    <div className="space-y-6 lg:col-span-1">
+                        <Card className="gap-0 py-0">
+                            <CardContent className="space-y-4 p-6">
+                                <div className="flex items-start gap-4">
+                                    <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                                        <Mail className="size-5 text-primary" aria-hidden="true" />
+                                    </span>
+                                    <div className="min-w-0">
+                                        <h2 className="text-lg font-semibold">Email support</h2>
+                                        <a
+                                            href={`mailto:${supportEmail}`}
+                                            className="mt-1 inline-flex min-h-8 items-center break-all font-medium text-primary underline-offset-4 hover:underline"
+                                        >
+                                            {supportEmail}
+                                        </a>
+                                        <p className="mt-1 text-sm text-muted-foreground">
+                                            We reply by email as soon as we can, usually within two business days.
                                         </p>
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
 
-                        <Card className="border-none shadow-lg bg-primary text-primary-foreground overflow-hidden relative">
-                            <div className="absolute top-0 right-0 p-8 opacity-10">
-                                <Clock className="h-32 w-32" />
+                        <Card className="gap-0 py-0">
+                            <CardContent className="p-6">
+                                <h2 className="text-lg font-semibold">Quick help</h2>
+                                <ul className="mt-3 space-y-1">
+                                    {helpLinks.map((link) => (
+                                        <li key={link.label}>
+                                            <Link
+                                                href={link.href}
+                                                className="flex min-h-10 items-center gap-3 rounded-md text-sm font-medium text-foreground hover:text-primary"
+                                                {...verificationPortalLinkProps(link.href)}
+                                            >
+                                                <link.icon className="size-4 text-muted-foreground" aria-hidden="true" />
+                                                {link.label}
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Contact form */}
+                    <Card className="gap-0 py-0 lg:col-span-2">
+                        <CardContent className="p-6 sm:p-8">
+                            <h2 className="text-2xl font-semibold tracking-tight">Send us a message</h2>
+                            <p className="mt-2 text-muted-foreground">
+                                Fill in the form and we&apos;ll open a pre-written email in your mail app, addressed to our
+                                support team.
+                            </p>
+                            <div className="mt-8">
+                                <ContactForm supportEmail={supportEmail} />
                             </div>
-                            <CardContent className="p-8 relative z-10">
-                                <h3 className="font-bold text-2xl mb-2">Business Hours</h3>
-                                <div className="space-y-2 text-primary-foreground/90">
-                                    <div className="flex justify-between">
-                                        <span>Monday - Friday</span>
-                                        <span>9:00 AM - 6:00 PM</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span>Saturday</span>
-                                        <span>10:00 AM - 4:00 PM</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span>Sunday</span>
-                                        <span>Closed</span>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Contact Form */}
-                    <div className="lg:col-span-2">
-                        <Card className="h-full border-none shadow-lg">
-                            <CardContent className="p-8">
-                                <div className="mb-8">
-                                    <h2 className="text-2xl font-bold mb-2">Send us a Message</h2>
-                                    <p className="text-muted-foreground">
-                                        Fill out the form below and we&apos;ll get back to you within 24 hours.
-                                    </p>
-                                </div>
-
-                                <form onSubmit={handleSubmit} className="space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="space-y-2">
-                                            <label htmlFor="name" className="text-sm font-medium">Full Name</label>
-                                            <Input id="name" placeholder="John Doe" required className="bg-muted/30" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label htmlFor="email" className="text-sm font-medium">Email Address</label>
-                                            <Input id="email" type="email" placeholder="john@example.com" required className="bg-muted/30" />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label htmlFor="subject" className="text-sm font-medium">Subject</label>
-                                        <Input id="subject" placeholder="How can we help?" required className="bg-muted/30" />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label htmlFor="message" className="text-sm font-medium">Message</label>
-                                        <Textarea
-                                            id="message"
-                                            placeholder="Tell us more about your inquiry..."
-                                            className="min-h-[150px] bg-muted/30 resize-none"
-                                            required
-                                        />
-                                    </div>
-
-                                    <Button type="submit" size="lg" className="w-full md:w-auto" disabled={loading}>
-                                        {loading ? "Sending..." : (
-                                            <>
-                                                Send Message
-                                                <Send className="ml-2 h-4 w-4" />
-                                            </>
-                                        )}
-                                    </Button>
-                                </form>
-                            </CardContent>
-                        </Card>
-                    </div>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
         </div>

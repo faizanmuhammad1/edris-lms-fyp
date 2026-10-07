@@ -59,7 +59,7 @@ export function TicketMetadataSidebar({ ticket }: { ticket: TicketMetadata }) {
         {/* Ticket Number */}
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground flex items-center gap-1.5">
-            <Hash className="h-3.5 w-3.5" /> Ticket
+            <Hash className="h-3.5 w-3.5" aria-hidden="true" /> Ticket
           </span>
           <span className="font-mono font-medium">{ticket.ticketNumber}</span>
         </div>
@@ -89,11 +89,11 @@ export function TicketMetadataSidebar({ ticket }: { ticket: TicketMetadata }) {
         {/* Created By */}
         <div className="space-y-2">
           <span className="text-muted-foreground flex items-center gap-1.5">
-            <User className="h-3.5 w-3.5" /> Created By
+            <User className="h-3.5 w-3.5" aria-hidden="true" /> Created By
           </span>
           <div className="flex items-center gap-2">
             <Avatar className="h-6 w-6">
-              <AvatarImage src={ticket.createdBy.image || undefined} />
+              <AvatarImage src={ticket.createdBy.image || undefined} alt="" />
               <AvatarFallback className="text-[10px]">
                 {getInitials(ticket.createdBy.name)}
               </AvatarFallback>
@@ -108,12 +108,12 @@ export function TicketMetadataSidebar({ ticket }: { ticket: TicketMetadata }) {
         {/* Assigned To */}
         <div className="space-y-2">
           <span className="text-muted-foreground flex items-center gap-1.5">
-            <User className="h-3.5 w-3.5" /> Assigned To
+            <User className="h-3.5 w-3.5" aria-hidden="true" /> Assigned To
           </span>
           {ticket.assignedTo ? (
             <div className="flex items-center gap-2">
               <Avatar className="h-6 w-6">
-                <AvatarImage src={ticket.assignedTo.image || undefined} />
+                <AvatarImage src={ticket.assignedTo.image || undefined} alt="" />
                 <AvatarFallback className="text-[10px]">
                   {getInitials(ticket.assignedTo.name)}
                 </AvatarFallback>
@@ -134,9 +134,9 @@ export function TicketMetadataSidebar({ ticket }: { ticket: TicketMetadata }) {
             <Separator />
             <div className="space-y-1">
               <span className="text-muted-foreground flex items-center gap-1.5">
-                <BookOpen className="h-3.5 w-3.5" /> Related Course
+                <BookOpen className="h-3.5 w-3.5" aria-hidden="true" /> Related Course
               </span>
-              <p className="font-medium text-sm">{ticket.course.title}</p>
+              <p className="font-medium text-sm break-words">{ticket.course.title}</p>
             </div>
           </>
         )}
@@ -147,7 +147,7 @@ export function TicketMetadataSidebar({ ticket }: { ticket: TicketMetadata }) {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground flex items-center gap-1.5">
-              <Calendar className="h-3.5 w-3.5" /> Created
+              <Calendar className="h-3.5 w-3.5" aria-hidden="true" /> Created
             </span>
             <span className="text-xs">
               {format(new Date(ticket.createdAt), "MMM d, yyyy")}
@@ -156,7 +156,7 @@ export function TicketMetadataSidebar({ ticket }: { ticket: TicketMetadata }) {
 
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5" /> Updated
+              <Clock className="h-3.5 w-3.5" aria-hidden="true" /> Updated
             </span>
             <span className="text-xs">
               {format(new Date(ticket.updatedAt), "MMM d, yyyy")}

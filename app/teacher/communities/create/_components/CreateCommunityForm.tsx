@@ -1,183 +1,203 @@
 "use client";
 
+import { createCommunity } from "@/app/actions/community";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { ArrowLeft, Loader2, PlusIcon } from "lucide-react";
-import Link from "next/link";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { Loader2, Plus } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTransition } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import slugify from "slugify";
 import { toast } from "sonner";
-import { createCommunity } from "@/app/actions/community";
+import { z } from "zod";
 
+const NAME_MAX = 100;
+const DESCRIPTION_MAX = 500;
+
+// Mirrors the server-side rules in app/actions/community.ts
 const communitySchema = z.object({
-    name: z
-        .string()
-        .min(3, { message: "Name must be at least 3 characters long" })
-        .max(100, { message: "Name must be at most 100 characters long" }),
-    description: z
-        .string()
-        .min(10, { message: "Description must be at least 10 characters long" })
-        .max(500, { message: "Description must be at most 500 characters long" }),
-    courseId: z.string().min(1, { message: "Please select a course" }),
+  courseId: z.string().min(1, { message: "Select the course this community belongs to" }),
+  name: z
+    .string()
+    .trim()
+    .min(3, { message: "Name must be at least 3 characters" })
+    .max(NAME_MAX, { message: `Name must be at most ${NAME_MAX} characters` }),
+  description: z
+    .string()
+    .trim()
+    .min(10, { message: "Description must be at least 10 characters" })
+    .max(DESCRIPTION_MAX, { message: `Description must be at most ${DESCRIPTION_MAX} characters` }),
 });
 
 type CommunitySchemaType = z.infer<typeof communitySchema>;
 
 interface Course {
-    id: string;
-    title: string;
+  id: string;
+  title: string;
 }
 
 export function CreateCommunityForm({ courses }: { courses: Course[] }) {
-    const [pending, startTransition] = useTransition();
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
 
-    const form = useForm<CommunitySchemaType>({
-        resolver: zodResolver(communitySchema),
-        defaultValues: {
-            name: "",
-            description: "",
-            courseId: "",
-        },
+  const form = useForm<CommunitySchemaType>({
+    resolver: zodResolver(communitySchema),
+    defaultValues: {
+      courseId: courses.length === 1 ? courses[0].id : "",
+      name: "",
+      description: "",
+    },
+  });
+
+  const name = useWatch({ control: form.control, name: "name" });
+  const description = useWatch({ control: form.control, name: "description" });
+  // Same slug the server generates from the name
+  const slugPreview = slugify(name, { lower: true });
+
+  function onSubmit(values: CommunitySchemaType) {
+    startTransition(async () => {
+      try {
+        const result = await createCommunity(values);
+
+        if (!result.success) {
+          toast.error(result.error);
+          if (/name/i.test(result.error)) {
+            form.setError("name", { message: result.error });
+          }
+          return;
+        }
+
+        toast.success(result.message ?? "Community created");
+        router.push(`/teacher/communities/${result.data.slug}`);
+        router.refresh();
+      } catch {
+        toast.error("Something went wrong while creating the community. Please try again.");
+      }
     });
+  }
 
-    function onSubmit(values: CommunitySchemaType) {
-        startTransition(async () => {
-            const result = await createCommunity(values);
+  return (
+    <Card className="max-w-2xl">
+      <CardHeader>
+        <h2 className="font-semibold leading-none">Community details</h2>
+        <CardDescription>
+          Only students with an active enrollment in the selected course can join and post.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)} noValidate>
+            <FormField
+              control={form.control}
+              name="courseId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Course</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={pending}>
+                    <FormControl>
+                      <SelectTrigger className="w-full min-w-0">
+                        <SelectValue placeholder="Select one of your courses" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="max-w-[calc(100vw-2rem)]">
+                      {courses.map((course) => (
+                        <SelectItem key={course.id} value={course.id}>
+                          <span className="truncate">{course.title}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>The community is linked to this course and its enrolled students.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            if (!result.success) {
-                toast.error(result.error || "Failed to create community");
-                return;
-            }
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Community name</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. Web Development Study Group"
+                      maxLength={NAME_MAX}
+                      autoComplete="off"
+                      disabled={pending}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {slugPreview ? (
+                      <>
+                        Students will find it at{" "}
+                        <span className="font-mono break-all text-foreground">/dashboard/forum/{slugPreview}</span>
+                      </>
+                    ) : (
+                      "Must be unique. The community link is generated from the name."
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            toast.success("Community created successfully!");
-            form.reset();
-            window.location.href = "/teacher/communities";
-        });
-    }
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <FormLabel>Description</FormLabel>
+                    <span className="text-xs tabular-nums text-muted-foreground" aria-hidden="true">
+                      {description.length}/{DESCRIPTION_MAX}
+                    </span>
+                  </div>
+                  <FormControl>
+                    <Textarea
+                      placeholder="What will students discuss here? Mention any posting guidelines."
+                      className="min-h-32"
+                      maxLength={DESCRIPTION_MAX}
+                      disabled={pending}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>Between 10 and {DESCRIPTION_MAX} characters. Shown to students before they join.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-    return (
-        <>
-            <div className="flex items-center gap-4">
-                <Link
-                    href="/teacher/communities"
-                    className={buttonVariants({
-                        variant: "outline",
-                        size: "icon",
-                    })}
-                >
-                    <ArrowLeft className="size-4" />
-                </Link>
-                <h1 className="text-2xl font-bold">Create Community</h1>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Link
+                href="/teacher/communities"
+                className={buttonVariants({ variant: "outline", className: "h-10" })}
+              >
+                Cancel
+              </Link>
+              <Button type="submit" className="h-10" disabled={pending} aria-busy={pending}>
+                {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Plus aria-hidden="true" />}
+                {pending ? "Creating..." : "Create community"}
+              </Button>
             </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Community Information</CardTitle>
-                    <CardDescription>
-                        Create a community forum for students enrolled in one of your courses
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Form {...form}>
-                        <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
-                            <FormField
-                                control={form.control}
-                                name="courseId"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Select Course</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select a course for this community" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {courses.map((course) => (
-                                                    <SelectItem key={course.id} value={course.id}>
-                                                        {course.title}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Community Name</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="e.g., Web Development Discussion" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="description"
-                                render={({ field }) => (
-                                    <FormItem className="w-full">
-                                        <FormLabel>Description</FormLabel>
-                                        <FormControl>
-                                            <Textarea
-                                                placeholder="Describe what this community is about..."
-                                                className="min-h-[120px]"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <Button type="submit" disabled={pending}>
-                                {pending ? (
-                                    <>
-                                        Creating...
-                                        <Loader2 className="animate-spin ml-1" />
-                                    </>
-                                ) : (
-                                    <>
-                                        Create Community <PlusIcon className="ml-1" size={16} />
-                                    </>
-                                )}
-                            </Button>
-                        </form>
-                    </Form>
-                </CardContent>
-            </Card>
-        </>
-    );
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  );
 }

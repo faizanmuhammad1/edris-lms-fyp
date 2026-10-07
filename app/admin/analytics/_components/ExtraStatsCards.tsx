@@ -1,26 +1,13 @@
-"use client";
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { IconSchool, IconBook, IconTrendingUp, IconCalendarWeek } from "@tabler/icons-react";
-
-function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(cents / 100);
-}
+import { BookOpen, CalendarDays, GraduationCap, Wallet } from "lucide-react";
+import { StatCard, StatGrid } from "@/app/admin/_components/StatCard";
+import { formatCents, formatNumber } from "@/app/admin/_lib/format";
 
 interface ExtraStatsCardsProps {
   totalTeachers: number;
   totalCourses: number;
   publishedCourses: number;
   newEnrollmentsThisWeek: number;
+  /** In cents. */
   revenueThisWeek: number;
 }
 
@@ -31,58 +18,36 @@ export function ExtraStatsCards({
   newEnrollmentsThisWeek,
   revenueThisWeek,
 }: ExtraStatsCardsProps) {
+  const unpublished = Math.max(totalCourses - publishedCourses, 0);
+
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardDescription>Total teachers</CardDescription>
-          <IconSchool className="h-5 w-5 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <CardTitle className="text-2xl font-bold">{totalTeachers}</CardTitle>
-          <p className="text-xs text-muted-foreground mt-1">
-            Approved or teacher role
-          </p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardDescription>Courses</CardDescription>
-          <IconBook className="h-5 w-5 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <CardTitle className="text-2xl font-bold">{publishedCourses}</CardTitle>
-          <p className="text-xs text-muted-foreground mt-1">
-            {totalCourses} total ({totalCourses - publishedCourses} draft/archived)
-          </p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardDescription>This week</CardDescription>
-          <IconCalendarWeek className="h-5 w-5 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <CardTitle className="text-2xl font-bold">{newEnrollmentsThisWeek}</CardTitle>
-          <p className="text-xs text-muted-foreground mt-1">
-            New enrollments (last 7 days)
-          </p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardDescription>Revenue this week</CardDescription>
-          <IconTrendingUp className="h-5 w-5 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <CardTitle className="text-2xl font-bold">
-            {formatCurrency(revenueThisWeek)}
-          </CardTitle>
-          <p className="text-xs text-muted-foreground mt-1">
-            Last 7 days
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+    <StatGrid columns={4}>
+      <StatCard
+        label="Teachers"
+        value={formatNumber(totalTeachers)}
+        icon={GraduationCap}
+        description="Approved or with the teacher role"
+        href="/admin/teachers"
+      />
+      <StatCard
+        label="Published courses"
+        value={formatNumber(publishedCourses)}
+        icon={BookOpen}
+        description={`${formatNumber(totalCourses)} total · ${formatNumber(unpublished)} draft or archived`}
+        href="/admin/courses"
+      />
+      <StatCard
+        label="New enrollments"
+        value={formatNumber(newEnrollmentsThisWeek)}
+        icon={CalendarDays}
+        description="Active, last 7 days"
+      />
+      <StatCard
+        label="Revenue this week"
+        value={formatCents(revenueThisWeek)}
+        icon={Wallet}
+        description="Last 7 days"
+      />
+    </StatGrid>
   );
 }

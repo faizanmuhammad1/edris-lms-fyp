@@ -49,7 +49,7 @@ const garamond = EB_Garamond({
 });
 
 const BRAND = "#4a6d56";
-const BRAND_LIGHT = "#5d866c";
+const BRAND_LIGHT = "#436651";
 const BRAND_DARK = "#0a140f";
 const TEXT_SUBTLE = "#3a4d42";
 
@@ -76,7 +76,7 @@ function SkeletonRow({ label, wide }: { label: string; wide?: boolean }) {
     <div className={`flex flex-col gap-1 ${wide ? "col-span-2" : ""}`}>
       <span
         className="text-[9px] font-bold tracking-[0.12em] uppercase"
-        style={{ fontFamily: "var(--font-montserrat), system-ui", color: `${TEXT_SUBTLE}70` }}
+        style={{ fontFamily: "var(--font-montserrat), system-ui", color: `${TEXT_SUBTLE}B3` }}
       >
         {label}
       </span>
@@ -195,7 +195,7 @@ function VerificationContent() {
   };
 
   return (
-    <div
+    <main
       className={`min-h-dvh flex flex-col items-center relative overflow-x-hidden ${cinzel.variable} ${montserrat.variable} ${garamond.variable}`}
       style={{ background: "#f0f3f0" }}
     >
@@ -213,7 +213,7 @@ function VerificationContent() {
 
       {/* ── Outer shell ─────────────────────────────────────────── */}
       <div
-        className="relative z-10 w-full max-w-5xl mx-4 md:mx-auto my-3 md:my-5 bg-white flex flex-col rounded-2xl overflow-hidden"
+        className="relative z-10 w-[calc(100%-1.5rem)] sm:w-[calc(100%-2rem)] max-w-5xl mx-auto my-3 md:my-5 bg-white flex flex-col rounded-2xl overflow-hidden"
         style={{ boxShadow: "0 24px 80px rgba(0,0,0,0.09)" }}
       >
         {/* Outer double border */}
@@ -235,7 +235,7 @@ function VerificationContent() {
 
         {/* ── Header ───────────────────────────────────────────── */}
         <header
-          className="flex items-center justify-between px-10 md:px-14 py-4 z-10"
+          className="flex flex-wrap items-center justify-between gap-3 px-6 sm:px-10 md:px-14 py-4 z-10"
           style={{ borderBottom: `1px solid ${BRAND_LIGHT}20` }}
         >
           {/* Left: logo + brand */}
@@ -396,15 +396,19 @@ function VerificationContent() {
                 {/* Input with search + info icons */}
                 <div className="relative">
                   <Search
+                    aria-hidden="true"
                     className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 pointer-events-none"
                     style={{ color: `${BRAND_LIGHT}80` }}
                   />
                   <Input
                     type="text"
+                    aria-label="Certificate unique hash ID"
+                    autoComplete="off"
+                    spellCheck={false}
                     placeholder="Enter Certificate Unique Hash ID"
                     value={hash}
                     onChange={(e) => setHash(e.target.value)}
-                    className="pl-9 pr-10 h-11 text-xs rounded-full border focus-visible:ring-1"
+                    className="pl-9 pr-12 h-11 text-base sm:text-xs rounded-full border focus-visible:ring-1"
                     style={{
                       fontFamily: "var(--font-montserrat), system-ui",
                       background: "white",
@@ -416,13 +420,14 @@ function VerificationContent() {
                   />
                   <button
                     type="button"
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 flex size-9 items-center justify-center rounded-full hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2"
                     title="Enter the unique certificate ID from your certificate (e.g. CERT-2025-XXXX or a UUID)"
-                    aria-label="What is the certificate hash ID?"
+                    aria-label="What is the certificate hash ID? Enter the unique certificate ID printed on your certificate, for example CERT-2025-XXXX or a UUID."
                   >
                     <Info
-                      className="size-3.5"
-                      style={{ color: `${BRAND_LIGHT}70` }}
+                      className="size-4"
+                      aria-hidden="true"
+                      style={{ color: `${BRAND_LIGHT}90` }}
                     />
                   </button>
                 </div>
@@ -535,20 +540,20 @@ function VerificationContent() {
                         <div className="text-center mb-3 relative z-10">
                           <p
                             className="text-[11px] font-semibold"
-                            style={{ fontFamily: "var(--font-cinzel), serif", color: `${TEXT_SUBTLE}80` }}
+                            style={{ fontFamily: "var(--font-cinzel), serif", color: TEXT_SUBTLE }}
                           >
                             Verification results appear here
                           </p>
                           <p
-                            className="text-[9px] mt-0.5 italic"
-                            style={{ fontFamily: "var(--font-garamond), Georgia, serif", color: `${TEXT_SUBTLE}60` }}
+                            className="text-[10px] mt-0.5 italic"
+                            style={{ fontFamily: "var(--font-garamond), Georgia, serif", color: `${TEXT_SUBTLE}CC` }}
                           >
                             Enter a certificate hash and click Verify
                           </p>
                         </div>
 
                         {/* Skeleton grid */}
-                        <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 relative z-10">
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 relative z-10" aria-hidden="true">
                           <SkeletonRow label="Student Name" />
                           <SkeletonRow label="Course Title" />
                           <SkeletonRow label="Date Issued" />
@@ -676,7 +681,7 @@ function VerificationContent() {
           <div className="h-1" />
         </footer>
       </div>
-    </div>
+    </main>
   );
 }
 

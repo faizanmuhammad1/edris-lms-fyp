@@ -1,278 +1,337 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { useState, useTransition, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type Announcements,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { restrictToParentElement, restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import { CSS } from "@dnd-kit/utilities";
+import { CheckCircle2, GripVertical, ListChecks, Loader2, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Trash2, Pencil, PlusIcon, CheckCircle2, Circle } from "lucide-react";
-import { useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { deleteQuestion, updateQuestion } from "../actions";
-import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/general/ConfirmDialog";
+import { EmptyState } from "@/components/general/EmptyState";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { deleteQuestion, updateQuestionOrder } from "../actions";
+import { QuestionForm, type EditableQuestion } from "./QuestionForm";
 
-interface Option {
-    id: string;
-    text: string;
-    isCorrect: boolean;
-    position: number;
-}
-
-interface Question {
-    id: string;
-    question: string;
-    points: number;
-    position: number;
-    options: Option[];
+interface Question extends EditableQuestion {
+  position: number;
 }
 
 interface QuestionListProps {
-    questions: Question[];
-    quizId: string;
+  questions: Question[];
+  quizId: string;
+  /** Whether the quiz is published (a published quiz must keep at least one question). */
+  isPublished?: boolean;
+  /** Action shown in the empty state, e.g. the "Add question" dialog trigger. */
+  emptyAction?: ReactNode;
 }
 
-export function QuestionList({ questions }: QuestionListProps) {
-    const [pending, startTransition] = useTransition();
-    const [editing, setEditing] = useState<Question | null>(null);
-    const [editQuestion, setEditQuestion] = useState("");
-    const [editPoints, setEditPoints] = useState(1);
-    // `id` is kept for existing options so they are updated in place (past attempts reference them)
-    const [editOptions, setEditOptions] = useState<{ id?: string; text: string; isCorrect: boolean }[]>([]);
-    const router = useRouter();
+function excerpt(text: string, max = 60) {
+  const clean = text.replace(/\s+/g, " ").trim();
+  return clean.length > max ? `${clean.slice(0, max)}…` : clean;
+}
 
-    const handleDelete = (questionId: string) => {
-        if (!confirm("Delete this question?")) return;
+export function QuestionList({ questions, quizId, isPublished = false, emptyAction }: QuestionListProps) {
+  const router = useRouter();
+  const [items, setItems] = useState(questions);
+  const [prevQuestions, setPrevQuestions] = useState(questions);
+  const [editing, setEditing] = useState<Question | null>(null);
+  const [reorderPending, startReorder] = useTransition();
 
-        startTransition(async () => {
-            try {
-                const result = await deleteQuestion(questionId);
-                if (!result.success) {
-                    toast.error(result.error ?? "Failed to delete question");
-                    return;
-                }
-                toast.success("Question deleted");
-                router.refresh();
-            } catch {
-                toast.error("Failed to delete question");
-            }
-        });
-    };
+  // Adopt fresh server data after a refresh.
+  if (questions !== prevQuestions) {
+    setPrevQuestions(questions);
+    setItems(questions);
+  }
 
-    const openEdit = (q: Question) => {
-        setEditing(q);
-        setEditQuestion(q.question);
-        setEditPoints(q.points);
-        setEditOptions(
-            [...q.options]
-                .sort((a, b) => a.position - b.position)
-                .map((o) => ({ id: o.id, text: o.text, isCorrect: o.isCorrect }))
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const positionOf = (id: string | number) => items.findIndex((q) => q.id === id) + 1;
+
+  const announcements: Announcements = {
+    onDragStart: ({ active }) =>
+      `Picked up question ${positionOf(active.id)}. Use the arrow keys to move it, Space to drop, Escape to cancel.`,
+    onDragOver: ({ active, over }) =>
+      over ? `Question ${positionOf(active.id)} is over position ${positionOf(over.id)}.` : undefined,
+    onDragEnd: ({ active, over }) =>
+      over
+        ? `Question ${positionOf(active.id)} was dropped at position ${positionOf(over.id)}.`
+        : `Question ${positionOf(active.id)} was dropped.`,
+    onDragCancel: ({ active }) => `Reordering cancelled. Question ${positionOf(active.id)} was not moved.`,
+  };
+
+  function handleDragEnd({ active, over }: DragEndEvent) {
+    if (!over || active.id === over.id) return;
+    const oldIndex = items.findIndex((q) => q.id === active.id);
+    const newIndex = items.findIndex((q) => q.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    const previous = items;
+    const next = arrayMove(items, oldIndex, newIndex).map((q, index) => ({ ...q, position: index + 1 }));
+    setItems(next);
+
+    startReorder(async () => {
+      try {
+        const result = await updateQuestionOrder(
+          quizId,
+          next.map((q) => ({ id: q.id, position: q.position }))
         );
-    };
-
-    const closeEdit = () => {
-        setEditing(null);
-    };
-
-    const handleEditOptionChange = (index: number, value: string) => {
-        const next = [...editOptions];
-        next[index] = { ...next[index], text: value };
-        setEditOptions(next);
-    };
-
-    const handleEditSetCorrect = (index: number) => {
-        setEditOptions(editOptions.map((opt, i) => ({ ...opt, isCorrect: i === index })));
-    };
-
-    const handleAddEditOption = () => {
-        setEditOptions([...editOptions, { text: "", isCorrect: false }]);
-    };
-
-    const handleRemoveEditOption = (index: number) => {
-        if (editOptions.length <= 2) {
-            toast.error("A question must have at least 2 options");
-            return;
+        if (result.status === "error") {
+          setItems(previous);
+          toast.error(result.message);
+          return;
         }
-        setEditOptions(editOptions.filter((_, i) => i !== index));
-    };
+        toast.success("Question order saved");
+        router.refresh();
+      } catch {
+        setItems(previous);
+        toast.error("Couldn't save the new question order. Please try again.");
+      }
+    });
+  }
 
-    const handleSaveEdit = () => {
-        if (!editing) return;
-        if (!editQuestion.trim()) {
-            toast.error("Question text is required");
-            return;
-        }
-        if (editOptions.some((o) => !o.text.trim())) {
-            toast.error("All options must have text");
-            return;
-        }
-        if (editOptions.filter((o) => o.isCorrect).length !== 1) {
-            toast.error("Exactly one option must be marked correct");
-            return;
-        }
-
-        startTransition(async () => {
-            try {
-                const result = await updateQuestion(editing.id, {
-                    question: editQuestion.trim(),
-                    points: editPoints,
-                    options: editOptions.map((o) => ({ id: o.id, text: o.text.trim(), isCorrect: o.isCorrect })),
-                });
-                if (!result.success) {
-                    toast.error(result.error ?? "Failed to update question");
-                    return;
-                }
-                toast.success("Question updated");
-                closeEdit();
-                router.refresh();
-            } catch {
-                toast.error("Failed to update question");
-            }
-        });
-    };
-
-    if (questions.length === 0) {
-        return (
-            <div className="text-center py-8 text-muted-foreground">
-                No questions added yet.
-            </div>
-        );
+  async function handleDelete(questionId: string) {
+    try {
+      const result = await deleteQuestion(questionId);
+      if (result.status === "error") {
+        toast.error(result.message);
+        return false;
+      }
+      toast.success("Question deleted");
+      setItems((current) => current.filter((q) => q.id !== questionId));
+      router.refresh();
+    } catch {
+      toast.error("Couldn't delete the question. Please try again.");
+      return false;
     }
+  }
 
+  if (items.length === 0) {
     return (
-        <div className="space-y-4">
-            {questions.map((q, qIndex) => (
-                <Card key={q.id}>
-                    <CardContent className="p-4 space-y-4">
-                        <div className="flex items-start justify-between gap-4">
-                            <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                    <Badge variant="outline">Q{qIndex + 1}</Badge>
-                                    <span className="font-medium text-lg">{q.question}</span>
-                                </div>
-                                <p className="text-sm text-muted-foreground">{q.points} Points</p>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    title="Edit question"
-                                    onClick={() => openEdit(q)}
-                                    disabled={pending}
-                                >
-                                    <Pencil className="size-4" />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                    onClick={() => handleDelete(q.id)}
-                                    disabled={pending}
-                                    title="Delete question"
-                                >
-                                    <Trash2 className="size-4" />
-                                </Button>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pl-4 border-l-2 border-muted">
-                            {q.options.map((opt) => (
-                                <div
-                                    key={opt.id}
-                                    className={cn(
-                                        "p-2 rounded text-sm border flex items-center justify-between",
-                                        opt.isCorrect ? "bg-green-500/10 border-green-500/50 text-green-700 dark:text-green-400" : "bg-muted/50 border-transparent text-muted-foreground"
-                                    )}
-                                >
-                                    <span>{opt.text}</span>
-                                    {opt.isCorrect && <Badge className="bg-green-500 hover:bg-green-600 h-5 text-[10px]">Correct</Badge>}
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            ))}
-
-            <Dialog open={!!editing} onOpenChange={(open) => !open && closeEdit()}>
-                <DialogContent className="max-w-xl">
-                    <DialogHeader>
-                        <DialogTitle>Edit Question</DialogTitle>
-                        <DialogDescription>
-                            Update the question text, points, and options.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label>Question Text</Label>
-                            <Input
-                                value={editQuestion}
-                                onChange={(e) => setEditQuestion(e.target.value)}
-                                placeholder="e.g. What is the capital of France?"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Points</Label>
-                            <Input
-                                type="number"
-                                min={1}
-                                value={editPoints}
-                                onChange={(e) => setEditPoints(Number(e.target.value))}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Options</Label>
-                            <div className="space-y-2">
-                                {editOptions.map((option, index) => (
-                                    <div key={index} className="flex items-center gap-2">
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            className={cn("shrink-0", option.isCorrect ? "text-green-500 hover:text-green-600" : "text-muted-foreground")}
-                                            onClick={() => handleEditSetCorrect(index)}
-                                            title="Mark as correct answer"
-                                        >
-                                            {option.isCorrect ? <CheckCircle2 className="size-5" /> : <Circle className="size-5" />}
-                                        </Button>
-                                        <Input
-                                            value={option.text}
-                                            onChange={(e) => handleEditOptionChange(index, e.target.value)}
-                                            placeholder={`Option ${index + 1}`}
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            className="shrink-0 text-destructive hover:text-destructive"
-                                            onClick={() => handleRemoveEditOption(index)}
-                                        >
-                                            <Trash2 className="size-4" />
-                                        </Button>
-                                    </div>
-                                ))}
-                            </div>
-                            <Button type="button" variant="outline" size="sm" onClick={handleAddEditOption} className="mt-2">
-                                <PlusIcon className="size-3 mr-2" /> Add Option
-                            </Button>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={closeEdit}>Cancel</Button>
-                        <Button onClick={handleSaveEdit} disabled={pending}>
-                            {pending ? "Saving…" : "Save changes"}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </div>
+      <EmptyState
+        icon={ListChecks}
+        titleAs="h3"
+        title="No questions yet"
+        description="Add your first multiple choice question, or generate questions from the lesson transcript."
+        action={emptyAction}
+      />
     );
+  }
+
+  const canReorder = items.length > 1;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+        <p>
+          {items.length} question{items.length === 1 ? "" : "s"} ·{" "}
+          {items.reduce((sum, q) => sum + q.points, 0)} total points
+        </p>
+        {canReorder && (
+          <p className="flex items-center gap-1.5" aria-live="polite">
+            {reorderPending ? (
+              <>
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                Saving order…
+              </>
+            ) : (
+              "Drag the handle (or focus it and use the arrow keys) to reorder."
+            )}
+          </p>
+        )}
+      </div>
+
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+        onDragEnd={handleDragEnd}
+        accessibility={{ announcements }}
+      >
+        <SortableContext items={items.map((q) => q.id)} strategy={verticalListSortingStrategy}>
+          <ol className="space-y-3">
+            {items.map((q, index) => (
+              <SortableQuestionCard
+                key={q.id}
+                question={q}
+                number={index + 1}
+                canReorder={canReorder}
+                reorderDisabled={reorderPending}
+                isLastPublished={isPublished && items.length === 1}
+                onEdit={() => setEditing(q)}
+                onDelete={() => handleDelete(q.id)}
+              />
+            ))}
+          </ol>
+        </SortableContext>
+      </DndContext>
+
+      <QuestionForm
+        quizId={quizId}
+        question={editing}
+        open={!!editing}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null);
+        }}
+      />
+    </div>
+  );
+}
+
+interface SortableQuestionCardProps {
+  question: Question;
+  number: number;
+  canReorder: boolean;
+  reorderDisabled: boolean;
+  isLastPublished: boolean;
+  onEdit: () => void;
+  onDelete: () => Promise<boolean | void>;
+}
+
+function SortableQuestionCard({
+  question,
+  number,
+  canReorder,
+  reorderDisabled,
+  isLastPublished,
+  onEdit,
+  onDelete,
+}: SortableQuestionCardProps) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
+    useSortable({ id: question.id, disabled: !canReorder || reorderDisabled });
+
+  const style = { transform: CSS.Transform.toString(transform), transition };
+  const options = [...question.options].sort((a, b) => a.position - b.position);
+  const label = excerpt(question.question);
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "rounded-xl border bg-card p-3 sm:p-4",
+        isDragging && "relative z-10 shadow-lg ring-2 ring-primary/40"
+      )}
+    >
+      <div className="flex items-start gap-2 sm:gap-3">
+        {canReorder && (
+          <Button
+            ref={setActivatorNodeRef}
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-10 shrink-0 cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
+            aria-label={`Reorder question ${number}: ${label}`}
+            disabled={reorderDisabled}
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="size-4" aria-hidden="true" />
+          </Button>
+        )}
+
+        <div className="min-w-0 flex-1 space-y-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline" aria-hidden="true">
+                  Q{number}
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  {question.points} point{question.points === 1 ? "" : "s"}
+                </span>
+              </div>
+              <h3 className="font-medium break-words whitespace-pre-wrap">
+                <span className="sr-only">Question {number}: </span>
+                {question.question}
+              </h3>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-1 self-end sm:self-start">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-10"
+                onClick={onEdit}
+                aria-label={`Edit question ${number}`}
+                title="Edit question"
+              >
+                <Pencil className="size-4" aria-hidden="true" />
+              </Button>
+              <ConfirmDialog
+                title={`Delete question ${number}?`}
+                description={
+                  isLastPublished
+                    ? "This is the only question in a published quiz. Unpublish the quiz first, or add another question before deleting this one."
+                    : "The question and its options are removed from the quiz. Past attempts keep their recorded scores. This can't be undone."
+                }
+                confirmLabel="Delete question"
+                destructive
+                onConfirm={onDelete}
+                trigger={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-10 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                    aria-label={`Delete question ${number}`}
+                    title="Delete question"
+                  >
+                    <Trash2 className="size-4" aria-hidden="true" />
+                  </Button>
+                }
+              />
+            </div>
+          </div>
+
+          <ol className="grid grid-cols-1 gap-2 md:grid-cols-2" aria-label={`Options for question ${number}`}>
+            {options.map((opt, optIndex) => (
+              <li
+                key={opt.id}
+                className={cn(
+                  "flex min-w-0 items-start gap-2 rounded-lg border px-3 py-2 text-sm",
+                  opt.isCorrect ? "border-primary/50 bg-primary/5" : "border-transparent bg-muted/50"
+                )}
+              >
+                <span className="shrink-0 font-medium text-muted-foreground" aria-hidden="true">
+                  {String.fromCharCode(65 + (optIndex % 26))}.
+                </span>
+                <span className="min-w-0 flex-1 break-words">{opt.text}</span>
+                {opt.isCorrect && (
+                  <Badge variant="outline" className="shrink-0 border-primary/50 text-primary">
+                    <CheckCircle2 aria-hidden="true" />
+                    Correct
+                  </Badge>
+                )}
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+    </li>
+  );
 }

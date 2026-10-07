@@ -1,91 +1,117 @@
-
-import { auth } from "@/lib/auth";
+import type { Metadata } from "next";
+import Link from "next/link";
 import { headers } from "next/headers";
-import { prisma } from "@/lib/db";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User } from "lucide-react";
 import { redirect } from "next/navigation";
+import { Headset, User } from "lucide-react";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { PageHeader } from "@/components/general/PageHeader";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageContainer } from "../_components/PageContainer";
 import { SettingsForm } from "./_components/SettingsForm";
 
-export const metadata = {
-    title: "Settings | Dashboard",
-    description: "Manage your profile and preferences",
+export const metadata: Metadata = {
+  title: "Settings",
+  description: "Manage your profile and preferences",
 };
 
 async function getStudentProfile() {
-    const session = await auth.api.getSession({
-        headers: await headers(),
-    });
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-    if (!session) return null;
+  if (!session) return null;
 
-    const user = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-        },
-    });
-
-    return user;
+  return prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+    },
+  });
 }
 
 export default async function StudentSettingsPage() {
-    const profile = await getStudentProfile();
+  const profile = await getStudentProfile();
 
-    if (!profile) {
-        redirect("/login");
-    }
+  if (!profile) {
+    redirect("/login");
+  }
 
-    const initials = profile?.name
-        ?.split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase() || "S";
+  const initials =
+    profile.name
+      ?.split(" ")
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "S";
 
-    return (
-        <div className="space-y-6">
+  return (
+    <PageContainer width="medium">
+      <PageHeader title="Settings" description="Manage your profile and preferences." />
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-full bg-primary/10" aria-hidden="true">
+              <User className="size-5 text-primary" />
+            </div>
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-                <p className="text-muted-foreground mt-2">
-                    Manage your profile and preferences.
-                </p>
+              <CardTitle>
+                <h2 className="text-lg font-semibold">Profile</h2>
+              </CardTitle>
+              <CardDescription>Your personal information</CardDescription>
             </div>
-
-            <div className="grid gap-6 max-w-4xl">
-                {/* Profile Settings */}
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                <User className="h-5 w-5 text-primary" />
-                            </div>
-                            <div>
-                                <CardTitle>Profile</CardTitle>
-                                <CardDescription>Your personal information</CardDescription>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="flex items-center gap-4">
-                            <Avatar className="h-20 w-20">
-                                <AvatarImage src={profile?.image || undefined} alt={profile?.name || "Student"} />
-                                <AvatarFallback className="text-xl">{initials}</AvatarFallback>
-                            </Avatar>
-                        </div>
-
-                        <SettingsForm
-                            initialData={{
-                                name: profile.name,
-                                email: profile.email
-                            }}
-                        />
-                    </CardContent>
-                </Card>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Avatar className="size-16 sm:size-20">
+              <AvatarImage src={profile.image || undefined} alt="" />
+              <AvatarFallback className="text-xl" aria-hidden="true">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="font-medium break-words">{profile.name}</p>
+              <p className="text-sm break-all text-muted-foreground">{profile.email}</p>
             </div>
-        </div>
-    );
+          </div>
+
+          <SettingsForm
+            initialData={{
+              name: profile.name,
+              email: profile.email,
+            }}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-full bg-primary/10" aria-hidden="true">
+              <Headset className="size-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle>
+                <h2 className="text-lg font-semibold">Need help with your account?</h2>
+              </CardTitle>
+              <CardDescription>Email changes and account issues are handled by our support team.</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Button variant="outline" size="lg" asChild>
+            <Link href="/dashboard/support/new">Contact support</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </PageContainer>
+  );
 }

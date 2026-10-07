@@ -1,14 +1,13 @@
 import { getCommunity, getPosts } from "@/app/actions/community";
-import { notFound } from "next/navigation";
 import { TeacherCommunityForum } from "@/components/community/TeacherCommunityForum";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+
+export const metadata: Metadata = { title: "Community forum" };
 
 export const dynamic = "force-dynamic";
 
-export default async function TeacherCommunityForumPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export default async function TeacherCommunityForumPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const community = await getCommunity(slug);
 
@@ -18,7 +17,6 @@ export default async function TeacherCommunityForumPage({
   }
 
   const posts = await getPosts(community.id);
-  const forumBasePath = `/teacher/communities/${slug}/forum`;
 
   return (
     <TeacherCommunityForum
@@ -31,7 +29,7 @@ export default async function TeacherCommunityForumPage({
         _count: community._count,
       }}
       posts={posts}
-      forumBasePath={forumBasePath}
+      forumBasePath={`/teacher/communities/${community.slug}/forum`}
     />
   );
 }

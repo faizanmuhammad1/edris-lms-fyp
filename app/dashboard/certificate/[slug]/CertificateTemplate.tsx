@@ -422,7 +422,8 @@ export function CertificateTemplate({
         .meta-label,
         .meta-value {
           font-family: var(--font-montserrat), system-ui, sans-serif;
-          font-size: 10px;
+          /* Scales with the certificate (10px at full size) so narrow screens don't crop the footer. */
+          font-size: clamp(3px, 1cqw, 10px);
           color: #666;
           line-height: 1.2;
           letter-spacing: 0.03em;

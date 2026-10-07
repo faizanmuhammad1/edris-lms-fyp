@@ -188,3 +188,31 @@ export async function getRecipientCount(
   const recipients = await getRecipientsForAudience(audienceType, payload);
   return recipients.length;
 }
+
+/**
+ * How many recipients a resend of a partially sent campaign would reach: its
+ * stored audience minus addresses already recorded as Sent. Read-only mirror of
+ * sendCampaign's retry filtering, used for the confirmation prompt.
+ * Returns null when the campaign does not exist and 0 once it is fully sent.
+ */
+export async function getUnsentRecipientCount(campaignId: string): Promise<number | null> {
+  await requireAdmin();
+
+  const campaign = await prisma.mailCampaign.findUnique({
+    where: { id: campaignId },
+    select: { sentAt: true, audienceType: true, audiencePayload: true },
+  });
+  if (!campaign) return null;
+  if (campaign.sentAt) return 0;
+
+  const previouslySent = await prisma.mailRecipient.findMany({
+    where: { mailCampaignId: campaignId, status: "Sent" },
+    select: { email: true },
+  });
+  const alreadySent = new Set(previouslySent.map((r) => r.email.toLowerCase()));
+  const recipients = await getRecipientsForAudience(
+    campaign.audienceType,
+    (campaign.audiencePayload as AudiencePayload | null) ?? undefined
+  );
+  return recipients.filter((r) => !alreadySent.has(r.email.toLowerCase())).length;
+}

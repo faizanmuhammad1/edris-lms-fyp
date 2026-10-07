@@ -1,13 +1,20 @@
-import { EmptyState } from "@/components/general/EmptyState";
-import { CourseProgressCard } from "../_components/CourseProgressCard";
-import {
-  EnrolledCourseType,
-  getEnrolledCourses,
-} from "@/app/data/user/get-enrolled-courses";
-import { auth } from "@/lib/auth";
+import type { Metadata } from "next";
+import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { BookOpen, Compass } from "lucide-react";
+import { EmptyState } from "@/components/general/EmptyState";
+import { PageHeader } from "@/components/general/PageHeader";
+import { Button } from "@/components/ui/button";
+import { getEnrolledCourses } from "@/app/data/user/get-enrolled-courses";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { CourseProgressCard } from "../_components/CourseProgressCard";
+import { PageContainer } from "../_components/PageContainer";
+
+export const metadata: Metadata = {
+  title: "My Courses",
+};
 
 export default async function StudentCoursesPage() {
   const session = await auth.api.getSession({
@@ -30,39 +37,46 @@ export default async function StudentCoursesPage() {
   }
 
   const enrolledCourses = await getEnrolledCourses();
-
-  const sortedCourses: EnrolledCourseType[] = [...enrolledCourses].sort((a, b) =>
+  const sortedCourses = [...enrolledCourses].sort((a, b) =>
     a.Course.title.localeCompare(b.Course.title)
   );
 
   return (
-    <>
-      <section className="mb-6">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold">My courses</h1>
-          <p className="text-muted-foreground">
-            All courses you&apos;ve purchased, with progress for each one.
-          </p>
-        </div>
-      </section>
+    <PageContainer>
+      <PageHeader
+        title="My courses"
+        description="Every course you're enrolled in, with your progress in each."
+        actions={
+          sortedCourses.length > 0 ? (
+            <Button variant="outline" size="lg" asChild>
+              <Link href="/courses">
+                <Compass aria-hidden="true" />
+                Browse courses
+              </Link>
+            </Button>
+          ) : undefined
+        }
+      />
 
       {sortedCourses.length === 0 ? (
         <EmptyState
+          icon={BookOpen}
           title="No courses yet"
-          description="You haven&apos;t enrolled in any courses. Browse the catalog to get started."
+          description="You haven't enrolled in any courses. Browse the catalog to find your first one."
           buttonText="Browse courses"
           href="/courses"
         />
       ) : (
-        <section className="mt-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <section aria-label="Enrolled courses">
+          <ul className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
             {sortedCourses.map((course) => (
-              <CourseProgressCard key={course.Course.id} data={course} />
+              <li key={course.Course.id} className="flex">
+                <CourseProgressCard data={course} headingLevel="h2" />
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
       )}
-    </>
+    </PageContainer>
   );
 }
-

@@ -1,23 +1,32 @@
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
 import {
   IconUsers,
   IconBook,
   IconCurrencyDollar,
   IconSchool,
-  IconUserPlus,
   IconAlertTriangle,
   IconChevronRight,
-  IconTrendingUp,
+  IconChartBar,
+  IconMail,
+  IconListDetails,
+  IconShoppingCart,
 } from "@tabler/icons-react";
 import { format } from "date-fns";
 import { requireAdmin } from "@/app/data/admin/require-admin";
+import { adminGetEnrollmentStats } from "@/app/data/admin/admin-get-enrollment-stats";
+import { PageHeader } from "@/components/general/PageHeader";
+import { ChartAreaInteractive } from "@/components/sidebar/chart-area-interactive";
+import { StatCard, StatGrid } from "./_components/StatCard";
+import { StatusBadge, type BadgeTone } from "./_components/StatusBadge";
+import { formatCents, formatNumber, getInitials, pluralize } from "./_lib/format";
+import { cn } from "@/lib/utils";
 
 export const metadata = {
-  title: "Admin Dashboard | Edris LMS",
+  title: "Admin · Dashboard",
 };
 
 async function getAdminDashboardData() {
@@ -29,24 +38,24 @@ async function getAdminDashboardData() {
     newUsersThisMonth,
     totalCourses,
     publishedCourses,
-    totalEnrollments,
     activeEnrollments,
     totalRevenue,
     pendingTeachers,
     recentUsers,
     recentEnrollments,
+    enrollmentsByDay,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
     prisma.course.count(),
     prisma.course.count({ where: { status: "Published" } }),
-    prisma.enrollment.count(),
     prisma.enrollment.count({ where: { status: "Active" } }),
     prisma.enrollment.aggregate({
       where: { status: "Active" },
       _sum: { amount: true },
     }),
-    prisma.user.count({ where: { teacherStatus: "Pending" } }),
+    // Same definition as the Teachers page: banned applicants aren't awaiting review.
+    prisma.user.count({ where: { teacherStatus: "Pending", OR: [{ banned: false }, { banned: null }] } }),
     prisma.user.findMany({
       take: 5,
       orderBy: { createdAt: "desc" },
@@ -64,6 +73,7 @@ async function getAdminDashboardData() {
         Course: { select: { title: true } },
       },
     }),
+    adminGetEnrollmentStats(),
   ]);
 
   return {
@@ -71,235 +81,216 @@ async function getAdminDashboardData() {
     newUsersThisMonth,
     totalCourses,
     publishedCourses,
-    totalEnrollments,
     activeEnrollments,
-    totalRevenue: totalRevenue._sum.amount || 0,
+    // Stored in cents (Stripe amount_total).
+    totalRevenueCents: totalRevenue._sum.amount ?? 0,
     pendingTeachers,
     recentUsers,
     recentEnrollments,
+    enrollmentsByDay,
   };
 }
 
-function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(cents / 100);
-}
+const roleBadge: Record<string, { tone: BadgeTone; label: string }> = {
+  admin: { tone: "accent", label: "Admin" },
+  teacher: { tone: "info", label: "Teacher" },
+};
+
+const quickActions = [
+  { href: "/admin/teachers", label: "Review teacher applications", icon: IconSchool },
+  { href: "/admin/users", label: "Manage users", icon: IconUsers },
+  { href: "/admin/courses", label: "Manage courses", icon: IconListDetails },
+  { href: "/admin/mail/compose", label: "Send a mail campaign", icon: IconMail },
+  { href: "/admin/analytics", label: "Revenue & analytics", icon: IconChartBar },
+];
 
 export default async function AdminDashboardPage() {
   await requireAdmin();
   const data = await getAdminDashboardData();
+  const unpublished = data.totalCourses - data.publishedCourses;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        <p className="text-muted-foreground">Platform overview and key metrics</p>
-      </div>
+      <PageHeader title="Dashboard" description="Platform overview and key metrics." />
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription>Total Users</CardDescription>
-            <IconUsers className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-2xl">{data.totalUsers}</CardTitle>
-            <p className="text-xs text-green-600 flex items-center gap-1">
-              <IconTrendingUp className="h-3 w-3" />
-              +{data.newUsersThisMonth} this month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription>Total Revenue</CardDescription>
-            <IconCurrencyDollar className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-2xl">{formatCurrency(data.totalRevenue)}</CardTitle>
-            <p className="text-xs text-muted-foreground">
-              From {data.activeEnrollments} enrollments
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription>Courses</CardDescription>
-            <IconBook className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-2xl">{data.totalCourses}</CardTitle>
-            <p className="text-xs text-muted-foreground">
-              {data.publishedCourses} published
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription>Pending Teachers</CardDescription>
-            <IconSchool className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-2xl">{data.pendingTeachers}</CardTitle>
-            {data.pendingTeachers > 0 && (
-              <Link href="/admin/teachers" className="text-xs text-primary hover:underline">
-                Review applications →
-              </Link>
-            )}
-            {data.pendingTeachers === 0 && (
-              <p className="text-xs text-muted-foreground">No pending applications</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Alerts Section */}
       {data.pendingTeachers > 0 && (
-        <Card className="border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20">
-          <CardContent className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-3">
-              <IconAlertTriangle className="h-5 w-5 text-amber-600" />
-              <span className="font-medium">
-                {data.pendingTeachers} teacher application{data.pendingTeachers > 1 ? "s" : ""} pending review
-              </span>
-            </div>
-            <Button asChild size="sm" variant="outline">
-              <Link href="/admin/teachers">Review Now</Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col gap-3 rounded-xl border border-amber-500/40 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:bg-amber-950/30">
+          <div className="flex items-start gap-3">
+            <IconAlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden="true" />
+            <p className="text-sm font-medium">
+              {pluralize(data.pendingTeachers, "teacher application")} waiting for review.
+            </p>
+          </div>
+          <Link
+            href="/admin/teachers"
+            className={buttonVariants({ variant: "outline", className: "w-full sm:w-auto" })}
+          >
+            Review applications
+          </Link>
+        </div>
       )}
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="hover:border-primary/50 transition-colors">
-          <Link href="/admin/teachers">
-            <CardContent className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-3">
-                <IconSchool className="h-5 w-5 text-primary" />
-                <span className="font-medium">View Pending Teachers</span>
-              </div>
-              <IconChevronRight className="h-5 w-5 text-muted-foreground" />
-            </CardContent>
-          </Link>
-        </Card>
+      <section aria-labelledby="kpi-heading">
+        <h2 id="kpi-heading" className="sr-only">
+          Key figures
+        </h2>
+        <StatGrid>
+          <StatCard
+            label="Total users"
+            value={formatNumber(data.totalUsers)}
+            icon={IconUsers}
+            href="/admin/users"
+            description={
+              data.newUsersThisMonth > 0
+                ? `+${formatNumber(data.newUsersThisMonth)} joined in the last 30 days`
+                : "No new sign-ups in the last 30 days"
+            }
+          />
+          <StatCard
+            label="Total revenue"
+            value={formatCents(data.totalRevenueCents)}
+            icon={IconCurrencyDollar}
+            tone="success"
+            href="/admin/analytics"
+            description={`From ${pluralize(data.activeEnrollments, "active enrollment")}`}
+          />
+          <StatCard
+            label="Courses"
+            value={formatNumber(data.totalCourses)}
+            icon={IconBook}
+            tone="info"
+            href="/admin/courses"
+            description={`${formatNumber(data.publishedCourses)} published · ${formatNumber(unpublished)} not published`}
+          />
+          <StatCard
+            label="Pending teachers"
+            value={formatNumber(data.pendingTeachers)}
+            icon={IconSchool}
+            tone={data.pendingTeachers > 0 ? "warning" : "neutral"}
+            href="/admin/teachers"
+            description={data.pendingTeachers > 0 ? "Awaiting your review" : "No pending applications"}
+          />
+        </StatGrid>
+      </section>
 
-        <Card className="hover:border-primary/50 transition-colors">
-          <Link href="/admin/analytics">
-            <CardContent className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-3">
-                <IconCurrencyDollar className="h-5 w-5 text-primary" />
-                <span className="font-medium">View Recent Enrollments</span>
-              </div>
-              <IconChevronRight className="h-5 w-5 text-muted-foreground" />
-            </CardContent>
-          </Link>
-        </Card>
+      <div className="grid min-w-0 gap-6 lg:grid-cols-3">
+        <div className="min-w-0 lg:col-span-2">
+          <ChartAreaInteractive data={data.enrollmentsByDay} title="New enrollments" />
+        </div>
 
-        <Card className="hover:border-primary/50 transition-colors">
-          <Link href="/admin/analytics">
-            <CardContent className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-3">
-                <IconTrendingUp className="h-5 w-5 text-primary" />
-                <span className="font-medium">Open Analytics</span>
-              </div>
-              <IconChevronRight className="h-5 w-5 text-muted-foreground" />
-            </CardContent>
-          </Link>
+        <Card className="min-w-0 gap-4">
+          <CardHeader>
+            <CardTitle className="text-base">
+              <h2>Quick actions</h2>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-3 sm:px-4">
+            <nav aria-label="Quick actions">
+              <ul className="space-y-1">
+                {quickActions.map((action) => (
+                  <li key={action.href}>
+                    <Link
+                      href={action.href}
+                      className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <action.icon className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                      <span className="min-w-0 flex-1 truncate">{action.label}</span>
+                      <IconChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </CardContent>
         </Card>
       </div>
 
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Users */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Recent Users</CardTitle>
+      <div className="grid min-w-0 gap-6 lg:grid-cols-2">
+        <Card className="min-w-0 gap-4">
+          <CardHeader className="flex flex-row items-start justify-between gap-2">
+            <div className="min-w-0 space-y-1.5">
+              <CardTitle className="text-base">
+                <h2>Recent users</h2>
+              </CardTitle>
               <CardDescription>Newest registrations</CardDescription>
             </div>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/admin/users">View all</Link>
-            </Button>
+            <Link href="/admin/users" className={buttonVariants({ variant: "ghost", size: "sm", className: "h-9 shrink-0" })}>
+              View all<span className="sr-only"> users</span>
+            </Link>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {data.recentUsers.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No users yet</p>
-              ) : (
-                data.recentUsers.map((user) => (
-                  <div key={user.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-primary/10 p-2 rounded-full">
-                        <IconUserPlus className="h-4 w-4 text-primary" />
+            {data.recentUsers.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No users yet.</p>
+            ) : (
+              <ul className="divide-y">
+                {data.recentUsers.map((user) => {
+                  const badge = roleBadge[user.role ?? ""] ?? { tone: "neutral" as const, label: "Student" };
+                  return (
+                    <li key={user.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                      <Avatar className="size-9 shrink-0">
+                        <AvatarFallback className="bg-primary/10 text-xs font-medium text-primary">
+                          {getInitials(user.name || user.email)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{user.name || user.email}</p>
+                        <p className="truncate text-xs text-muted-foreground">{user.email}</p>
                       </div>
-                      <div>
-                        <p className="font-medium text-sm">{user.name}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>
+                        <time dateTime={new Date(user.createdAt).toISOString()} className="text-xs text-muted-foreground">
+                          {format(new Date(user.createdAt), "MMM d")}
+                        </time>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <Badge variant="secondary" className="text-xs">
-                        {user.role || "student"}
-                      </Badge>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {format(new Date(user.createdAt), "MMM d")}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </CardContent>
         </Card>
 
-        {/* Recent Enrollments */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Recent Enrollments</CardTitle>
+        <Card className="min-w-0 gap-4">
+          <CardHeader className="flex flex-row items-start justify-between gap-2">
+            <div className="min-w-0 space-y-1.5">
+              <CardTitle className="text-base">
+                <h2>Recent enrollments</h2>
+              </CardTitle>
               <CardDescription>Latest course purchases</CardDescription>
             </div>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/admin/analytics">View all</Link>
-            </Button>
+            <Link href="/admin/analytics" className={buttonVariants({ variant: "ghost", size: "sm", className: "h-9 shrink-0" })}>
+              View all<span className="sr-only"> purchases</span>
+            </Link>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {data.recentEnrollments.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No enrollments yet</p>
-              ) : (
-                data.recentEnrollments.map((enrollment) => (
-                  <div key={enrollment.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-green-500/10 p-2 rounded-full">
-                        <IconCurrencyDollar className="h-4 w-4 text-green-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">{enrollment.User.name}</p>
-                        <p className="text-xs text-muted-foreground truncate max-w-[180px]">
-                          {enrollment.Course.title}
-                        </p>
-                      </div>
+            {data.recentEnrollments.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No enrollments yet.</p>
+            ) : (
+              <ul className="divide-y">
+                {data.recentEnrollments.map((enrollment) => (
+                  <li key={enrollment.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/10">
+                      <IconShoppingCart className="size-4 text-emerald-700 dark:text-emerald-400" aria-hidden="true" />
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium text-sm text-green-600">
-                        {formatCurrency(enrollment.amount)}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{enrollment.User.name || enrollment.User.email}</p>
+                      <p className="truncate text-xs text-muted-foreground">{enrollment.Course.title}</p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <p className={cn("text-sm font-medium tabular-nums", enrollment.amount > 0 && "text-emerald-700 dark:text-emerald-400")}>
+                        {enrollment.amount > 0 ? formatCents(enrollment.amount) : "Free"}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <time
+                        dateTime={new Date(enrollment.createdAt).toISOString()}
+                        className="text-xs text-muted-foreground"
+                      >
                         {format(new Date(enrollment.createdAt), "MMM d")}
-                      </p>
+                      </time>
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
       </div>

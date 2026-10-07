@@ -1,19 +1,8 @@
 "use client";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/general/ConfirmDialog";
 import { Button } from "@/components/ui/button";
-import { Trash2, Loader2 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { Trash2 } from "lucide-react";
 import { tryCatch } from "@/hooks/try-catch";
 import { deleteTeacherLesson } from "../actions";
 import { toast } from "sonner";
@@ -22,61 +11,60 @@ export function TeacherDeleteLesson({
   chapterId,
   courseId,
   lessonId,
+  lessonTitle,
 }: {
   chapterId: string;
   courseId: string;
   lessonId: string;
+  lessonTitle?: string;
 }) {
-  const [open, setOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
+  async function onConfirm() {
+    const { data: result, error } = await tryCatch(
+      deleteTeacherLesson({ chapterId, courseId, lessonId })
+    );
 
-  async function onSubmit() {
-    startTransition(async () => {
-      const { data: result, error } = await tryCatch(
-        deleteTeacherLesson({ chapterId, courseId, lessonId })
-      );
+    if (error || !result) {
+      toast.error("We couldn't delete the lesson. Please try again.");
+      return false;
+    }
 
-      if (error) {
-        toast.error("An unexpected error occurred. Please try again.");
-        return;
-      }
+    if (result.status === "error") {
+      toast.error(result.message);
+      return false;
+    }
 
-      if (result.status === "success") {
-        toast.success(result.message);
-        setOpen(false);
-      } else if (result.status === "error") {
-        toast.error(result.message);
-      }
-    });
+    toast.success(result.message);
   }
+
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Trash2 className="size-4 text-destructive" />
+    <ConfirmDialog
+      title="Delete this lesson?"
+      description={
+        <div className="space-y-2 break-words">
+          <p>
+            This permanently deletes {lessonTitle ? `"${lessonTitle}"` : "this lesson"} with
+            its video, thumbnail, PDF and attachments.
+          </p>
+          <p>
+            Its quiz and quiz attempts, assignment and student submissions, comments and
+            student progress are deleted too. This can&apos;t be undone.
+          </p>
+        </div>
+      }
+      confirmLabel="Delete lesson"
+      destructive
+      onConfirm={onConfirm}
+      trigger={
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-10 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive md:size-9"
+          aria-label={lessonTitle ? `Delete lesson ${lessonTitle}` : "Delete lesson"}
+        >
+          <Trash2 className="size-4" aria-hidden="true" />
         </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete this
-            lesson.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onSubmit} disabled={pending}>
-            {pending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Deleting...
-              </>
-            ) : "Delete"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      }
+    />
   );
 }
-

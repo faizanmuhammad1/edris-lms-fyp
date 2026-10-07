@@ -1,67 +1,106 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
-
 import { EnrolledCourseType } from "@/app/data/user/get-enrolled-courses";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-
 import { useConstructUrl } from "@/hooks/use-construct-url";
-import { useCourseProgress } from "@/hooks/use-course-progress";
-
+import { cn } from "@/lib/utils";
+import { ArrowRight, CheckCircle2, Clock } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { getCourseProgress, progressLabel } from "./progress-utils";
 
 interface iAppProps {
   data: EnrolledCourseType;
+  /** Wide, side-by-side layout used for the "Continue learning" highlight. */
+  featured?: boolean;
+  /** Heading level for the course title (h2 when the card is not inside a titled section). */
+  headingLevel?: "h2" | "h3";
 }
 
-export function CourseProgressCard({ data }: iAppProps) {
-  const thumbnailUrl = useConstructUrl(data.Course.fileKey);
-  const { totalLessons, completedLessons, progressPercentage } =
-    useCourseProgress({ courseData: data.Course as any });
+export function CourseProgressCard({ data, featured = false, headingLevel = "h3" }: iAppProps) {
+  const course = data.Course;
+  const thumbnailUrl = useConstructUrl(course.fileKey);
+  const { totalLessons, completedLessons, percentage } = getCourseProgress(course);
+  const Heading = headingLevel;
+  const href = `/dashboard/${course.slug}`;
+  const status = progressLabel(percentage);
+  const cta = percentage >= 100 ? "Review course" : percentage > 0 ? "Continue learning" : "Start course";
+
   return (
-    <Card className="group relative py-0 gap-0">
-      <Badge className="absolute top-2 right-2 z-10">{data.Course.level}</Badge>
+    <Card
+      className={cn(
+        "group relative w-full gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md has-[a:focus-visible]:ring-[3px] has-[a:focus-visible]:ring-ring/50",
+        featured && "md:flex-row"
+      )}
+    >
+      <div
+        className={cn(
+          "relative aspect-video w-full shrink-0 bg-muted",
+          featured && "md:aspect-auto md:min-h-56 md:w-2/5"
+        )}
+      >
+        <Image
+          fill
+          sizes={featured ? "(min-width: 768px) 40vw, 100vw" : "(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"}
+          className="object-cover"
+          src={thumbnailUrl}
+          alt=""
+        />
+        <Badge className="absolute top-3 right-3" variant="secondary">
+          {course.level}
+        </Badge>
+      </div>
 
-      <Image
-        width={600}
-        height={400}
-        className="w-full rounded-t-xl aspect-video h-full object-cover"
-        src={thumbnailUrl}
-        alt="Thumbail Image of Course"
-      />
+      <CardContent className="flex flex-1 flex-col gap-4 p-4 sm:p-5">
+        <div className="space-y-2">
+          <Heading className={cn("font-semibold leading-snug break-words", featured ? "text-xl" : "text-lg")}>
+            {/* Stretched link: the whole card is clickable with a single tab stop. */}
+            <Link
+              href={href}
+              className="line-clamp-2 outline-none after:absolute after:inset-0 after:content-[''] hover:text-primary"
+              title={course.title}
+            >
+              {course.title}
+            </Link>
+          </Heading>
+          {course.smallDescription && (
+            <p className="line-clamp-2 text-sm text-muted-foreground">{course.smallDescription}</p>
+          )}
+        </div>
 
-      <CardContent className="p-4">
-        <Link
-          className="font-medium text-lg line-clamp-2 hover:underline group-hover:text-primary transition-colors"
-          href={`/dashboard/${data.Course.slug}`}
-        >
-          {data.Course.title}
-        </Link>
-        <p className="line-clamp-2 text-sm text-muted-foreground leading-tight mt-2">
-          {data.Course.smallDescription}
-        </p>
-
-        <div className="space-y-4 mt-5">
-          <div className="flex justify-between mb-1 text-sm">
-            <p>Progress:</p>
-            <p className="font-medium">{progressPercentage}%</p>
+        <div className="mt-auto space-y-2">
+          <div className="flex items-center justify-between gap-2 text-sm">
+            <span className="inline-flex items-center gap-1.5 font-medium">
+              {percentage >= 100 ? (
+                <CheckCircle2 className="size-4 text-primary" aria-hidden="true" />
+              ) : (
+                <Clock className="size-4 text-muted-foreground" aria-hidden="true" />
+              )}
+              {status}
+            </span>
+            <span className="font-medium tabular-nums">{percentage}%</span>
           </div>
-          <Progress value={progressPercentage} className="h-1.5" />
-
-          <p className="text-xs text-muted-foreground mt-1">
+          <Progress
+            value={percentage}
+            className="h-2"
+            aria-label={`${course.title} progress`}
+          />
+          <p className="text-xs text-muted-foreground">
             {completedLessons} of {totalLessons} lessons completed
           </p>
         </div>
 
-        <Link
-          href={`/dashboard/${data.Course.slug}`}
-          className={buttonVariants({ className: "w-full mt-4" })}
+        <span
+          aria-hidden="true"
+          className={buttonVariants({
+            size: "lg",
+            className: "pointer-events-none w-full group-hover:bg-primary-hover",
+          })}
         >
-          {progressPercentage === 100 ? "Watch Again" : "Continue Watching"}
-        </Link>
+          {cta}
+          <ArrowRight aria-hidden="true" />
+        </span>
       </CardContent>
     </Card>
   );

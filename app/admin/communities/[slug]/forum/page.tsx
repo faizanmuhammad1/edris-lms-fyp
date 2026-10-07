@@ -1,9 +1,14 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { getCommunity, getPosts } from "@/app/actions/community";
 import { requireAdmin } from "@/app/data/admin/require-admin";
-import { notFound } from "next/navigation";
 import { AdminCommunityForum } from "@/components/community/AdminCommunityForum";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Admin · Community forum",
+};
 
 export default async function AdminCommunityForumPage({
   params,
@@ -19,7 +24,6 @@ export default async function AdminCommunityForumPage({
   }
 
   const posts = await getPosts(community.id);
-  const forumBasePath = `/admin/communities/${slug}/forum`;
 
   return (
     <AdminCommunityForum
@@ -32,7 +36,7 @@ export default async function AdminCommunityForumPage({
         _count: community._count,
       }}
       posts={posts}
-      forumBasePath={forumBasePath}
+      forumBasePath={`/admin/communities/${community.slug}/forum`}
     />
   );
 }

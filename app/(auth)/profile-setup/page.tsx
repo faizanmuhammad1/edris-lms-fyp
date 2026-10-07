@@ -3,6 +3,12 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { safeCallbackPath } from "@/lib/safe-redirect";
 import { ProfileSetupForm } from "./_components/ProfileSetupForm";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Complete your profile",
+    robots: { index: false, follow: false },
+};
 
 export default async function ProfileSetupPage(props: {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
