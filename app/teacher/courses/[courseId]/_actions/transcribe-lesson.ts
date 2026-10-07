@@ -2,64 +2,30 @@
 
 import { requireUser } from "@/app/data/user/require-user";
 import { prisma } from "@/lib/db";
-import { getTranscriptionVideoUrl, submitTranscriptionJob } from "@/lib/transcription";
+import { transcribeLessonVideo, type TranscriptionResult } from "@/lib/transcription";
 import { revalidatePath } from "next/cache";
 
-export async function transcribeLesson(lessonId: string, courseId: string) {
+/** Transcribes one lesson now (also used to retry). Runs within the page's maxDuration. */
+export async function transcribeLesson(lessonId: string, courseId: string): Promise<TranscriptionResult> {
     const session = await requireUser();
 
-    // 1. Fetch lesson and verify ownership (via course)
-    const lesson = await prisma.lesson.findUnique({
-        where: { id: lessonId },
-        include: {
-            Chapter: {
-                include: {
-                    Course: {
-                        select: { userId: true, id: true }
-                    }
-                }
-            }
-        }
+    // Verify ownership via the lesson's course.
+    const lesson = await prisma.lesson.findFirst({
+        where: { id: lessonId, Chapter: { Course: { id: courseId, userId: session.id } } },
+        select: { id: true, videoKey: true },
     });
 
-    if (!lesson || lesson.Chapter.Course.userId !== session.id) {
-        throw new Error("Lesson not found or unauthorized");
+    if (!lesson) {
+        return { success: false, error: "Lesson not found or unauthorized" };
     }
 
     if (!lesson.videoKey) {
-        throw new Error("Lesson has no video");
+        return { success: false, error: "This lesson has no video to transcribe." };
     }
 
     // FORCE RETRY: We do not check current status here because the user explicitly requested this action.
+    const result = await transcribeLessonVideo(lesson.id);
 
-    // Determine Webhook URL
-    const baseUrl = process.env.INTERNAL_WEBHOOK_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL;
-    if (!baseUrl) {
-        throw new Error("NEXT_PUBLIC_APP_URL or INTERNAL_WEBHOOK_URL is not defined");
-    }
-    const webhookUrl = `${baseUrl}/api/webhooks/transcription`;
-
-    try {
-        // Presigned GET URL on the configured S3 endpoint
-        const videoUrl = await getTranscriptionVideoUrl(lesson.videoKey);
-
-        await submitTranscriptionJob(
-            lesson.id,
-            lesson.Chapter.Course.id,
-            videoUrl,
-            webhookUrl
-        );
-
-        // Update status
-        await prisma.lesson.update({
-            where: { id: lesson.id },
-            data: { transcriptionStatus: "QUEUED" },
-        });
-
-        revalidatePath(`/teacher/courses/${courseId}/edit`);
-        return { success: true };
-    } catch (error) {
-        console.error("Failed to transcribe lesson:", error);
-        return { success: false, error: "Failed to submit job" };
-    }
+    revalidatePath(`/teacher/courses/${courseId}/edit`);
+    return result;
 }

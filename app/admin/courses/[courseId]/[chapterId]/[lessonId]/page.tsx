@@ -7,6 +7,9 @@ type Params = Promise<{
   lessonId: string;
 }>;
 
+// Video processing and Whisper transcription run in after() within this time limit.
+export const maxDuration = 60;
+
 export default async function LessonIdPage({ params }: { params: Params }) {
   const { chapterId, courseId, lessonId } = await params;
   const lesson = await adminGetLesson(lessonId);

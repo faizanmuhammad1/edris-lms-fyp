@@ -9,6 +9,9 @@ type Params = Promise<{
 
 export const dynamic = "force-dynamic";
 
+// Video processing and Whisper transcription run in after() within this time limit.
+export const maxDuration = 60;
+
 export default async function TeacherLessonPage({ params }: { params: Params }) {
   const { chapterId, courseId, lessonId } = await params;
   const lesson = await getTeacherLesson(lessonId);

@@ -50,7 +50,7 @@ async function authMiddleware(request: NextRequest) {
 export const config = {
   // Skip static assets, public files, and server-to-server endpoints (webhooks, one-click unsubscribe)
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/auth|api/certificates|certificates/render|api/webhooks/mux|api/webhooks/transcription|api/webhook/stripe|unsubscribe/one-click|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|txt|html|woff2?)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/auth|api/certificates|certificates/render|api/webhooks/mux|api/webhook/stripe|unsubscribe/one-click|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|txt|html|woff2?)$).*)",
   ],
 };
 

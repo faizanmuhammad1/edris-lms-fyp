@@ -12,6 +12,9 @@ import { CourseStructure } from "./_components/CourseStructure";
 
 type Params = Promise<{ courseId: string }>;
 
+// Video processing and Whisper transcription run in after() within this time limit.
+export const maxDuration = 60;
+
 export default async function EditRoute({ params }: { params: Params }) {
   const { courseId } = await params;
   const data = await adminGetCourse(courseId);

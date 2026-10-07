@@ -25,10 +25,6 @@ export const env = createEnv({
     OPENAI_API_KEY: z.string().min(1),
     INTERNAL_WEBHOOK_URL: z.string().url().optional(),
 
-    // Video transcription service (lib/transcription.ts); the webhook rejects requests without a secret.
-    TRANSCRIBER_SERVICE_URL: z.string().url().optional(),
-    TRANSCRIBER_SECRET: z.string().min(16).optional(),
-
     // Polygon blockchain (Certificate issuance + verification)
     // One URL or a comma-separated list; public Amoy fallbacks are tried after it.
     POLYGON_RPC_URL: z.string().min(1),

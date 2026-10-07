@@ -54,6 +54,14 @@ Always create schema changes with `prisma migrate dev` (never `db push`) so migr
 6. Resend: `EMAIL_FROM` must be on a verified domain; otherwise OTP login emails fail.
 7. Blockchain: keep the issuer wallet (`BLOCKCHAIN_PRIVATE_KEY`) funded with POL for gas.
 
+## Lesson transcription
+
+Lesson videos are transcribed in-app with OpenAI Whisper (`whisper-1`, ~$0.006/min) when a
+video is added or replaced, and teachers can retry per lesson or run "Transcribe Course".
+The transcript's timestamped segments feed the AI tutor, and a summary is regenerated afterwards.
+Limits: MP4/WebM (or common audio formats) up to 25 MB per video; larger files are marked
+Failed with an explanation. Transcription runs within the page's 60-second function limit.
+
 ## Maintenance endpoints
 
 - `GET /api/backfill-summaries` (admin only): generates missing AI lesson summaries, 5 per call.

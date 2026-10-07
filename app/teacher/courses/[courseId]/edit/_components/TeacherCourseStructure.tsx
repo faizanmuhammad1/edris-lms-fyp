@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { reorderTeacherChapters, reorderTeacherLessons } from "../actions";
 import { TeacherNewChapterModal } from "./TeacherNewChapterModal";
@@ -64,6 +65,7 @@ interface SortableItemProps {
 }
 
 export function TeacherCourseStructure({ data }: iAppProps) {
+  const router = useRouter();
   const initialItems =
     data.chapter.map((chapter) => ({
       id: chapter.id,
@@ -295,20 +297,21 @@ export function TeacherCourseStructure({ data }: iAppProps) {
   );
 
   async function handleRetryTranscription(lessonId: string) {
-    // transcribeLesson resolves with { success: false } on submit failures,
+    // transcribeLesson resolves with { success: false } on failures,
     // so reject in that case to show the error toast instead of a false success.
     const retryPromise = transcribeLesson(lessonId, data.id).then((result) => {
       if (!result.success) {
-        throw new Error(result.error ?? "Failed to retry transcription");
+        throw new Error(result.error);
       }
       return result;
     });
     toast.promise(retryPromise, {
-      loading: "Retrying transcription...",
-      success: "Transcription queued",
+      loading: "Transcribing lesson...",
+      success: "Transcription complete",
       error: (err) =>
-        err instanceof Error && err.message ? err.message : "Failed to retry transcription",
+        err instanceof Error && err.message ? err.message : "Failed to transcribe lesson",
     });
+    retryPromise.finally(() => router.refresh()).catch(() => {});
   }
 
   // Check if there are any lessons that have a video but are NOT completed

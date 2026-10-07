@@ -2,23 +2,26 @@
 
 import { requireUser } from "@/app/data/user/require-user";
 import { prisma } from "@/lib/db";
-import { getTranscriptionVideoUrl, submitTranscriptionJob } from "@/lib/transcription";
-import { revalidatePath } from "next/cache";
 
-export async function transcribeCourse(courseId: string) {
+/**
+ * Lists the course's lessons that have a video but no completed transcript, in course
+ * order. The client transcribes them one request at a time (via transcribeLesson) so
+ * each lesson stays within a single function's time limit.
+ */
+export async function getLessonsToTranscribe(
+    courseId: string
+): Promise<{ success: true; lessons: { id: string; title: string }[] } | { success: false; error: string }> {
     const session = await requireUser();
 
-    // 1. Fetch course to verify ownership and get lessons
-    const course = await prisma.course.findUnique({
-        where: {
-            id: courseId,
-            userId: session.id, // Ensure user owns the course
-        },
-        include: {
+    const course = await prisma.course.findFirst({
+        where: { id: courseId, userId: session.id },
+        select: {
             chapter: {
-                include: {
+                orderBy: { position: "asc" },
+                select: {
                     lessons: {
-                        // We need to fetch all lessons to check status
+                        orderBy: { position: "asc" },
+                        select: { id: true, title: true, videoKey: true, transcriptionStatus: true },
                     },
                 },
             },
@@ -26,59 +29,13 @@ export async function transcribeCourse(courseId: string) {
     });
 
     if (!course) {
-        throw new Error("Course not found or unauthorized");
+        return { success: false, error: "Course not found or unauthorized" };
     }
 
-    let queuedCount = 0;
-    let failedCount = 0;
+    const lessons = course.chapter
+        .flatMap((chapter) => chapter.lessons)
+        .filter((lesson) => lesson.videoKey && lesson.transcriptionStatus !== "COMPLETED")
+        .map(({ id, title }) => ({ id, title }));
 
-    // Use public URL for webhook if available, otherwise use ngrok/dev URL
-    // For production, NEXT_PUBLIC_APP_URL is set. 
-    // For local dev, we might need a tunnel URL if the microservice is external.
-    // Assuming they can talk to each other or using localhost for now if on same machine.
-    // If microservice is in docker and this is localhost, `host.docker.internal` might be needed
-    // But let's stick to theEnv var.
-    const baseUrl = process.env.INTERNAL_WEBHOOK_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL;
-    if (!baseUrl) {
-        throw new Error("NEXT_PUBLIC_APP_URL or INTERNAL_WEBHOOK_URL is not defined");
-    }
-    const webhookUrl = `${baseUrl}/api/webhooks/transcription`;
-
-    // 2. Iterate through lessons and submit jobs
-    for (const chapter of course.chapter) {
-        for (const lesson of chapter.lessons) {
-            if (!lesson.videoKey) continue;
-
-            // Skip if already completed to avoid duplicate work/cost
-            if (lesson.transcriptionStatus === "COMPLETED") {
-                continue;
-            }
-
-            try {
-                // Presigned GET URL on the configured S3 endpoint
-                const videoUrl = await getTranscriptionVideoUrl(lesson.videoKey);
-
-                await submitTranscriptionJob(
-                    lesson.id,
-                    course.id,
-                    videoUrl,
-                    webhookUrl
-                );
-
-                // Update status to QUEUED
-                await prisma.lesson.update({
-                    where: { id: lesson.id },
-                    data: { transcriptionStatus: "QUEUED" },
-                });
-
-                queuedCount++;
-            } catch (error) {
-                console.error(`Failed to queue lesson ${lesson.id}:`, error);
-                failedCount++;
-            }
-        }
-    }
-
-    revalidatePath(`/teacher/courses/${courseId}/edit`);
-    return { success: true, count: queuedCount, failedCount };
+    return { success: true, lessons };
 }
